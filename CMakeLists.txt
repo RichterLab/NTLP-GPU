@@ -7,6 +7,19 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release." FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
 
+# CUDA
+option( BUILD_CUDA "Build CUDA code" OFF)
+if (BUILD_CUDA)
+  find_package(CUDA REQUIRED)
+  add_definitions(-DBUILD_CUDA)
+
+  # cuda_add_executable( lescudas "particle_gpu.cu")
+  # cuda_add_library( lescuda "particle_gpu.cu")
+  CUDA_COMPILE(PARTICLE_O "particle_gpu.cu")
+
+  # target_link_libraries (lesmpi.a lescuda)
+endif(BUILD_CUDA)
+
 option( BUILD_FORTRAN "Build Fortran code" OFF)
 if (BUILD_FORTRAN)
   # Require MPI
@@ -23,17 +36,11 @@ if (BUILD_FORTRAN)
   # Build Executable
   set_source_files_properties( "les.F" COMPILE_FLAGS "-assume byterecl")
 
-  add_executable (lesmpi.a "les.F")
-  target_link_libraries (lesmpi.a fft)
+  add_executable (lesmpi.a "les.F" ${PARTICLE_O})
+  target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
 
   install ( TARGETS lesmpi.a RUNTIME DESTINATION "bin")
 endif (BUILD_FORTRAN)
-
-# CUDA
-option( BUILD_CUDA "Build CUDA code" OFF)
-if (BUILD_CUDA)
-  find_package(CUDA REQUIRED)
-endif(BUILD_CUDA)
 
 option( BUILD_TESTS "Build LES tests" ON)
 if (BUILD_TESTS)
