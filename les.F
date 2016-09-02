@@ -81,8 +81,8 @@ c     ----------------------------------------------------------------------
      +             path_seed
 c     ----------------------------------------------------------------------
       integer ::    myid, numprocs, i_root,
-     +     ziloc, myid_newvis, ncpu_s, ncpu_z, maxp
       integer, allocatable, dimension(:) :: 
+     +     ziloc, myid_newvis, ncpu_s, ncpu_z, maxp, gpuid
      +     ix_s, ix_e, jx_s, jx_e,
      +     kx_s, kx_e, mx_s, mx_e,
      +     iy_s, iy_e, jy_s, jy_e,
@@ -448,6 +448,7 @@ c
       use particles
       use con_data
       use con_stats
+      use particle_c
       include 'mpif.h'
 c
 c ------------- definition of internal flags
@@ -518,6 +519,18 @@ c
 
 !----- Read the input file for all necessary parameters
       call read_input_file
+
+#ifdef BUILD_CUDA
+      ! Find Available GPU
+      gpuid = select_gpu_master(numprocs)
+      if(gpuid .eq. -1) then
+            write(*,*) "GPU Device not found"
+      end if
+
+      call mpi_bcast(gpuid,1,mpi_int,0,mpi_comm_world,ierr)
+
+      if (l_root .eqv. .true.) write(*,*) "Selected GPU Rank:", gpuid
+#endif
 
 c
 c -------- set number of x-y slab cpus
