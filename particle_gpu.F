@@ -16,23 +16,19 @@
                   include 'mpif.h'
 
                   integer :: gpu_count = 0, i = 0, myid = 0, ierr = 0
-                  integer, allocatable, dimension(:) :: gpus
+                  integer, dimension(processors) :: gpus
 
                   call mpi_comm_rank(mpi_comm_world,myid,ierr)
 
                   gpu_count = gpudevices()
-                  if( myid .eq. 0 ) then
-                        allocate( gpus(processors) )
-                  end if
-
                   call mpi_gather(gpu_count, 1, mpi_integer, gpus, 1,
      +                  mpi_integer, 0, mpi_comm_world, ierr)
 
                   if( myid .eq. 0 ) then
                         id = -1
-                        do  i=0,processors
+                        do  i=1,processors
                               if( gpus(i) .gt. 0 ) then
-                                    id = i
+                                    id = i-1
                                     exit
                               end if
                         end  do
