@@ -1,6 +1,9 @@
 #include "particle_gpu.h"
 #include "stdio.h"
 
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
 extern "C" int gpudevices(){
     int nDevices;
     cudaGetDeviceCount(&nDevices);
@@ -110,6 +113,48 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     particles[idx].Tp = Tptmp + dt * gama[istage] * particles[idx].Tprhs_s;
     particles[idx].Tp = particles[idx].Tp + dt * gama[istage] * particles[idx].Tprhs_L;
     particles[idx].radius = radiustmp + dt * gama[istage] * particles[idx].radrhs;
+}
+
+extern "C" double rand2(int idum) {
+      const int NTAB = 32;
+      static int iv[NTAB], iy = 0, idum2 = 123456789;
+
+      int k = 0, IM1 = 2147483563,IM2 = 2147483399,IMM1 = IM1-1,IA1 = 40014,IA2 = 40692,IQ1 = 53668,IQ2 = 52774,IR1 = 12211,IR2 = 3791, NDIV = 1+IMM1/NTAB;
+      double AM = 1.0/IM1,EPS = 1.2e-7,RNMX = 1.0-EPS;
+
+      if( idum <= 0 ){
+          idum = MAX(-idum,1);
+          idum2 = idum;
+          for ( int j = NTAB+8; j > 1; j-- ) {
+             k = idum/IQ1;
+             idum = IA1*(idum-k*IQ1)-k*IR1;
+             if (idum < 0) {
+                 idum=idum+IM1;
+             }
+             if (j <= NTAB) {
+                 iv[j] = idum;
+             }
+          }
+          iy = iv[1];
+      }
+
+      k=idum/IQ1;
+      idum=IA1*(idum-k*IQ1)-k*IR1;
+      if (idum < 0) {
+          idum=idum+IM1;
+        }
+      k = idum2/IQ2;
+      idum2 = IA2*(idum2-k*IQ2)-k*IR2;
+      if (idum2 < 0) {
+          idum2=idum2+IM2;
+      }
+      const int j = 1 + iy/NDIV;
+      iy = iv[j] - idum2;
+      iv[j] = idum;
+      if (iy < 1) {
+          iy = iy+IMM1;
+      }
+      return MIN(AM*iy,RNMX);
 }
 
 extern "C" Particle* CalculateStep( const int it, const int istage, const double dt, const int pcount, Particle* particles ) {

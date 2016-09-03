@@ -7,6 +7,7 @@ struct Particle {
 	double Tp, Tprhs_s, Tprhs_L, Tf, radius, radrhs, qinf, qstar;
 };
 
+extern "C" double rand2(int idum);
 extern "C" Particle* CalculateStep( const int it, const int istage, const double dt, const int pcount, Particle* particles );
 
 #endif // PARTICLE_H_

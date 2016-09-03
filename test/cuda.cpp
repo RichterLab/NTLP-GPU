@@ -7,6 +7,11 @@
 #include "particle_gpu.h"
 #include "utility.h"
 
+TEST( ParticleCUDA, Random ) {
+    ASSERT_DOUBLE_EQ(rand2(1080), 0.65541634834855311);
+    ASSERT_DOUBLE_EQ(rand2(1080), 0.20099518545185716);
+}
+
 TEST( ParticleCUDA, ParticleUpdate ) {
     std::vector<Particle> input = ReadParticles( "../test/data/particle_input.dat" );
 	ASSERT_EQ( input.size(), 10 );
