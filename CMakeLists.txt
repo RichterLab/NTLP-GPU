@@ -7,6 +7,19 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release." FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
 
+# CUDA
+option( BUILD_CUDA "Build CUDA code" OFF)
+if (BUILD_CUDA)
+  find_package(CUDA REQUIRED)
+  add_definitions(-DBUILD_CUDA)
+
+  # cuda_add_executable( lescudas "particle_gpu.cu")
+  # cuda_add_library( lescuda "particle_gpu.cu")
+  CUDA_COMPILE(PARTICLE_O "particle_gpu.cu")
+
+  # target_link_libraries (lesmpi.a lescuda)
+endif(BUILD_CUDA)
+
 option( BUILD_FORTRAN "Build Fortran code" OFF)
 if (BUILD_FORTRAN)
   # Require MPI
@@ -23,17 +36,11 @@ if (BUILD_FORTRAN)
   # Build Executable
   set_source_files_properties( "les.F" COMPILE_FLAGS "-assume byterecl")
 
-  add_executable (lesmpi.a "les.F")
-  target_link_libraries (lesmpi.a fft)
+  add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
+  target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
 
   install ( TARGETS lesmpi.a RUNTIME DESTINATION "bin")
 endif (BUILD_FORTRAN)
-
-# CUDA
-option( BUILD_CUDA "Build CUDA code" OFF)
-if (BUILD_CUDA)
-  find_package(CUDA REQUIRED)
-endif(BUILD_CUDA)
 
 option( BUILD_TESTS "Build LES tests" ON)
 if (BUILD_TESTS)
@@ -58,11 +65,11 @@ if (BUILD_TESTS)
     include_directories("${gtest_SOURCE_DIR}/include")
   endif()
 
-  include_directories("test/")
+  include_directories("${CMAKE_SOURCE_DIR}" "test/")
 
   if (BUILD_CUDA)
-    cuda_include_directories("${gtest_SOURCE_DIR}/include" "test/")
-    cuda_add_executable (les-test "test/main.cpp" "test/utility.cpp" "test/reference.cpp" "test/cuda.cu")
+    cuda_include_directories("${CMAKE_SOURCE_DIR}" "${gtest_SOURCE_DIR}/include" "test/")
+    cuda_add_executable (les-test "test/main.cpp" "test/utility.cpp" "test/reference.cpp" "test/cuda.cpp" "particle_gpu.cu")
   else (BUILD_CUDA)
     add_executable (les-test "test/main.cpp" "test/utility.cpp" "test/reference.cpp")
   endif (BUILD_CUDA)

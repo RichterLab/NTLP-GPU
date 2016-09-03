@@ -1,16 +1,16 @@
-#include "gtest/gtest.h"
-#include <cmath>
-#include <string>
-#include <sstream>
-#include <fstream>
+#include "particle_gpu.h"
+#include "stdio.h"
 
-#include "utility.h"
+extern "C" int gpudevices(){
+    int nDevices;
+    cudaGetDeviceCount(&nDevices);
+    return nDevices;
+}
 
 #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
 inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
 {
-   if (code != cudaSuccess)
-   {
+   if (code != cudaSuccess) {
       fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
       if (abort) exit(code);
    }
@@ -112,48 +112,17 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     particles[idx].radius = radiustmp + dt * gama[istage] * particles[idx].radrhs;
 }
 
-TEST( ParticleCUDA, ParticleUpdate ) {
-    std::vector<Particle> input = ReadParticles( "../test/data/particle_input.dat" );
-	ASSERT_EQ( input.size(), 10 );
-
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_expected.dat" );
-	ASSERT_EQ( expected.size(), 10 );
-
+extern "C" Particle* CalculateStep( const int it, const int istage, const double dt, const int pcount, Particle* particles ) {
     Particle *dParticles;
-	gpuErrchk( cudaMalloc( (void **)&dParticles, sizeof(Particle) * 10) );
-    gpuErrchk( cudaMemcpy(dParticles, &input[0], sizeof(Particle) * 10, cudaMemcpyHostToDevice) );
+    gpuErrchk( cudaMalloc( (void **)&dParticles, sizeof(Particle) * pcount) );
+    gpuErrchk( cudaMemcpy(dParticles, particles, sizeof(Particle) * pcount, cudaMemcpyHostToDevice) );
 
-    GPUUpdateParticles<<< 1, 12 >>> (500, 2, 3.556534376545218E-4, 10, dParticles);
+    GPUUpdateParticles<<< 1, pcount >>> (it, istage, dt, pcount, dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 
-    Particle *result = new Particle[10];
-    gpuErrchk( cudaMemcpy(result, dParticles, sizeof(Particle) * 10, cudaMemcpyDeviceToHost) );
+    Particle *result = (Particle*) malloc( sizeof(Particle) * pcount);
+    gpuErrchk( cudaMemcpy(result, dParticles, sizeof(Particle) * pcount, cudaMemcpyDeviceToHost) );
 
-    for( int i = 0; i < 10; i++ ) {
-		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].vp[j], result[i].vp[j] ) << "I: " << i << " J: " << j;
-		}
-		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].xp[j], result[i].xp[j] ) << "I: " << i << " J: " << j;
-		}
-		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].uf[j], result[i].uf[j] ) << "I: " << i << " J: " << j;
-		}
-		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].xrhs[j], result[i].xrhs[j] ) << "I: " << i << " J: " << j;
-		}
-		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].vrhs[j], result[i].vrhs[j] ) << "I: " << i << " J: " << j;
-		}
-
-		ASSERT_FLOAT_EQ( expected[i].Tp, result[i].Tp ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tprhs_s, result[i].Tprhs_s ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tprhs_L, result[i].Tprhs_L ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tf, result[i].Tf ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].radius, result[i].radius ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].radrhs, result[i].radrhs ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].qinf, result[i].qinf ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].qstar, result[i].qstar ) << "I: " << i;
-	}
+    return result;
 }
