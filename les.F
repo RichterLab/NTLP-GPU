@@ -81,8 +81,8 @@ c     ----------------------------------------------------------------------
      +             path_seed
 c     ----------------------------------------------------------------------
       integer ::    myid, numprocs, i_root,
-      integer, allocatable, dimension(:) :: 
      +     ziloc, myid_newvis, ncpu_s, ncpu_z, maxp, gpuid
+      integer, allocatable, dimension(:) :: 
      +     ix_s, ix_e, jx_s, jx_e,
      +     kx_s, kx_e, mx_s, mx_e,
      +     iy_s, iy_e, jy_s, jy_e,
