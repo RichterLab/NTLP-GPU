@@ -36,7 +36,7 @@ if (BUILD_FORTRAN)
   # Build Executable
   set_source_files_properties( "les.F" COMPILE_FLAGS "-assume byterecl")
 
-  add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
+  add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
   target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
 
   install ( TARGETS lesmpi.a RUNTIME DESTINATION "bin")
