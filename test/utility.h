@@ -3,12 +3,7 @@
 
 #include <string>
 #include <vector>
-
-struct Particle {
-	int pidx, procidx;
-	double vp[3], xp[3], uf[3], xrhs[3], vrhs[3];
-	double Tp, Tprhs_s, Tprhs_L, Tf, radius, radrhs, qinf, qstar;
-};
+#include "particle_gpu.h"
 
 std::vector<Particle> ReadParticles( std::string path );
 
