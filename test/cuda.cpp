@@ -19,7 +19,10 @@ TEST( ParticleCUDA, ParticleUpdate ) {
 	std::vector<Particle> expected = ReadParticles( "../test/data/particle_expected.dat" );
 	ASSERT_EQ( expected.size(), 10 );
 
-    Particle *result = CalculateStep(500, 2, 3.556534376545218E-4, 10, &input[0]);
+	GPU *gpu = (GPU*) malloc( sizeof(GPU) );
+	ParticleInit(gpu, 10, &input[0]);
+	ParticleStep(gpu, 500, 2, 3.556534376545218E-4);
+    Particle *result = ParticleDownload(gpu);
 
     for( int i = 0; i < 10; i++ ) {
 		for( int j = 0; j < 3; j++ ) {

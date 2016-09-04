@@ -157,17 +157,47 @@ extern "C" double rand2(int idum) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" Particle* CalculateStep( const int it, const int istage, const double dt, const int pcount, Particle* particles ) {
-    Particle *dParticles;
-    gpuErrchk( cudaMalloc( (void **)&dParticles, sizeof(Particle) * pcount) );
-    gpuErrchk( cudaMemcpy(dParticles, particles, sizeof(Particle) * pcount, cudaMemcpyHostToDevice) );
+extern "C" void ParticleInit( GPU* gpu, const int particles, const Particle* input ){
+    gpu->pCount = particles;
+    gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * particles ) );
+    gpuErrchk( cudaMemcpy( gpu->dParticles, input, sizeof(Particle) * particles, cudaMemcpyHostToDevice ) );
+}
 
-    GPUUpdateParticles<<< 1, pcount >>> (it, istage, dt, pcount, dParticles);
+extern "C" void ParticleGenerate(GPU* gpu, const int particles, const int seed, const double temperature, const double xmin, const double xmax, const double ymin, const double ymax, const double zl, const double delta_vis, const double radius, const double qinfp){
+    gpu->pCount = particles;
+    gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * particles) );
+
+    Particle *hParticles = (Particle*) malloc( sizeof(Particle) * particles );
+    for( size_t i = 0; i < particles; i++ ){
+        const double x = rand2(seed)*(xmax-xmin) + xmin;
+        const double y = rand2(seed)*(ymax-ymin) + ymin;
+        const double z = rand2(seed)*(zl-2.0*delta_vis) + delta_vis;
+
+        hParticles[i].xp[0] = x; hParticles[i].xp[1] = y; hParticles[i].xp[2] = z;
+        hParticles[i].vp[0] = 0.0; hParticles[i].vp[1] = 0.0; hParticles[i].vp[2] = 0.0;
+        hParticles[i].Tp = temperature;
+        hParticles[i].radius = radius;
+        hParticles[i].uf[0] = 0.0; hParticles[i].uf[1] = 0.0; hParticles[i].uf[2] = 0.0;
+        hParticles[i].qinf = qinfp;
+        hParticles[i].xrhs[0] = 0.0; hParticles[i].xrhs[1] = 0.0; hParticles[i].xrhs[2] = 0.0;
+        hParticles[i].vrhs[0] = 0.0; hParticles[i].vrhs[1] = 0.0; hParticles[i].vrhs[2] = 0.0;
+        hParticles[i].Tprhs_s = 0.0;
+        hParticles[i].Tprhs_L = 0.0;
+        hParticles[i].radrhs = 0.0;
+    }
+
+    gpuErrchk( cudaMemcpy(gpu->dParticles, hParticles, sizeof(Particle) * particles, cudaMemcpyHostToDevice) );
+    free(hParticles);
+}
+
+extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
+    GPUUpdateParticles<<< 1, gpu->pCount >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
+}
 
-    Particle *result = (Particle*) malloc( sizeof(Particle) * pcount);
-    gpuErrchk( cudaMemcpy(result, dParticles, sizeof(Particle) * pcount, cudaMemcpyDeviceToHost) );
-
+extern "C" Particle* ParticleDownload( GPU *gpu ) {
+    Particle *result = (Particle*) malloc( sizeof(Particle) * gpu->pCount);
+    gpuErrchk( cudaMemcpy(result, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
     return result;
 }
