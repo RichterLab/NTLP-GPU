@@ -115,9 +115,16 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     particles[idx].radius = radiustmp + dt * gama[istage] * particles[idx].radrhs;
 }
 
-extern "C" double rand2(int idum) {
+extern "C" double rand2(int idum, bool reset) {
       const int NTAB = 32;
       static int iv[NTAB], iy = 0, idum2 = 123456789;
+      if( reset ) {
+          for( int i = 0; i < NTAB; i++ ){
+              iv[i] = 0;
+          }
+          iy = 0;
+          idum2 = 123456789;
+      }
 
       int k = 0, IM1 = 2147483563,IM2 = 2147483399,IMM1 = IM1-1,IA1 = 40014,IA2 = 40692,IQ1 = 53668,IQ2 = 52774,IR1 = 12211,IR2 = 3791, NDIV = 1+IMM1/NTAB;
       double AM = 1.0/IM1,EPS = 1.2e-7,RNMX = 1.0-EPS;
@@ -163,15 +170,31 @@ extern "C" void ParticleInit( GPU* gpu, const int particles, const Particle* inp
     gpuErrchk( cudaMemcpy( gpu->dParticles, input, sizeof(Particle) * particles, cudaMemcpyHostToDevice ) );
 }
 
-extern "C" void ParticleGenerate(GPU* gpu, const int particles, const int seed, const double temperature, const double xmin, const double xmax, const double ymin, const double ymax, const double zl, const double delta_vis, const double radius, const double qinfp){
+extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int particles, const int seed, const double temperature, const double xmin, const double xmax, const double ymin, const double ymax, const double zl, const double delta_vis, const double radius, const double qinfp){
     gpu->pCount = particles;
     gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * particles) );
 
+    bool reset = true;
+    int currentProcessor = 1;
+    const int particles_per_processor = particles / processors;
+
     Particle *hParticles = (Particle*) malloc( sizeof(Particle) * particles );
     for( size_t i = 0; i < particles; i++ ){
-        const double x = rand2(seed)*(xmax-xmin) + xmin;
-        const double y = rand2(seed)*(ymax-ymin) + ymin;
-        const double z = rand2(seed)*(zl-2.0*delta_vis) + delta_vis;
+        if( i >= currentProcessor * particles_per_processor) {
+            reset = true;
+            currentProcessor++;
+        }
+
+        double random = 0.0;
+        if( reset ) {
+            random = rand2(seed, true);
+            reset = false;
+        }else{
+            random = rand2(seed, false);
+        }
+        const double x = random*(xmax-xmin) + xmin;
+        const double y = rand2(seed, false)*(ymax-ymin) + ymin;
+        const double z = rand2(seed, false)*(zl-2.0*delta_vis) + delta_vis;
 
         hParticles[i].xp[0] = x; hParticles[i].xp[1] = y; hParticles[i].xp[2] = z;
         hParticles[i].vp[0] = 0.0; hParticles[i].vp[1] = 0.0; hParticles[i].vp[2] = 0.0;
