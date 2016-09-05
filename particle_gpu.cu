@@ -131,6 +131,23 @@ __global__ void GPUUpdateNonperiodic( const double grid_width, const double delt
     }
 }
 
+__global__ void GPUUpdatePeriodic( const double grid_width, const double grid_height, const int pcount, Particle* particles ) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if ( idx > pcount ) return;
+
+    if( particles[idx].xp[0] > grid_width ){
+        particles[idx].xp[0] = particles[idx].xp[0] - grid_width;
+    }else if( particles[idx].xp[0] < 0.0 ){
+        particles[idx].xp[0] = grid_width + particles[idx].xp[0];
+    }
+
+    if( particles[idx].xp[1] > grid_height ){
+        particles[idx].xp[1] = particles[idx].xp[1] - grid_height;
+    }else if( particles[idx].xp[1] < 0.0 ){
+        particles[idx].xp[1] = grid_height + particles[idx].xp[1];
+    }
+}
+
 extern "C" double rand2(int idum, bool reset) {
       const int NTAB = 32;
       static int iv[NTAB], iy = 0, idum2 = 123456789;
@@ -237,6 +254,12 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
 
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu, const double grid_width, const double delta_viz ) {
     GPUUpdateNonperiodic<<< 1, gpu->pCount >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+}
+
+extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const double grid_height ) {
+    GPUUpdatePeriodic<<< 1, gpu->pCount >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
