@@ -20,7 +20,7 @@ if (BUILD_CUDA)
   # target_link_libraries (lesmpi.a lescuda)
 endif(BUILD_CUDA)
 
-option( BUILD_FORTRAN "Build Fortran code" OFF)
+option( BUILD_FORTRAN "Build Fortran code" ON)
 if (BUILD_FORTRAN)
   # Require MPI
   find_package(MPI REQUIRED)
@@ -34,15 +34,13 @@ if (BUILD_FORTRAN)
   add_library (fft STATIC "fft.f")
 
   # Build Executable
-  #set_source_files_properties( "les.F" COMPILE_FLAGS "-assume byterecl")
-
   add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
   target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
 
   install ( TARGETS lesmpi.a RUNTIME DESTINATION "bin")
 endif (BUILD_FORTRAN)
 
-option( BUILD_TESTS "Build LES tests" ON)
+option( BUILD_TESTS "Build LES tests" OFF)
 if (BUILD_TESTS)
   # Download and unpack googletest at configure time
   configure_file(CMakeLists.txt.in googletest-download/CMakeLists.txt)
