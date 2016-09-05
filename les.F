@@ -6767,29 +6767,50 @@ c
       uwle(iz)   = stat(iz,9)*fnxy
       vwle(iz)   = stat(iz,10)*fnxy
       zconc(iz)  = stat(iz,11)/xl/yl/dzw(iz)
+
+      ! Avoid floating point exceptions when we have no particles
+      if( stat(iz,11) .eq. 0 ) then
+      vp1mean(iz) = 0
+      vp2mean(iz) = 0
+      vp3mean(iz) = 0
+      vp1msqr(iz) = 0
+      vp2msqr(iz) = 0
+      vp3msqr(iz) = 0
+      upwpm(iz) = 0
+      Tpmean(iz) = 0
+      Tpmsqr(iz) = 0
+      Tfmean(iz) = 0
+      qfmean(iz) = 0
+      wpTpm(iz) = 0
+      radmean(iz) = 0
+      rad2mean(iz)= 0
+      mpmean(iz) = 0
+      mwmean(iz) = 0
+      else
       vp1mean(iz) = stat(iz,12)/stat(iz,11)
       vp2mean(iz) = stat(iz,13)/stat(iz,11)
       vp3mean(iz) = stat(iz,14)/stat(iz,11)
       vp1msqr(iz) = sqrt(stat(iz,15)/stat(iz,11)-vp1mean(iz)**2)
       vp2msqr(iz) = sqrt(stat(iz,16)/stat(iz,11)-vp2mean(iz)**2)
       vp3msqr(iz) = sqrt(stat(iz,17)/stat(iz,11)-vp3mean(iz)**2)
-      m1src(iz) = stat(iz,18)*fnxy
-      m2src(iz) = stat(iz,19)*fnxy
-      m3src(iz) = stat(iz,20)*fnxy
-      uw_tot(iz) = uwle(iz) + uwsb(iz)
-      vw_tot(iz) = vwle(iz) + vwsb(iz)
       upwpm(iz) = stat(iz,21)/stat(iz,11)-(vp1mean(iz)*vp3mean(iz))
       Tpmean(iz) = stat(iz,22)/stat(iz,11)
       Tpmsqr(iz) = sqrt(stat(iz,23)/stat(iz,11)-Tpmean(iz)**2)
       Tfmean(iz) = stat(iz,24)/stat(iz,11)
       qfmean(iz) = stat(iz,25)/stat(iz,11)
       wpTpm(iz) = stat(iz,26)/stat(iz,11)-(Tpmean(iz)*vp3mean(iz))
-      Tpsrc(iz) = stat(iz,27)*fnxy
       radmean(iz) = stat(iz,28)/stat(iz,11)
       rad2mean(iz)= stat(iz,29)/stat(iz,11)
-
       mpmean(iz) = stat(iz,30)/stat(iz,11) !make sure stat matchs with phimp
       mwmean(iz) = stat(iz,31)/stat(iz,11) !make sure stat matchs with phimw
+      end if
+
+      m1src(iz) = stat(iz,18)*fnxy
+      m2src(iz) = stat(iz,19)*fnxy
+      m3src(iz) = stat(iz,20)*fnxy
+      uw_tot(iz) = uwle(iz) + uwsb(iz)
+      vw_tot(iz) = vwle(iz) + vwsb(iz)
+      Tpsrc(iz) = stat(iz,27)*fnxy
       phimp(iz) = stat(iz,30)/xl/yl/dzw(iz)/rhoa
       phimw(iz) = stat(iz,31)/xl/yl/dzw(iz)/rhoa
 
