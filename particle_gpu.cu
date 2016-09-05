@@ -115,6 +115,22 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     particles[idx].radius = radiustmp + dt * gama[istage] * particles[idx].radrhs;
 }
 
+__global__ void GPUUpdateNonperiodic( const double grid_width, const double delta_vis, const int pcount, Particle* particles ) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if ( idx > pcount ) return;
+
+    const double top = grid_width - delta_vis;
+    const double bot = 0.0 + delta_vis;
+
+    if( particles[idx].xp[2] > top ){
+        particles[idx].xp[2] = top - (particles[idx].xp[2]-top);
+        particles[idx].vp[2] = -particles[idx].vp[2];
+    }else if( particles[idx].xp[2] < bot ){
+        particles[idx].xp[2] = bot + (bot-particles[idx].xp[2]);
+        particles[idx].vp[2] = -particles[idx].vp[2];
+    }
+}
+
 extern "C" double rand2(int idum, bool reset) {
       const int NTAB = 32;
       static int iv[NTAB], iy = 0, idum2 = 123456789;
@@ -215,6 +231,12 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
     GPUUpdateParticles<<< 1, gpu->pCount >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaDeviceSynchronize() );
+}
+
+extern "C" void ParticleUpdateNonPeriodic( GPU *gpu, const double grid_width, const double delta_viz ) {
+    GPUUpdateNonperiodic<<< 1, gpu->pCount >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
