@@ -7028,6 +7028,8 @@ c          stat(.,3) = Dv*< T' dq'/dz >
 
 
 
+
+      Sqp1 = 0.0
       stat = 0.0
       do iz=izs,ize
          izp1 = iz + 1
@@ -7061,7 +7063,6 @@ c          stat(.,3) = Dv*< T' dq'/dz >
            qmean = 2.0*Ttop(2) - txym(iz,2)
            qflucp1 = t(i,j,2,izp1)-qmean
            qflucm1 = t(i,j,2,izm1)-txym(izm1,2)
-           Sqp1 = 0.0
          else
            qflucp1 = t(i,j,2,izp1)-txym(izp1,2)
            qflucm1 = t(i,j,2,izm1)-txym(izm1,2)
