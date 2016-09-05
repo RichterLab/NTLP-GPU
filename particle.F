@@ -144,7 +144,7 @@
           include 'mpif.h'
           integer :: values(8)
           integer :: idx
-          real :: xv,yv,zv,ran2,deltaz
+          real :: xv,yv,zv,deltaz
           real :: maxx,maxy,maxz
 
           !Create the seed for the random number generator:
