@@ -146,6 +146,7 @@
           integer :: idx
           real :: xv,yv,zv,deltaz
           real :: maxx,maxy,maxz
+          real :: xp_init(3)
 
           !Create the seed for the random number generator:
           call date_and_time(VALUES=values)
@@ -170,11 +171,10 @@
           maxy=0.0
           maxz=0.0
           do idx=1,numpart
-            xv = ran2(iseed)*(xmax-xmin) + xmin
-            yv = ran2(iseed)*(ymax-ymin) + ymin
-            zv = ran2(iseed)*(zl-2.0*delta_vis) + delta_vis
-            call particle_create((/xv,yv,zv/),vp_init,Tp_init,qf_init,
-     +        idx)
+            xp_init(1) = ran2(iseed)*(xmax-xmin) + xmin
+            xp_init(2) = ran2(iseed)*(ymax-ymin) + ymin
+            xp_init(3) = ran2(iseed)*(zl-2.0*delta_vis) + delta_vis
+            call particle_create(xp_init,vp_init,Tp_init,qf_init,idx)
           end do
 
           partTsrc = 0.0
