@@ -680,13 +680,13 @@ c
 c     if(ifilt.eq.1)call filter
       if(l_root) then
          write(6,1) nnx,nny,nnz,ismlt,ifilt,iti,itmax,
-     +             iupwnd,ibuoy,itcut,
+     +             iupwnd,ibuoy,1,itcut,
      +             dt,zo,tsfcc(1),isubs,ibrcl,
      +             method, iocean, ivis
       endif
       if(l_debug) then
          write(nprt,1) nnx,nny,nnz,ismlt,ifilt,iti,itmax,
-     +             iupwnd,ibuoy,itcut,
+     +             iupwnd,ibuoy,1,itcut,
      +             dt,zo,tsfcc(1),isubs,ibrcl,
      +             method, iocean, ivis
       endif
