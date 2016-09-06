@@ -144,7 +144,6 @@
           include 'mpif.h'
           integer :: values(8)
           integer :: idx
-          real :: xv,yv,zv,deltaz
           real :: maxx,maxy,maxz
           real :: xp_init(3)
 
@@ -156,8 +155,6 @@
           ngidx = 1
 
           !For the channel case, set the total number of particles:
-          deltaz = zmax-zmin
-
           numpart = tnumpart/numprocs
           if (myid == 0) then
             numpart = numpart + MOD(tnumpart,numprocs)
@@ -166,7 +163,8 @@
           !Initialize the linked list of particles:
           nullify(part,first_particle)
 
-          !Now initialize all particles with a random location on that processor
+          !Now initialize all particles with a random location on that
+          !processor
           maxx=0.0
           maxy=0.0
           maxz=0.0
@@ -312,14 +310,11 @@
 
           integer :: istage,ierr,it
           real :: g(3)
-          real :: denom,dtl,sigma,ttest
-          integer :: ix,iy,iz
           real :: Rep,diff(3),diffnorm,corrfac,myRep_avg
           real :: xtmp(3),vtmp(3),Tptmp,radiustmp
           real :: Nup,Shp,rhop,taup_i,estar,einf
           real :: myphip_sum,myphiw_sum,myphiv_sum,Volp
           real :: TfC,TpC,Lv,Eff_C,Eff_S
-          real :: t_s,t_f,t_s1,t_f1
 
           g(1:3) = (/0.0, 0.0, part_grav/)
 
@@ -648,7 +643,7 @@
           integer :: istatus(mpi_status_size),ierr
           integer :: ix,iy,iz
           real :: g(3)
-          real :: lref,Cvv,Cva,Cpv
+          real :: Cvv,Cpv
 
           g(1:3) = (/0.0, 0.0, part_grav/)
 
@@ -724,8 +719,9 @@
           if (iz .gt. nnz+1) write(*,*) 'proc',myid,'has iz = ',iz
           if (iz .lt. 0) write(*,*) 'proc',myid,'has iz = ',iz
 
-          !Recall to subtract minus g (add g) since momentum is extracted form
-          !fluid only through drag term - NOT the gravity term as well
+          !Recall to subtract minus g (add g) since momentum is
+          !extracted form fluid only through drag term - NOT the
+          !gravity term as well
           if (icouple == 1) then
           !drag momentum coupling
           partsrc_t(iz,iy,ix,1:3) =
@@ -768,7 +764,7 @@
 
           endif
 
-          !write(*,'a5,3i,3e15.6') 'bsrc:',ix,iy,iz,partsrc(ix,iy,iz,1:3)
+        !write(*,'a5,3i,3e15.6') 'bsrc:',ix,iy,iz,partsrc(ix,iy,iz,1:3)
 
           end do
           end do
@@ -777,7 +773,8 @@
           part => part%next
           end do
 
-          !Now, partsrc and partTsrc have halos on each processor - give these to the rightful owner:
+          !Now, partsrc and partTsrc have halos on each processor -
+          !give these to the rightful owner:
           crbuf_s=0.0;ctbuf_s=0.0
           clbuf_r=0.0;cbbuf_r=0.0
 
@@ -798,8 +795,8 @@
           call mpi_sendrecv(ctbuf_s,ncount,mpi_real8,tproc,1,
      +     cbbuf_r,ncount,mpi_real8,bproc,1,mpi_comm_world,istatus,ierr)
 
-          !Now just add the contents of the receive buffer into the entire
-          !iys column of this proc:
+          !Now just add the contents of the receive buffer into the
+          !entire iys column of this proc:
 
           partsrc_t(0:nnz+1,iys:iye+1,mxs,1:3) =
      +      partsrc_t(0:nnz+1,iys:iye+1,mxs,1:3) +
@@ -1219,7 +1216,8 @@
         call mpi_waitall(16,req,status_array,ierr)
 
         !Now add incoming particles to linked list:
-        !NOTE: add them to beginning since it's easiest to access (first_particle)
+        !NOTE: add them to beginning since it's easiest to
+        ! access (first_particle)
 
         !Form one large buffer to loop through and add:
         psum = pr_r+ptr_r+pt_r+ptl_r+pl_r+pbl_r+pb_r+pbr_r
@@ -1318,9 +1316,9 @@
           use pars
           include 'mpif.h'
           !Figure out which processors lie to all sides:
-          !NOTE: For this updated case, where particles lie in columns not
-          !aligning with the velocity, there will be no MPI_PROC_NULL since
-          !x and y are BOTH periodic
+          !NOTE: For this updated case, where particles
+          !lie in columns not aligning with the velocity, there will
+          !be no MPI_PROC_NULL since x and y are BOTH periodic
 
           !On right boundary:
           if ( mod(myid+1,ncpu_s) == 0 ) then
@@ -1438,7 +1436,8 @@
           implicit none
           include 'mpif.h'
 
-          !Each processor must figure out at what ymin,ymax,zmin,zmax a particle leaves
+          !Each processor must figure out at what ymin,ymax,zmin,zmax
+          !a particle leaves
           ymin = dy*(iys-1)
           ymax = dy*(iye)
           zmin = z(izs-1)
@@ -1456,35 +1455,23 @@
       include 'mpif.h'
 
       integer :: istatus(mpi_status_size),ierr
-      integer :: ix,iy,iz
       !preceding letter: r=right,l=left,t=top,b=bot.
       !_s: buf of things to send TO r,l,t,b
       !_r: buf of things to recv FROM r,l,t,b
-c      real :: tbuf_s(nnz+2,iye-iys+1,2,4),tbuf_r(nnz+2,iye-iys+1,3,4) !Brian 7/14/14
-c      real :: bbuf_s(nnz+2,iye-iys+1,3,4),bbuf_r(nnz+2,iye-iys+1,2,4) !Brian 7/14/14
-c      real :: rbuf_s(nnz+2,2,mxe-mxs+1,4),rbuf_r(nnz+2,3,mxe-mxs+1,4) !Brian 7/14/14
-c      real :: lbuf_s(nnz+2,3,mxe-mxs+1,4),lbuf_r(nnz+2,2,mxe-mxs+1,4) !Brian 7/14/14
-      real :: tbuf_s(nnz+2,iye-iys+1,2,5),tbuf_r(nnz+2,iye-iys+1,3,5) !Brian 7/14/14
-      real :: bbuf_s(nnz+2,iye-iys+1,3,5),bbuf_r(nnz+2,iye-iys+1,2,5) !Brian 7/14/14
-      real :: rbuf_s(nnz+2,2,mxe-mxs+1,5),rbuf_r(nnz+2,3,mxe-mxs+1,5) !Brian 7/14/14
-      real :: lbuf_s(nnz+2,3,mxe-mxs+1,5),lbuf_r(nnz+2,2,mxe-mxs+1,5) !Brian 7/14/14
+      real :: tbuf_s(nnz+2,iye-iys+1,2,5),tbuf_r(nnz+2,iye-iys+1,3,5)
+      real :: bbuf_s(nnz+2,iye-iys+1,3,5),bbuf_r(nnz+2,iye-iys+1,2,5)
+      real :: rbuf_s(nnz+2,2,mxe-mxs+1,5),rbuf_r(nnz+2,3,mxe-mxs+1,5)
+      real :: lbuf_s(nnz+2,3,mxe-mxs+1,5),lbuf_r(nnz+2,2,mxe-mxs+1,5)
 
       !Corners:
-c      real :: trbuf_s(nnz+2,2,2,4),trbuf_r(nnz+2,3,3,4) !Brian 7/14/14
-c      real :: brbuf_s(nnz+2,2,3,4),brbuf_r(nnz+2,3,2,4) !Brian 7/14/14
-c      real :: blbuf_s(nnz+2,3,3,4),blbuf_r(nnz+2,2,2,4) !Brian 7/14/14
-c      real :: tlbuf_s(nnz+2,3,2,4),tlbuf_r(nnx+2,2,3,4) !Brian 7/14/14
-      real :: trbuf_s(nnz+2,2,2,5),trbuf_r(nnz+2,3,3,5) !Brian 7/14/14
-      real :: brbuf_s(nnz+2,2,3,5),brbuf_r(nnz+2,3,2,5) !Brian 7/14/14
-      real :: blbuf_s(nnz+2,3,3,5),blbuf_r(nnz+2,2,2,5) !Brian 7/14/14
-      real :: tlbuf_s(nnz+2,3,2,5),tlbuf_r(nnx+2,2,3,5) !Brian 7/14/14
+      real :: trbuf_s(nnz+2,2,2,5),trbuf_r(nnz+2,3,3,5)
+      real :: brbuf_s(nnz+2,2,3,5),brbuf_r(nnz+2,3,2,5)
+      real :: blbuf_s(nnz+2,3,3,5),blbuf_r(nnz+2,2,2,5)
+      real :: tlbuf_s(nnz+2,3,2,5),tlbuf_r(nnx+2,2,3,5)
 
       !MPI send counts:
       integer :: rc_s,rc_r,trc_s,trc_r,tc_s,tc_r,tlc_s,tlc_r
       integer :: lc_s,lc_r,blc_s,blc_r,bc_s,bc_r,brc_s,brc_r
-
-      !Debugging:
-      real :: xv,yv,zv
 
       !To update the particle ODE in time, need the interpolated
       !velocity field
@@ -1493,28 +1480,12 @@ c      real :: tlbuf_s(nnz+2,3,2,4),tlbuf_r(nnx+2,2,3,4) !Brian 7/14/14
       vext = 0.0
       wext = 0.0
       Text = 0.0
-      T2ext = 0.0   ! Brian 7/14/14
-
-      !FOR CHECKING INTERPOLATION: create an artificial velocity field
-      !to interpolate from:
-!      do iz=izs-1,ize+1
-!        do iy=iys,iye
-!          do ix=1,nnx
-!            xv = dx*(ix-1)
-!            yv = dy*(iy-1)
-!            zv = z(iz)
-!            u(ix,iy,iz) = 10.0
-!            v(ix,iy,iz) = 0.0
-!            w(ix,iy,iz) = 0.0
-!            u(ix,iy,iz) = 0.3*xv**6 + 0.5*xv*yv**3*zv + 3.0*xv**3*zv**2+
-!     +                      0.7*yv**2*zv**3 + 0.5*zv**3 + 0.1*yv**2
-!          end do
-!        end do
-!      end do
+      T2ext = 0.0
 
       !First fill the center, since this is just u,v,w on that proc:
 
-      !In the column setup, need to tranpose u,v,w first into u_t,v_t,w_t:
+      !In the column setup, need to tranpose u,v,w first into
+      !u_t,v_t,w_t:
       call xtoz_trans(u(1:nnx,iys:iye,izs-1:ize+1),u_t,nnx,nnz,
      +                mxs,mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,
      +                myid,ncpu_s,numprocs)
@@ -1529,54 +1500,35 @@ c      real :: tlbuf_s(nnz+2,3,2,4),tlbuf_r(nnx+2,2,3,4) !Brian 7/14/14
      +                myid,ncpu_s,numprocs)
       call xtoz_trans(t(1:nnx,iys:iye,2,izs-1:ize+1),T2_t,nnx,nnz,
      +                mxs,mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,
-     +                myid,ncpu_s,numprocs)   !Brian 7/14/14
+     +                myid,ncpu_s,numprocs)
 
       uext(0:nnz+1,iys:iye,mxs:mxe) = u_t(0:nnz+1,iys:iye,mxs:mxe)
       vext(0:nnz+1,iys:iye,mxs:mxe) = v_t(0:nnz+1,iys:iye,mxs:mxe)
       wext(0:nnz+1,iys:iye,mxs:mxe) = w_t(0:nnz+1,iys:iye,mxs:mxe)
       Text(0:nnz+1,iys:iye,mxs:mxe) = T_t(0:nnz+1,iys:iye,mxs:mxe)
-      T2ext(0:nnz+1,iys:iye,mxs:mxe) = T2_t(0:nnz+1,iys:iye,mxs:mxe) !Brian 7/14/14
+      T2ext(0:nnz+1,iys:iye,mxs:mxe) = T2_t(0:nnz+1,iys:iye,mxs:mxe)
 
       !Recall that SR assign_nbrs assigned rproc,lproc, etc.
 
       !Going to call 6 sendrecv calls - one for each proc. nbr.:
 
       !Fill the send buffers:
-
-c      !I know these are redundant, but so I can keep them straight...
-c      tc_s = 4*(nnz+2)*2*(iye-iys+1) !Brian 7/14/14
-c      tc_r = 4*(nnz+2)*3*(iye-iys+1) !Brian 7/14/14
-c      trc_s = 4*(nnz+2)*2*2 !Brian 7/14/14
-c      trc_r = 4*(nnz+2)*3*3 !Brian 7/14/14
-c      rc_s = 4*(nnz+2)*(mxe-mxs+1)*2 !Brian 7/14/14
-c      rc_r = 4*(nnx+2)*(mxe-mxs+1)*3 !Brian 7/14/14
-c      tlc_s = 4*(nnz+2)*3*2 !Brian 7/14/14
-c      tlc_r = 4*(nnz+2)*2*3 !Brian 7/14/14
-c      bc_s = 4*(nnz+2)*3*(iye-iys+1) !Brian 7/14/14
-c      bc_r = 4*(nnz+2)*2*(iye-iys+1) !Brian 7/14/14
-c      blc_s = 4*(nnz+2)*3*3 !Brian 7/14/14
-c      blc_r = 4*(nnz+2)*2*2 !Brian 7/14/14
-c      lc_s = 4*(nnz+2)*(mxe-mxs+1)*3 !Brian 7/14/14
-c      lc_r = 4*(nnz+2)*(mxe-mxs+1)*2 !Brian 7/14/14
-c      brc_s = 4*(nnz+2)*2*3 !Brian 7/14/14
-c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
-      !I know these are redundant, but so I can keep them straight...
-      tc_s = 5*(nnz+2)*2*(iye-iys+1) !Brian 7/14/14
-      tc_r = 5*(nnz+2)*3*(iye-iys+1) !Brian 7/14/14
-      trc_s = 5*(nnz+2)*2*2 !Brian 7/14/14
-      trc_r = 5*(nnz+2)*3*3 !Brian 7/14/14
-      rc_s = 5*(nnz+2)*(mxe-mxs+1)*2 !Brian 7/14/14
-      rc_r = 5*(nnx+2)*(mxe-mxs+1)*3 !Brian 7/14/14
-      tlc_s = 5*(nnz+2)*3*2 !Brian 7/14/14
-      tlc_r = 5*(nnz+2)*2*3 !Brian 7/14/14
-      bc_s = 5*(nnz+2)*3*(iye-iys+1) !Brian 7/14/14
-      bc_r = 5*(nnz+2)*2*(iye-iys+1) !Brian 7/14/14
-      blc_s = 5*(nnz+2)*3*3 !Brian 7/14/14
-      blc_r = 5*(nnz+2)*2*2 !Brian 7/14/14
-      lc_s = 5*(nnz+2)*(mxe-mxs+1)*3 !Brian 7/14/14
-      lc_r = 5*(nnz+2)*(mxe-mxs+1)*2 !Brian 7/14/14
-      brc_s = 5*(nnz+2)*2*3 !Brian 7/14/14
-      brc_r = 5*(nnz+2)*3*2 !Brian 7/14/14
+      tc_s = 5*(nnz+2)*2*(iye-iys+1)
+      tc_r = 5*(nnz+2)*3*(iye-iys+1)
+      trc_s = 5*(nnz+2)*2*2
+      trc_r = 5*(nnz+2)*3*3
+      rc_s = 5*(nnz+2)*(mxe-mxs+1)*2
+      rc_r = 5*(nnx+2)*(mxe-mxs+1)*3
+      tlc_s = 5*(nnz+2)*3*2
+      tlc_r = 5*(nnz+2)*2*3
+      bc_s = 5*(nnz+2)*3*(iye-iys+1)
+      bc_r = 5*(nnz+2)*2*(iye-iys+1)
+      blc_s = 5*(nnz+2)*3*3
+      blc_r = 5*(nnz+2)*2*2
+      lc_s = 5*(nnz+2)*(mxe-mxs+1)*3
+      lc_r = 5*(nnz+2)*(mxe-mxs+1)*2
+      brc_s = 5*(nnz+2)*2*3
+      brc_r = 5*(nnz+2)*3*2
 
       !First u:
       tbuf_s(1:nnz+2,1:iye-iys+1,1:2,1) = u_t(0:nnz+1,iys:iye,mxe-1:mxe)
@@ -1620,21 +1572,21 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
 
       !T2:
       tbuf_s(1:nnz+2,1:iye-iys+1,1:2,5) =
-     +      T2_t(0:nnz+1,iys:iye,mxe-1:mxe) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iys:iye,mxe-1:mxe)
       trbuf_s(1:nnz+2,1:2,1:2,5) =
-     +      T2_t(0:nnz+1,iye-1:iye,mxe-1:mxe) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iye-1:iye,mxe-1:mxe)
       rbuf_s(1:nnz+2,1:2,1:mxe-mxs+1,5) =
-     +      T2_t(0:nnz+1,iye-1:iye,mxs:mxe) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iye-1:iye,mxs:mxe)
       brbuf_s(1:nnz+2,1:2,1:3,5) =
-     +      T2_t(0:nnz+1,iye-1:iye,mxs:mxs+2) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iye-1:iye,mxs:mxs+2)
       bbuf_s(1:nnz+2,1:iye-iys+1,1:3,5) =
-     +      T2_t(0:nnz+1,iys:iye,mxs:mxs+2) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iys:iye,mxs:mxs+2)
       blbuf_s(1:nnz+2,1:3,1:3,5) =
-     +      T2_t(0:nnz+1,iys:iys+2,mxs:mxs+2) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iys:iys+2,mxs:mxs+2)
       lbuf_s(1:nnz+2,1:3,1:mxe-mxs+1,5) =
-     +      T2_t(0:nnz+1,iys:iys+2,mxs:mxe) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iys:iys+2,mxs:mxe)
       tlbuf_s(1:nnz+2,1:3,1:2,5) =
-     +      T2_t(0:nnz+1,iys:iys+2,mxe-1:mxe) !Brian 7/14/14
+     +      T2_t(0:nnz+1,iys:iys+2,mxe-1:mxe)
 
       !Zero out recieve buffers
       rbuf_r=0.0;trbuf_r=0.0;tbuf_r=0.0;tlbuf_r=0.0;lbuf_r=0.0
@@ -1728,21 +1680,21 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
 
 
       T2ext(0:nnz+1,iys:iye,mxe+1:mxe+3) =
-     +     tbuf_r(1:nnz+2,1:iye-iys+1,1:3,5) !Brian 7/14/14
+     +     tbuf_r(1:nnz+2,1:iye-iys+1,1:3,5)
       T2ext(0:nnz+1,iye+1:iye+3,mxe+1:mxe+3) =
-     +     trbuf_r(1:nnz+2,1:3,1:3,5)!Brian 7/14/14
+     +     trbuf_r(1:nnz+2,1:3,1:3,5)
       T2ext(0:nnz+1,iye+1:iye+3,mxs:mxe) =
-     +     rbuf_r(1:nnz+2,1:3,1:mxe-mxs+1,5)!Brian 7/14/14
+     +     rbuf_r(1:nnz+2,1:3,1:mxe-mxs+1,5)
       T2ext(0:nnz+1,iye+1:iye+3,mxs-2:mxs-1) =
-     +     brbuf_r(1:nnz+2,1:3,1:2,5)!Brian 7/14/14
+     +     brbuf_r(1:nnz+2,1:3,1:2,5)
       T2ext(0:nnz+1,iys:iye,mxs-2:mxs-1) =
-     +     bbuf_r(1:nnz+2,1:iye-iys+1,1:2,5)!Brian 7/14/14
+     +     bbuf_r(1:nnz+2,1:iye-iys+1,1:2,5)
       T2ext(0:nnz+1,iys-2:iys-1,mxs-2:mxs-1) =
-     +     blbuf_r(1:nnz+2,1:2,1:2,5)!Brian 7/14/14
+     +     blbuf_r(1:nnz+2,1:2,1:2,5)
       T2ext(0:nnz+1,iys-2:iys-1,mxs:mxe) =
-     +     lbuf_r(1:nnz+2,1:2,1:mxe-mxs+1,5)!Brian 7/14/14
+     +     lbuf_r(1:nnz+2,1:2,1:mxe-mxs+1,5)
       T2ext(0:nnz+1,iys-2:iys-1,mxe+1:mxe+3) =
-     +     tlbuf_r(1:nnz+2,1:2,1:3,5)!Brian 7/14/14
+     +     tlbuf_r(1:nnz+2,1:2,1:3,5)
 
       end subroutine fill_ext
       subroutine uf_interp
@@ -1810,10 +1762,13 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       kwpts(1) = kwpts(2)-1
 
 !---------
-!      !As an aside, use ijpts,kwpts to update the particle numbers at each cell:
+!      !As an aside, use ijpts,kwpts to update the particle numbers at
+!      each cell:
 !
-!      !call inputs  are the nodes associated with the volume that each part. lies in
-!      !The +1 on kwpts is since stats are stored at uv (center) points in z
+!      !call inputs  are the nodes associated with the volume that each
+!       part. lies in
+!      !The +1 on kwpts is since stats are stored at uv (center)
+!       points in z
 !      call particle_stats(ijpts(1,3),ijpts(2,3),kwpts(3)+1)
 !
 !---------
@@ -1836,17 +1791,6 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
          wt(iz,j) = pj
        end do
        end do
-
-
-!      !Enforce periodicity in x by adjusting the indices:
-!      !NOTE: doing this after having computed the weights
-!      do i=1,6
-!         if (ijpts(1,i) .LT. 1) then
-!            ijpts(1,i) = ijpts(1,i)+nnx
-!         elseif (ijpts(1,i) .GT. nnx) then
-!            ijpts(1,i) = ijpts(1,i)-nnx
-!         end if
-!      end do
 
        !Now compute weights in z-dir
        !There are 2 sections: weights at (u,v) nodes (kuvpts)
@@ -1953,7 +1897,7 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       !Now we have the weights - compute the velocity at xp:
         part%uf(1:3) = 0.0
         part%Tf = 0.0
-        part%qinf = 0.0 ! Brian 7/14/14
+        part%qinf = 0.0
         do k = 1,6
         do j = 1,6
         do i = 1,6
@@ -1970,7 +1914,7 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
             part%Tf = part%Tf+Text(izuv,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(3,k)
             part%qinf = part%qinf+T2ext(izuv,iy,ix)*wt(1,i)*
-     +                   wt(2,j)*wt(3,k)  ! Brian 7/14/14
+     +                   wt(2,j)*wt(3,k)
          end do
          end do
          end do
@@ -1987,7 +1931,8 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       type(particle) :: writebuf(numpart),tmp
 
       !Do this with mpi_write_at_all
-      !Need to figure out the displacements - need numpart from each proc
+      !Need to figure out the displacements - need numpart from each
+      ! processor
       call mpi_allgather(numpart,1,mpi_integer,pnum_vec,1,mpi_integer,
      +                   mpi_comm_world,ierr)
 
@@ -1995,10 +1940,9 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       i = 1
       part => first_particle
       do while (associated(part))
-      writebuf(i) = part
-      !write(*,'a5,3e15.6') 'xp:',part%xp(1:3)
-      part => part%next
-      i = i + 1
+        writebuf(i) = part
+        part => part%next
+        i = i + 1
       end do
 
       !Now only write to the file if you actually have particles
@@ -2027,12 +1971,6 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       if (numpart .GT. 0) then
       call mpi_file_write_at(fh,offset,writebuf,numpart,
      +                       particletype,istatus,ierr)
-!      write(*,*) 'wrote writebuf(1)%pidx = ',writebuf(1)%pidx
-!      write(*,'a30,3e15.6') 'wrote writebuf(1)%vp =',writebuf(1)%vp(1:3)
-!      write(*,'a30,3e15.6') 'wrote writebuf(1)%xp =',writebuf(1)%xp(1:3)
-!      write(*,*) 'wrote writebuf(2)%pidx = ',writebuf(2)%pidx
-!      write(*,'a30,3e15.6') 'wrote writebuf(2)%vp =',writebuf(2)%vp(1:3)
-!      write(*,'a30,3e15.6') 'wrote writebuf(2)%xp =',writebuf(2)%xp(1:3)
       end if
 
       call mpi_file_close(fh,ierr)
@@ -2049,9 +1987,9 @@ c      brc_r = 4*(nnz+2)*3*2 !Brian 7/14/14
       include 'mpif.h'
 
       integer :: istatus(mpi_status_size), ierr, fh
-      integer(kind=mpi_offset_kind) :: zoffset,offset
+      integer(kind=mpi_offset_kind) :: offset
       integer :: myp,totalp
-      integer :: iproc,i,pidxmax
+      integer :: i,pidxmax
       type(particle), allocatable :: readbuf(:)
 
       if (myid==0) write(*,7000) path_part
