@@ -413,6 +413,29 @@
             call gpustep(gpu, it, istage, dt)
             call gpunonperiodic(gpu, zl, delta_vis)
             call gpuperiodic(gpu, xl, yl)
+            call gpudownload(gpu)
+
+            do iCurrent = 1,tnumpart
+                gpuParticle = gpuget(gpu, iCurrent - 1)
+
+                pTotal(i)%pidx = gpuParticle%pidx
+                pTotal(i)%procidx = gpuParticle%procidx
+
+                pTotal(i)%vp(1:3) = gpuParticle%vp(1:3)
+                pTotal(i)%xp(1:3) = gpuParticle%xp(1:3)
+                pTotal(i)%uf(1:3) = gpuParticle%uf(1:3)
+                pTotal(i)%xrhs(1:3) = gpuParticle%xrhs(1:3)
+                pTotal(i)%vrhs(1:3) = gpuParticle%vrhs(1:3)
+
+                pTotal(i)%Tp = gpuParticle%Tp
+                pTotal(i)%Tprhs_s = gpuParticle%Tprhs_s
+                pTotal(i)%Tprhs_L = gpuParticle%Tprhs_L
+                pTotal(i)%Tf = gpuParticle%Tf
+                pTotal(i)%radius = gpuParticle%radius
+                pTotal(i)%radrhs = gpuParticle%radrhs
+                pTotal(i)%qinf = gpuParticle%qinf
+                pTotal(i)%qstar = gpuParticle%qstar
+            end do
           end if
 
           !Loop over the linked list of particles:

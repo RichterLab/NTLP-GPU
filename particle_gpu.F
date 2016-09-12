@@ -32,6 +32,14 @@
                 type(gpu_particle)        :: input
           end subroutine
 
+          type(gpu_particle) function gpuget(gpu, position)
+     +      bind(c,name="ParticleGet")
+                use particle_struct
+                use iso_c_binding, only: c_ptr, c_int
+                type(c_ptr), VALUE        :: gpu
+                integer(c_int), VALUE     :: position
+          end function
+
           subroutine gpuupload(gpu) bind(c,name="ParticleUpload")
                 use iso_c_binding, only: c_ptr
                 type(c_ptr), VALUE, intent(in)  :: gpu
@@ -60,6 +68,12 @@
               type(c_ptr), VALUE, intent(in)      :: gpu
               real(c_double), VALUE, intent(in)   :: width
               real(c_double), VALUE, intent(in)   :: height
+          end subroutine
+
+          subroutine gpudownload(gpu)
+     +      bind(c,name="ParticleDownloadHost")
+              use iso_c_binding, only: c_ptr
+              type(c_ptr), VALUE, intent(in)  :: gpu
           end subroutine
       end interface
 

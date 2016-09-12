@@ -210,6 +210,11 @@ extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle *input
     memcpy(&gpu->hParticles[position], input, sizeof(Particle));
 }
 
+extern "C" Particle ParticleGet( GPU *gpu, const int position ){
+    assert(position >= 0 && position < gpu->pCount);
+    return gpu->hParticles[position];
+}
+
 extern "C" void ParticleUpload( GPU *gpu ){
     gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * gpu->pCount ) );
     gpuErrchk( cudaMemcpy( gpu->dParticles, gpu->hParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyHostToDevice ) );
@@ -280,6 +285,10 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const
     GPUUpdatePeriodic<<< 1, gpu->pCount >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
+}
+
+extern "C" void ParticleDownloadHost( GPU *gpu ) {
+    gpuErrchk( cudaMemcpy(gpu->hParticles, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
 }
 
 extern "C" Particle* ParticleDownload( GPU *gpu ) {
