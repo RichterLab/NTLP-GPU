@@ -410,6 +410,9 @@
             end do
 
             call gpuupload(gpu)
+            call gpustep(gpu, it, istage, dt)
+            call gpunonperiodic(gpu, zl, delta_vis)
+            call gpuperiodic(gpu, xl, yl)
           end if
 
           !Loop over the linked list of particles:
@@ -505,14 +508,6 @@
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time bc_non:', t_f - t_s
 
-          !Check to see if particles left processor
-          !If they did, remove from one list and add to another
-          !t_s = mpi_wtime()
-          call particle_exchange
-          !call mpi_barrier(mpi_comm_world,ierr)
-          !t_f = mpi_wtime()
-          !if (myid==5) write(*,*) 'time exchg:', t_f - t_s
-
           !Now enforce periodic bcs
           !just updates x,y locations if over xl,yl or under 0
           !t_s = mpi_wtime()
@@ -521,7 +516,13 @@
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time bc_per:', t_f - t_s
 
-
+          !Check to see if particles left processor
+          !If they did, remove from one list and add to another
+          !t_s = mpi_wtime()
+          call particle_exchange
+          !call mpi_barrier(mpi_comm_world,ierr)
+          !t_f = mpi_wtime()
+          !if (myid==5) write(*,*) 'time exchg:', t_f - t_s
 
           !Now that particles are in their updated position,
           !compute their contribution to the momentum coupling:

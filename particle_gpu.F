@@ -36,6 +36,31 @@
                 use iso_c_binding, only: c_ptr
                 type(c_ptr), VALUE, intent(in)  :: gpu
           end subroutine
+
+          subroutine gpustep(gpu, it, istage, dt)
+     +      bind(c,name="ParticleStep")
+              use iso_c_binding, only: c_ptr, c_int, c_double
+              type(c_ptr), VALUE, intent(in)      :: gpu
+              integer(c_int), VALUE, intent(in)   :: it
+              integer(c_int), VALUE, intent(in)   :: istage
+              real(c_double), VALUE, intent(in)   :: dt
+          end subroutine
+
+          subroutine gpunonperiodic(gpu, grid_width, delta_viz)
+     +      bind(c,name="ParticleUpdateNonPeriodic")
+              use iso_c_binding, only: c_ptr, c_double
+              type(c_ptr), VALUE, intent(in)      :: gpu
+              real(c_double), VALUE, intent(in)   :: grid_width
+              real(c_double), VALUE, intent(in)   :: delta_viz
+          end subroutine
+
+          subroutine gpuperiodic(gpu, width, height)
+     +      bind(c,name="ParticleUpdatePeriodic")
+              use iso_c_binding, only: c_ptr, c_double
+              type(c_ptr), VALUE, intent(in)      :: gpu
+              real(c_double), VALUE, intent(in)   :: width
+              real(c_double), VALUE, intent(in)   :: height
+          end subroutine
       end interface
 
       contains
