@@ -1,12 +1,41 @@
-      module particle_c
+      module particle_struct
+        use iso_c_binding
+        implicit none
 
+        type, bind(c) :: gpu_particle
+          integer(c_int) :: pidx, procidx
+          real(c_double) :: vp(3), xp(3), uf(3), xrhs(3), vrhs(3)
+          real(c_double) :: Tp, Tprhs_s, Tprhs_L, Tf, radius
+          real(c_double) :: radrhs, qinf, qstar
+        end type gpu_particle
+      end module
+
+      module particle_c
 #ifdef BUILD_CUDA
-      implicit none
       interface
-            integer function gpudevices() bind(c,name="gpudevices")
-                  use iso_c_binding, only: c_int
-                  integer(c_int) :: count
-            end function
+          integer function gpudevices() bind(c,name="gpudevices")
+                use iso_c_binding, only: c_int
+                integer(c_int) :: count
+          end function
+
+          type(c_ptr) function newgpu(count) bind(c,name="NewGPU")
+                use iso_c_binding, only: c_ptr, c_int
+                integer(c_int), VALUE, intent(in)      :: count
+          end function
+
+          subroutine gpuadd(gpu, position, input)
+     +      bind(c,name="ParticleAdd")
+                use particle_struct
+                use iso_c_binding, only: c_ptr, c_int
+                type(c_ptr), VALUE        :: gpu
+                integer(c_int), VALUE     :: position
+                type(gpu_particle)        :: input
+          end subroutine
+
+          subroutine gpuupload(gpu) bind(c,name="ParticleUpload")
+                use iso_c_binding, only: c_ptr
+                type(c_ptr), VALUE, intent(in)  :: gpu
+          end subroutine
       end interface
 
       contains

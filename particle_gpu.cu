@@ -1,5 +1,6 @@
 #include "particle_gpu.h"
 #include "stdio.h"
+#include "assert.h"
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
@@ -195,6 +196,23 @@ extern "C" double rand2(int idum, bool reset) {
           iy = iy+IMM1;
       }
       return MIN(AM*iy,RNMX);
+}
+
+extern "C" GPU* NewGPU(const int particles) {
+    GPU* retVal = (GPU*) malloc( sizeof(GPU) );
+    retVal->pCount = particles;
+    retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
+    return retVal;
+}
+
+extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle *input ){
+    assert(position >= 0 && position < gpu->pCount);
+    memcpy(&gpu->hParticles[position], input, sizeof(Particle));
+}
+
+extern "C" void ParticleUpload( GPU *gpu ){
+    gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * gpu->pCount ) );
+    gpuErrchk( cudaMemcpy( gpu->dParticles, gpu->hParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyHostToDevice ) );
 }
 
 extern "C" void ParticleInit( GPU* gpu, const int particles, const Particle* input ){

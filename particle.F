@@ -305,16 +305,23 @@
           use pars
           use con_data
           use con_stats
+          use particle_c
+          use particle_struct
+          use iso_c_binding, only: c_ptr
           implicit none
           include 'mpif.h'
 
-          integer :: istage,ierr,it
+          integer :: istage,ierr,it, iCurrent, i
           real :: g(3)
           real :: Rep,diff(3),diffnorm,corrfac,myRep_avg
           real :: xtmp(3),vtmp(3),Tptmp,radiustmp
           real :: Nup,Shp,rhop,taup_i,estar,einf
           real :: myphip_sum,myphiw_sum,myphiv_sum,Volp
           real :: TfC,TpC,Lv,Eff_C,Eff_S
+          integer, allocatable :: pCounts(:), pDispls(:)
+          type(particle), allocatable :: pCurrent(:), pTotal(:)
+          type(gpu_particle) :: gpuParticle
+          type(c_ptr) :: gpu
 
           g(1:3) = (/0.0, 0.0, part_grav/)
 
@@ -344,14 +351,70 @@
           myphiv_sum = 0.0
           qstarsum_t = 0.0
 
-          !t_s = mpi_wtime()
+          part => first_particle
+          do while (associated(part))
+            call uf_interp
+            part => part%next
+          end do
+
+          call mpi_barrier(mpi_comm_world,ierr)
+          allocate(pCurrent(numpart), pTotal(tnumpart))
+          allocate(pCounts(numprocs), pDispls(numprocs))
+
+          iCurrent = 1
+          part => first_particle
+          do while (associated(part))
+            pCurrent(iCurrent) = part
+            iCurrent = iCurrent + 1
+            part => part%next
+          end do
+          iCurrent = iCurrent - 1
+
+          call mpi_gather(iCurrent, 1, mpi_integer, pCounts,
+     +      1, mpi_integer, 0, mpi_comm_world, ierr)
+
+          if (myid .eq. 0) then
+            iCurrent = 0
+            do  i=1,numprocs
+              pDispls(i) = iCurrent
+              iCurrent = iCurrent + pCounts(i)
+            end do
+          end if
+
+          call mpi_gatherv(pCurrent, numpart, particletype, pTotal,
+     +      pCounts, pDispls, particletype, 0, mpi_comm_world, ierr)
+
+          if (myid .eq. 0) then
+            gpu = newgpu(tnumpart)
+
+            do iCurrent = 1,tnumpart
+                  gpuParticle%pidx = pTotal(i)%pidx
+                  gpuParticle%procidx = pTotal(i)%procidx
+
+                  gpuParticle%vp(1:3) = pTotal(i)%vp(1:3)
+                  gpuParticle%xp(1:3) = pTotal(i)%xp(1:3)
+                  gpuParticle%uf(1:3) = pTotal(i)%uf(1:3)
+                  gpuParticle%xrhs(1:3) = pTotal(i)%xrhs(1:3)
+                  gpuParticle%vrhs(1:3) = pTotal(i)%vrhs(1:3)
+
+                  gpuParticle%Tp = pTotal(i)%Tp
+                  gpuParticle%Tprhs_s = pTotal(i)%Tprhs_s
+                  gpuParticle%Tprhs_L = pTotal(i)%Tprhs_L
+                  gpuParticle%Tf = pTotal(i)%Tf
+                  gpuParticle%radius = pTotal(i)%radius
+                  gpuParticle%radrhs = pTotal(i)%radrhs
+                  gpuParticle%qinf = pTotal(i)%qinf
+                  gpuParticle%qstar = pTotal(i)%qstar
+
+                  call gpuadd(gpu, iCurrent - 1, gpuParticle)
+            end do
+
+            call gpuupload(gpu)
+          end if
 
           !Loop over the linked list of particles:
           part => first_particle
           do while (associated(part))
-            !First, interpolate to get the fluid velocity part%uf(1:3):
-            call uf_interp
-
             if (it .LE. 1 ) then
               part%vp(1:3) = part%uf
               part%Tp = part%Tf
