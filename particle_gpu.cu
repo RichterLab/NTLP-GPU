@@ -20,7 +20,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-__global__ void GPUUpdateParticles( const int it, const int istage, const double dt, const int pcount, Particle* particles ) {
+__global__ void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
     const double ievap = 1;
 
 	const double Gam = 7.28 * std::pow( 10.0, -2 );
@@ -37,7 +37,7 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     const double Pra = 0.715;
     const double Sc = 0.615;
     const double Mw = 0.018015;
-    const double Ru = 8.3144621;
+    const double Ru = 8.3144;
     const double Ms = 0.05844;
     const double Cpa = 1006.0;
     const double Cpp = 4179.0;
@@ -51,7 +51,8 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx > pcount ) return;
 
-    if( it < 1 ) {
+    const int istage = stage - 1;
+    if( it == 1 ) {
         for( int j = 0; j < 3; j++ ) {
             particles[idx].vp[j] = particles[idx].uf[j];
         }
@@ -73,11 +74,11 @@ __global__ void GPUUpdateParticles( const int it, const int istage, const double
     double Shp = 2.0 + pow( 0.6 * Rep, 0.5 ) * pow( Sc, 1.0 / 3.0 );
 
     double TfC = particles[idx].Tf - 273.15;
-    double einf = 610.94 * ( 17.6257 * TfC / ( TfC + 243.04 ) );
+    double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
     double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
     double Eff_C = 2.0 * Mw * Gam / ( Ru * rhow * particles[idx].radius * particles[idx].Tp );
     double Eff_S = Ion * Os * m_s * Mw / Ms / ( Volp * rhop - m_s );
-    double estar = einf * ( Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
+    double estar = einf * exp( Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
     particles[idx].qstar = Mw / Ru * estar / particles[idx].Tp / rhoa;
 
     double xtmp[3], vtmp[3];
@@ -202,11 +203,13 @@ extern "C" GPU* NewGPU(const int particles) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
     retVal->pCount = particles;
     retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
+    gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
     return retVal;
 }
 
 extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle *input ){
     assert(position >= 0 && position < gpu->pCount);
+    assert(input->uf[0] < 20 && input->uf[1] < 20 && input->uf[2] < 20 );
     memcpy(&gpu->hParticles[position], input, sizeof(Particle));
 }
 
@@ -216,7 +219,6 @@ extern "C" Particle ParticleGet( GPU *gpu, const int position ){
 }
 
 extern "C" void ParticleUpload( GPU *gpu ){
-    gpuErrchk( cudaMalloc( (void **)&gpu->dParticles, sizeof(Particle) * gpu->pCount ) );
     gpuErrchk( cudaMemcpy( gpu->dParticles, gpu->hParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyHostToDevice ) );
 }
 
@@ -270,19 +272,19 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 }
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
-    GPUUpdateParticles<<< 1, gpu->pCount >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
+    GPUUpdateParticles<<< (gpu->pCount / 32) + 1, 32 >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
 
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu, const double grid_width, const double delta_viz ) {
-    GPUUpdateNonperiodic<<< 1, gpu->pCount >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
+    GPUUpdateNonperiodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
 
 extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const double grid_height ) {
-    GPUUpdatePeriodic<<< 1, gpu->pCount >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
+    GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaDeviceSynchronize() );
 }
@@ -295,4 +297,34 @@ extern "C" Particle* ParticleDownload( GPU *gpu ) {
     Particle *result = (Particle*) malloc( sizeof(Particle) * gpu->pCount);
     gpuErrchk( cudaMemcpy(result, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
     return result;
+}
+
+void ParticleWrite( GPU* gpu ){
+    static int call = 0;
+    static char buffer[80];
+    sprintf(buffer, "c-particle-%d.dat", call);
+
+    FILE *write_ptr = fopen(buffer,"wb");
+    call += 1;
+
+    fwrite(&gpu->pCount, sizeof(unsigned int), 1, write_ptr);
+    for( int i = 0; i < gpu->pCount; i++ ){
+        fwrite(&gpu->hParticles[i], sizeof(Particle), 1, write_ptr);
+    }
+
+    fclose(write_ptr);
+}
+
+GPU* ParticleRead(char * path){
+    FILE *data = fopen(path,"rb");
+    GPU *retVal = (GPU*) malloc( sizeof(GPU) );
+
+    fread(&retVal->pCount, sizeof(unsigned int), 1, data);
+    retVal->hParticles = (Particle*) malloc( sizeof(Particle) * retVal->pCount );
+    for( int i = 0; i < retVal->pCount; i++ ){
+        fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
+    }
+
+    fclose(data);
+    return retVal;
 }

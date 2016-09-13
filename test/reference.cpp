@@ -3,7 +3,7 @@
 
 #include "utility.h"
 
-void UpdateParticles( const int it, const int istage, const double dt, std::vector<Particle> &particles ) {
+void UpdateParticles( const int it, const int stage, const double dt, const int count, Particle* particles ) {
 	const double uext = 1.0;
 	const double vext = 0.0;
 	const double wext = 0.0;
@@ -44,7 +44,7 @@ void UpdateParticles( const int it, const int istage, const double dt, std::vect
 	const double Pra = 0.715;
 	const double Sc = 0.615;
 	const double Mw = 0.018015;
-	const double Ru = 8.3144621;
+	const double Ru = 8.3144;
 	const double Ms = 0.05844;
 	const double Cpa = 1006.0;
 	const double Cpp = 4179.0;
@@ -55,10 +55,11 @@ void UpdateParticles( const int it, const int istage, const double dt, std::vect
 	const double gama[3] = {8.0 / 15.0, 5.0 / 12.0, 3.0 / 4.0};
 	const double g[3] = {0.0, 0.0, part_grav};
 
-	for( int i = 0; i < particles.size(); i++ ) {
+	const int istage = stage - 1;
+	for( int i = 0; i < count; i++ ) {
 		Particle *part = &particles[i];
 
-		if( it < 1 ) {
+		if( it == 1 ) {
 			for( int j = 0; j < 3; j++ ) {
 				part->vp[j] = part->uf[j];
 			}
@@ -82,12 +83,13 @@ void UpdateParticles( const int it, const int istage, const double dt, std::vect
 		double Shp = 2.0 + std::pow( 0.6 * Rep, 0.5 ) * std::pow( Sc, 1.0 / 3.0 );
 
 		double TfC = part->Tf - 273.15;
-		double einf = 610.94 * ( 17.6257 * TfC / ( TfC + 243.04 ) );
+		double einf = 610.94 * std::exp( 17.6257 * TfC / ( TfC + 243.04 ) );
 		double TpC = part->Tp - 273.15;
 		double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
 		double Eff_C = 2.0 * Mw * Gam / ( Ru * rhow * part->radius * part->Tp );
 		double Eff_S = Ion * Os * m_s * Mw / Ms / ( Volp * rhop - m_s );
-		double estar = einf * ( Mw * Lv / Ru * ( 1.0 / part->Tf - 1.0 / part->Tp ) + Eff_C - Eff_S );
+
+		double estar = einf * std::exp( Mw * Lv / Ru * ( 1.0 / part->Tf - 1.0 / part->Tp ) + Eff_C - Eff_S );
 		part->qstar = Mw / Ru * estar / part->Tp / rhoa;
 
 		double xtmp[3], vtmp[3];
@@ -129,38 +131,38 @@ void UpdateParticles( const int it, const int istage, const double dt, std::vect
 }
 
 TEST( ParticleReference, ParticleUpdate ) {
-	std::vector<Particle> input = ReadParticles( "../test/data/particle_input.dat" );
-	ASSERT_EQ( input.size(), 10 );
+	GPU *input = ParticleRead("../test/data/c_particle_init.dat");
+	ASSERT_EQ( input->pCount, 10 );
 
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_expected.dat" );
-	ASSERT_EQ( expected.size(), 10 );
+	GPU *expected = ParticleRead("../test/data/c_particle_expected.dat");
+	ASSERT_EQ( expected->pCount, 10 );
 
-	UpdateParticles( 500, 2, 3.556534376545218E-4, input );
+	UpdateParticles( 1, 1, 4.134832649154196E-004, input->pCount, input->hParticles );
 
 	for( int i = 0; i < 10; i++ ) {
 		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].vp[j], input[i].vp[j] ) << "I: " << i << " J: " << j;
+			EXPECT_FLOAT_EQ( expected->hParticles[i].vp[j], input->hParticles[i].vp[j] ) << "I: " << i << " J: " << j;
 		}
 		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].xp[j], input[i].xp[j] ) << "I: " << i << " J: " << j;
+			EXPECT_FLOAT_EQ( expected->hParticles[i].xp[j], input->hParticles[i].xp[j] ) << "I: " << i << " J: " << j;
 		}
 		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].uf[j], input[i].uf[j] ) << "I: " << i << " J: " << j;
+			EXPECT_FLOAT_EQ( expected->hParticles[i].uf[j], input->hParticles[i].uf[j] ) << "I: " << i << " J: " << j;
 		}
 		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].xrhs[j], input[i].xrhs[j] ) << "I: " << i << " J: " << j;
+			EXPECT_FLOAT_EQ( expected->hParticles[i].xrhs[j], input->hParticles[i].xrhs[j] ) << "I: " << i << " J: " << j;
 		}
 		for( int j = 0; j < 3; j++ ) {
-			ASSERT_FLOAT_EQ( expected[i].vrhs[j], input[i].vrhs[j] ) << "I: " << i << " J: " << j;
+			EXPECT_FLOAT_EQ( expected->hParticles[i].vrhs[j], input->hParticles[i].vrhs[j] ) << "I: " << i << " J: " << j;
 		}
 
-		ASSERT_FLOAT_EQ( expected[i].Tp, input[i].Tp ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tprhs_s, input[i].Tprhs_s ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tprhs_L, input[i].Tprhs_L ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].Tf, input[i].Tf ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].radius, input[i].radius ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].radrhs, input[i].radrhs ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].qinf, input[i].qinf ) << "I: " << i;
-		ASSERT_FLOAT_EQ( expected[i].qstar, input[i].qstar ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].Tp, input->hParticles[i].Tp ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].Tprhs_s, input->hParticles[i].Tprhs_s ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].Tprhs_L, input->hParticles[i].Tprhs_L ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].Tf, input->hParticles[i].Tf ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].radius, input->hParticles[i].radius ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].radrhs, input->hParticles[i].radrhs ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].qinf, input->hParticles[i].qinf ) << "I: " << i;
+		EXPECT_FLOAT_EQ( expected->hParticles[i].qstar, input->hParticles[i].qstar ) << "I: " << i;
 	}
 }

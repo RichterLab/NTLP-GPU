@@ -23,6 +23,12 @@
                 integer(c_int), VALUE, intent(in)      :: count
           end function
 
+          subroutine gpuwrite(gpu) bind(c,name="ParticleWrite")
+            use particle_struct
+            use iso_c_binding, only: c_ptr
+            type(c_ptr), VALUE        :: gpu
+          end subroutine
+
           subroutine gpuadd(gpu, position, input)
      +      bind(c,name="ParticleAdd")
                 use particle_struct

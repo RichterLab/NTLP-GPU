@@ -26,4 +26,6 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const
 extern "C" void ParticleDownloadHost( GPU *gpu );
 extern "C" Particle* ParticleDownload( GPU* gpu );
 
+extern "C" void ParticleWrite( GPU* gpu );
+extern "C" GPU* ParticleRead(char *path);
 #endif // PARTICLE_H_

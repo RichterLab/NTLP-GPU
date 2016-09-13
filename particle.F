@@ -1,4 +1,5 @@
       module particles
+        use iso_c_binding, only: c_ptr
         implicit none
 
         integer :: rproc,trproc,tproc,tlproc,lproc,blproc,bproc,brproc
@@ -37,6 +38,7 @@
         real :: radius_init,radius_mass,rhow,nuf
         real :: CpaCpp,Cpa,Cpp,Pra,Sc,Mw,Ru,rhoa
         real :: m_s,Sal,Ms,delta_vis,Gam,Ion,Os
+        type(c_ptr) :: gpu
 
         !REMEMBER: IF ADDING ANYTHING, MUST UPDATE MPI DATATYPE!
         type :: particle
@@ -50,6 +52,7 @@
       contains
         subroutine particle_setup
         use pars
+        use particle_c
         implicit none
         include 'mpif.h'
 
@@ -135,6 +138,12 @@
         end if
 
         call mpi_type_commit(particletype,ierr)
+
+#ifdef BUILD_CUDA
+        if (myid .eq. 0) then
+            gpu = newgpu(tnumpart)
+        end if
+#endif
         end subroutine particle_setup
 
         subroutine particle_init
@@ -150,6 +159,7 @@
           !Create the seed for the random number generator:
           call date_and_time(VALUES=values)
           iseed = -(myid+values(8)+values(7)+values(6))
+          iseed = 1080
 
           !Initialize ngidx, the particle global index
           ngidx = 1
@@ -311,7 +321,7 @@
           implicit none
           include 'mpif.h'
 
-          integer :: istage,ierr,it, iCurrent, i
+          integer :: istage,ierr,it, iCurrent, i, j
           real :: g(3)
           real :: Rep,diff(3),diffnorm,corrfac,myRep_avg
           real :: xtmp(3),vtmp(3),Tptmp,radiustmp
@@ -321,7 +331,6 @@
           integer, allocatable :: pCounts(:), pDispls(:)
           type(particle), allocatable :: pCurrent(:), pTotal(:)
           type(gpu_particle) :: gpuParticle
-          type(c_ptr) :: gpu
 
           g(1:3) = (/0.0, 0.0, part_grav/)
 
@@ -357,6 +366,7 @@
             part => part%next
           end do
 
+#ifdef BUILD_CUDA
           call mpi_barrier(mpi_comm_world,ierr)
           allocate(pCurrent(numpart), pTotal(tnumpart))
           allocate(pCounts(numprocs), pDispls(numprocs))
@@ -385,9 +395,7 @@
      +      pCounts, pDispls, particletype, 0, mpi_comm_world, ierr)
 
           if (myid .eq. 0) then
-            gpu = newgpu(tnumpart)
-
-            do iCurrent = 1,tnumpart
+            do i = 1,tnumpart
                   gpuParticle%pidx = pTotal(i)%pidx
                   gpuParticle%procidx = pTotal(i)%procidx
 
@@ -406,8 +414,10 @@
                   gpuParticle%qinf = pTotal(i)%qinf
                   gpuParticle%qstar = pTotal(i)%qstar
 
-                  call gpuadd(gpu, iCurrent - 1, gpuParticle)
+                  !write(*,*) "Input:", i, gpuParticle
+                  call gpuadd(gpu, i - 1, gpuParticle)
             end do
+            call gpuwrite(gpu)
 
             call gpuupload(gpu)
             call gpustep(gpu, it, istage, dt)
@@ -415,8 +425,9 @@
             call gpuperiodic(gpu, xl, yl)
             call gpudownload(gpu)
 
-            do iCurrent = 1,tnumpart
-                gpuParticle = gpuget(gpu, iCurrent - 1)
+            do i = 1,tnumpart
+                gpuParticle = gpuget(gpu, i - 1)
+                !write(*,*) "Output:", i, gpuParticle
 
                 pTotal(i)%pidx = gpuParticle%pidx
                 pTotal(i)%procidx = gpuParticle%procidx
@@ -438,6 +449,19 @@
             end do
           end if
 
+          call mpi_scatterv(pTotal, pCounts, pDispls, particletype,
+     +      pCurrent, numpart, particletype, 0, mpi_comm_world, ierr)
+
+          call mpi_barrier(mpi_comm_world,ierr)
+
+          iCurrent = 1
+          part => first_particle
+          do while (associated(part))
+            part = pCurrent(iCurrent)
+            part => part%next
+           iCurrent = iCurrent + 1
+         end do
+#else // BUILD_CUDA
           !Loop over the linked list of particles:
           part => first_particle
           do while (associated(part))
@@ -515,8 +539,6 @@
             part => part%next
           end do
 
-
-
           !t_f1 = mpi_wtime()
           !write(*,*) 'proc,loop time: ',myid,t_f1-t_s
           !call mpi_barrier(mpi_comm_world,ierr)
@@ -538,6 +560,7 @@
           !call mpi_barrier(mpi_comm_world,ierr)
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time bc_per:', t_f - t_s
+#endif // BUILD_CUDA
 
           !Check to see if particles left processor
           !If they did, remove from one list and add to another
