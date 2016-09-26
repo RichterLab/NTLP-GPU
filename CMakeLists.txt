@@ -17,6 +17,11 @@ if (BUILD_CUDA)
   # cuda_add_library( lescuda "particle_gpu.cu")
   CUDA_COMPILE(PARTICLE_O "particle_gpu.cu")
 
+  option( BUILD_CUDA_VERIFY "Build CUDA verification code" OFF)
+  if(BUILD_CUDA_VERIFY)
+    add_definitions(-DBUILD_CUDA_VERIFY)
+  endif(BUILD_CUDA_VERIFY)
+
   # target_link_libraries (lesmpi.a lescuda)
 endif(BUILD_CUDA)
 
