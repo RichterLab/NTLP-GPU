@@ -69,9 +69,9 @@ __global__ void GPUUpdateParticles( const int it, const int stage, const double 
     double rhop = ( m_s + Volp * rhow ) / Volp;
     double taup_i = 18.0 * rhoa * nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
 
-    double corrfac = 1.0 + pow( 0.15 * Rep, 0.687 );
-    double Nup = 2.0 + pow( 0.6 * Rep, 0.5 ) * pow( Pra, 1.0 / 3.0 );
-    double Shp = 2.0 + pow( 0.6 * Rep, 0.5 ) * pow( Sc, 1.0 / 3.0 );
+    double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
+    double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Pra, 1.0 / 3.0 );
+    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Sc, 1.0 / 3.0 );
 
     double TfC = particles[idx].Tf - 273.15;
     double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
@@ -274,19 +274,16 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
     GPUUpdateParticles<<< (gpu->pCount / 32) + 1, 32 >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
 }
 
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu, const double grid_width, const double delta_viz ) {
     GPUUpdateNonperiodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
 }
 
 extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const double grid_height ) {
     GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaDeviceSynchronize() );
 }
 
 extern "C" void ParticleDownloadHost( GPU *gpu ) {
