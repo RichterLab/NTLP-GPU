@@ -315,7 +315,7 @@
           implicit none
           include 'mpif.h'
 
-          integer :: istage,ierr,it, iCurrent, i, j
+          integer :: istage,ierr,it, iCurrent, i, j, k, asize
           real :: g(3)
           real :: Rep,diff(3),diffnorm,corrfac,myRep_avg
           real :: xtmp(3),vtmp(3),Tptmp,radiustmp
@@ -323,7 +323,8 @@
           real :: myphip_sum,myphiw_sum,myphiv_sum,Volp
           real :: TfC,TpC,Lv,Eff_C,Eff_S
           integer, allocatable :: pCounts(:), pDispls(:)
-          real, allocatable :: pUext(:,:,:)
+          real, allocatable :: uextg(:),vextg(:),wextg(:),textg(:)
+          real, allocatable :: t2extg(:)
           type(particle), allocatable :: pCurrent(:)
           type(gpu_particle) :: gpuParticle
 
@@ -357,14 +358,8 @@
           myphiv_sum = 0.0
           qstarsum_t = 0.0
 
-          part => first_particle
-          do while (associated(part))
-            call uf_interp
-            part => part%next
-          end do
-
 #ifdef BUILD_CUDA
-          gpu = newgpu(numpart)
+          gpu = newgpu(numpart,size(uext,1),size(uext,2),size(uext,3))
 
           !run gpu calculation
           iCurrent = 0
@@ -394,44 +389,59 @@
               part => part%next
           end do
 
-          call gpuupload(gpu)
-          call gpustep(gpu, it, istage, dt)
-          call gpunonperiodic(gpu, zl, delta_vis)
-          call gpuperiodic(gpu, xl, yl)
-          call gpudownload(gpu)
+            asize = size(uext,1) * size(uext,2) * size(uext,3)
+            allocate(uextg(asize),vextg(asize),wextg(asize))
+            allocate(textg(asize),t2extg(asize))
 
-          iCurrent = 0
-          part => first_particle
-          do while (associated(part))
-              gpuParticle = gpuget(gpu, iCurrent)
+            uextg = reshape(uext, (/asize/))
+            vextg = reshape(vext, (/asize/))
+            wextg = reshape(wext, (/asize/))
+            textg = reshape(text, (/asize/))
+            t2extg = reshape(t2ext, (/asize/))
 
-              pCurrent(iCurrent+1)%pidx = gpuParticle%pidx
-              pCurrent(iCurrent+1)%procidx = gpuParticle%procidx
+            call gpuinterpolate(gpu,dx,dy,nnz,z,zz,lbound(uext,1),
+     +     lbound(uext,2),lbound(uext,3),uextg,vextg,wextg,textg,t2extg)
+            call gpuupload(gpu)
 
-              pCurrent(iCurrent+1)%vp(1:3) = gpuParticle%vp(1:3)
-              pCurrent(iCurrent+1)%xp(1:3) = gpuParticle%xp(1:3)
-              pCurrent(iCurrent+1)%uf(1:3) = gpuParticle%uf(1:3)
-              pCurrent(iCurrent+1)%xrhs(1:3) = gpuParticle%xrhs(1:3)
-              pCurrent(iCurrent+1)%vrhs(1:3) = gpuParticle%vrhs(1:3)
+            call gpustep(gpu, it, istage, dt)
+            call gpunonperiodic(gpu, zl, delta_vis)
+            call gpuperiodic(gpu, xl, yl)
+            call gpudownload(gpu)
 
-              pCurrent(iCurrent+1)%Tp = gpuParticle%Tp
-              pCurrent(iCurrent+1)%Tprhs_s = gpuParticle%Tprhs_s
-              pCurrent(iCurrent+1)%Tprhs_L = gpuParticle%Tprhs_L
-              pCurrent(iCurrent+1)%Tf = gpuParticle%Tf
-              pCurrent(iCurrent+1)%radius = gpuParticle%radius
-              pCurrent(iCurrent+1)%radrhs = gpuParticle%radrhs
-              pCurrent(iCurrent+1)%qinf = gpuParticle%qinf
-              pCurrent(iCurrent+1)%qstar = gpuParticle%qstar
+            iCurrent = 0
+            part => first_particle
+            do while (associated(part))
+                gpuParticle = gpuget(gpu, iCurrent)
 
-              iCurrent = iCurrent + 1
-              part => part%next
-          end do
+                pCurrent(iCurrent+1)%pidx = gpuParticle%pidx
+                pCurrent(iCurrent+1)%procidx = gpuParticle%procidx
+
+                pCurrent(iCurrent+1)%vp(1:3) = gpuParticle%vp(1:3)
+                pCurrent(iCurrent+1)%xp(1:3) = gpuParticle%xp(1:3)
+                pCurrent(iCurrent+1)%uf(1:3) = gpuParticle%uf(1:3)
+                pCurrent(iCurrent+1)%xrhs(1:3) = gpuParticle%xrhs(1:3)
+                pCurrent(iCurrent+1)%vrhs(1:3) = gpuParticle%vrhs(1:3)
+
+                pCurrent(iCurrent+1)%Tp = gpuParticle%Tp
+                pCurrent(iCurrent+1)%Tprhs_s = gpuParticle%Tprhs_s
+                pCurrent(iCurrent+1)%Tprhs_L = gpuParticle%Tprhs_L
+                pCurrent(iCurrent+1)%Tf = gpuParticle%Tf
+                pCurrent(iCurrent+1)%radius = gpuParticle%radius
+                pCurrent(iCurrent+1)%radrhs = gpuParticle%radrhs
+                pCurrent(iCurrent+1)%qinf = gpuParticle%qinf
+                pCurrent(iCurrent+1)%qstar = gpuParticle%qstar
+
+                iCurrent = iCurrent + 1
+                part => part%next
+            end do
 #ifndef BUILD_CUDA_VERIFY
 #else // BUILD_CUDA
 #endif
           !Loop over the linked list of particles:
           part => first_particle
           do while (associated(part))
+            call uf_interp
+
             if (it .LE. 1 ) then
               part%vp(1:3) = part%uf
               part%Tp = part%Tf

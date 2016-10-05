@@ -18,9 +18,12 @@
                 integer(c_int) :: count
           end function
 
-          type(c_ptr) function newgpu(count) bind(c,name="NewGPU")
+          type(c_ptr) function newgpu(count,h,w,d) bind(c,name="NewGPU")
                 use iso_c_binding, only: c_ptr, c_int
                 integer(c_int), VALUE, intent(in)      :: count
+                integer(c_int), VALUE, intent(in)      :: h
+                integer(c_int), VALUE, intent(in)      :: w
+                integer(c_int), VALUE, intent(in)      :: d
           end function
 
           subroutine gpuwrite(gpu) bind(c,name="ParticleWrite")
@@ -49,6 +52,25 @@
           subroutine gpuupload(gpu) bind(c,name="ParticleUpload")
                 use iso_c_binding, only: c_ptr
                 type(c_ptr), VALUE, intent(in)  :: gpu
+          end subroutine
+
+          subroutine gpuinterpolate(gpu,dx,dy,nnz,z,zz,ox,oy,oz,uext,
+     +      vext,wext,text,t2ext) bind(c,name="ParticleInterpolate")
+              use iso_c_binding, only: c_ptr, c_int, c_double
+              type(c_ptr), VALUE, intent(in)      :: gpu
+              real(c_double), VALUE, intent(in)   :: dx
+              real(c_double), VALUE, intent(in)   :: dy
+              integer(c_int), VALUE, intent(in)   :: nnz
+              real(c_double), intent(in), dimension(*)  :: z
+              real(c_double), intent(in), dimension(*)  :: zz
+              integer(c_int), VALUE, intent(in)   :: ox
+              integer(c_int), VALUE, intent(in)   :: oy
+              integer(c_int), VALUE, intent(in)   :: oz
+              real(c_double), intent(in), dimension(*)  :: uext
+              real(c_double), intent(in), dimension(*)  :: vext
+              real(c_double), intent(in), dimension(*)  :: wext
+              real(c_double), intent(in), dimension(*)  :: text
+              real(c_double), intent(in), dimension(*)  :: t2ext
           end subroutine
 
           subroutine gpustep(gpu, it, istage, dt)

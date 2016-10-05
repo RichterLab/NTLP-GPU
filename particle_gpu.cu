@@ -20,6 +20,186 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
+void GPUFieldInterpolate( const int GridWidth, const int GridDepth, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
+    for( int idx = 0; idx < pcount; idx++ ){
+        int ijpts[2][6];
+        ijpts[0][2] = floor(particles[idx].xp[0]/dx) + 1;
+        ijpts[1][2] = floor(particles[idx].xp[1]/dy) + 1;
+
+        ijpts[0][1] = ijpts[0][2]-1;
+        ijpts[0][0] = ijpts[0][1]-1;
+        ijpts[0][3] = ijpts[0][2]+1;
+        ijpts[0][4] = ijpts[0][3]+1;
+        ijpts[0][5] = ijpts[0][4]+1;
+
+        ijpts[1][1] = ijpts[1][2]-1;
+        ijpts[1][0] = ijpts[1][1]-1;
+        ijpts[1][3] = ijpts[1][2]+1;
+        ijpts[1][4] = ijpts[1][3]+1;
+        ijpts[1][5] = ijpts[1][4]+1;
+
+        int kuvpts[6];
+        for( int iz = 0; iz < nnz+1; iz++ ){
+            if (zz[iz] > particles[idx].xp[2]){
+                kuvpts[2] = iz-1;
+                break;
+            }
+        }
+
+        kuvpts[3] = kuvpts[2]+1;
+        kuvpts[4] = kuvpts[3]+1;
+        kuvpts[5] = kuvpts[4]+1;
+        kuvpts[1] = kuvpts[2]-1;
+        kuvpts[0] = kuvpts[1]-1;
+
+        int kwpts[6];
+        for( int iz = 0; iz < nnz+1; iz++ ){
+            if (z[iz] > particles[idx].xp[2]) {
+                kwpts[2] = iz-1;
+                break;
+            }
+        }
+
+        kwpts[3] = kwpts[2]+1;
+        kwpts[4] = kwpts[3]+1;
+        kwpts[5] = kwpts[4]+1;
+        kwpts[1] = kwpts[2]-1;
+        kwpts[0] = kwpts[1]-1;
+
+        double wt[4][6] = {
+            { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+            { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+            { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+            { 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 },
+        };
+
+        double dxvec[2] = { dx, dy };
+        for( int iz = 0; iz < 2; iz++ ){
+            for( int j = 0; j < 6; j++ ){
+                double xjval = dxvec[iz]*(ijpts[iz][j]-1);
+                double pj = 1.0;
+                for( int k = 0; k < 6; k++ ){
+                    double xkval = dxvec[iz]*(ijpts[iz][k]-1);
+                    if (j != k) {
+                        pj = pj*(particles[idx].xp[iz]-xkval)/(xjval-xkval);
+                    }
+                }
+                wt[iz][j] = pj;
+            }
+        }
+
+      int first, last;
+       if (kuvpts[2] == 1) {
+          first = 3;
+          last = 4;
+          kuvpts[0] = 1;
+          kuvpts[1] = 1;
+       } else if (kuvpts[2] == 0) {
+          first = 4;
+          last = 5;
+          kuvpts[0] = 1;
+          kuvpts[1] = 1;
+          kuvpts[2] = 1;
+       } else if (kuvpts[2] < 0) {
+          first = 0;
+          last = 0;
+       } else if (kuvpts[2] == 2) {
+          first = 2;
+          last = 5;
+       } else if (kuvpts[2] == nnz) {
+          first = 2;
+          last = 3;
+          kuvpts[3] = nnz;
+          kuvpts[4] = nnz;
+          kuvpts[5] = nnz;
+       } else if (kuvpts[2] > nnz) {
+          first = 0;
+          last = 0;
+       } else if (kuvpts[2] == nnz-1) {
+          first = 3;
+          last = 4;
+          kuvpts[4] = nnz;
+          kuvpts[5] = nnz;
+       } else if (kuvpts[2] == nnz-2) {
+          first = 2;
+          last = 5;
+       } else {
+          first = 1;
+          last = 6;
+       }
+
+       for( int j = first-1; j < last; j++){
+           double xjval = zz[kuvpts[j]];
+           double pj = 1.0;
+           for( int k = first-1; k < last; k++ ){
+              double xkval = zz[kuvpts[k]];
+              if (j != k) {
+                 pj = pj*(particles[idx].xp[2]-xkval)/(xjval-xkval);
+              }
+           }
+           wt[2][j] = pj;
+       }
+
+       if (kwpts[2] == 0) {
+          first = 3;
+          last = 4;
+       } else if (kwpts[2] < 0) {
+          first = 0;
+          last = 0;
+       } else if (kwpts[2] == 1) {
+          first = 2;
+          last = 5;
+       } else if (kwpts[2] == nnz-1) {
+          first = 3;
+          last = 4;
+       } else if (kwpts[2] > nnz) {
+          first = 0;
+          last = 0;
+       } else if (kwpts[2] == nnz-2) {
+          first = 2;
+          last = 5;
+       } else {
+          first = 1;
+          last = 6;
+       }
+
+       for( int j = first-1; j < last; j++){
+           double xjval = z[kwpts[j]];
+           double pj = 1.0;
+           for( int k = first-1; k < last; k++ ){
+              double xkval = z[kwpts[k]];
+              if (j != k){
+                 pj = pj*(particles[idx].xp[2]-xkval)/(xjval-xkval);
+              }
+           }
+           wt[3][j] = pj;
+       }
+
+        particles[idx].uf[0] = 0.0;
+        particles[idx].uf[1] = 0.0;
+        particles[idx].uf[2] = 0.0;
+
+        particles[idx].Tf = 0.0;
+        particles[idx].qinf = 0.0;
+        for( int k = 0; k < 6; k++ ){
+            for( int j = 0; j < 6; j++ ){
+                for( int i = 0; i < 6; i++ ){
+                    const int ix = ijpts[0][i] + offsetZ - 1;
+                    const int iy = ijpts[1][j] + offsetY - 1;
+                    const int izuv = kuvpts[k] + offsetX - 1;
+                    const int izw = kwpts[k] + offsetX - 1;
+
+                    particles[idx].uf[0] = particles[idx].uf[0]+uext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
+                    particles[idx].uf[1] = particles[idx].uf[1]+vext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
+                    particles[idx].uf[2] = particles[idx].uf[2]+wext[iy*GridWidth+ix*GridWidth*GridDepth+izw]*wt[0][i]*wt[1][j]*wt[3][k];
+                    particles[idx].Tf = particles[idx].Tf+Text[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
+                    particles[idx].qinf = particles[idx].qinf+T2ext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
+                }
+            }
+        }
+    }
+}
+
 __global__ void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
     const double ievap = 1;
 
@@ -199,11 +379,19 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
+
+    // Particle Data
     retVal->pCount = particles;
     retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
     gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
+
+    // Grid Data
+    retVal->GridWidth = width;
+    retVal->GridHeight = height;
+    retVal->GridDepth = depth;
+
     return retVal;
 }
 
@@ -269,6 +457,10 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 
     gpuErrchk( cudaMemcpy(gpu->dParticles, hParticles, sizeof(Particle) * particles, cudaMemcpyHostToDevice) );
     free(hParticles);
+}
+
+extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy, const int nnz, double* z, double *zz, const int offsetX, const int offsetY, const int offsetZ, double *uext, double *vext, double *wext, double *text, double *t2ext ) {
+    GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, nnz, z, zz, 1-offsetX, 1-offsetY, 1-offsetZ, uext, vext, wext, text, t2ext, gpu->pCount, gpu->hParticles);
 }
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
