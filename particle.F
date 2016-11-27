@@ -359,7 +359,8 @@
           qstarsum_t = 0.0
 
 #ifdef BUILD_CUDA
-          gpu = newgpu(numpart,size(uext,1),size(uext,2),size(uext,3))
+          gpu = newgpu(numpart,size(uext,1),size(uext,2),
+     +      size(uext,3),size(z))
 
           !run gpu calculation
           iCurrent = 0
@@ -399,9 +400,10 @@
             textg = reshape(text, (/asize/))
             t2extg = reshape(t2ext, (/asize/))
 
-            call gpuinterpolate(gpu,dx,dy,nnz,z,zz,lbound(uext,1),
-     +     lbound(uext,2),lbound(uext,3),uextg,vextg,wextg,textg,t2extg)
             call gpuupload(gpu)
+            call gpuinterpolate(gpu,dx,dy,nnz,z,zz,
+     +     lbound(uext,1),lbound(uext,2),lbound(uext,3),uextg,vextg,
+     +      wextg,textg,t2extg)
 
             call gpustep(gpu, it, istage, dt)
             call gpunonperiodic(gpu, zl, delta_vis)

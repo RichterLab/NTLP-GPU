@@ -12,11 +12,12 @@ struct GPU {
 	Particle* dParticles;
 	Particle* hParticles;
 
-	int GridHeight, GridWidth, GridDepth;
+	int GridHeight, GridWidth, GridDepth, ZSize;
+	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
 };
 
 extern "C" double rand2(int idum, bool reset = false);
-extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth);
+extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth, const int zSize);
 extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle* input );
 extern "C" Particle ParticleGet( GPU *gpu, const int position );
 extern "C" void ParticleUpload( GPU *gpu );

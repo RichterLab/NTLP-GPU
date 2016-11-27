@@ -18,12 +18,14 @@
                 integer(c_int) :: count
           end function
 
-          type(c_ptr) function newgpu(count,h,w,d) bind(c,name="NewGPU")
+          type(c_ptr) function newgpu(count,h,w,d,z)
+     +      bind(c,name="NewGPU")
                 use iso_c_binding, only: c_ptr, c_int
                 integer(c_int), VALUE, intent(in)      :: count
                 integer(c_int), VALUE, intent(in)      :: h
                 integer(c_int), VALUE, intent(in)      :: w
                 integer(c_int), VALUE, intent(in)      :: d
+                integer(c_int), VALUE, intent(in)      :: z
           end function
 
           subroutine gpuwrite(gpu) bind(c,name="ParticleWrite")
