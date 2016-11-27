@@ -47,6 +47,9 @@ if (BUILD_FORTRAN)
   # Build Library
   add_library (fft STATIC "fft.f")
 
+  # Set source parameters
+  set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-free")
+
   # Build Executable
   add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
   target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
