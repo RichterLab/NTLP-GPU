@@ -459,7 +459,7 @@
           !Now that particles are in their updated position,
           !compute their contribution to the momentum coupling:
           !t_s = mpi_wtime()
-          !call particle_coupling_update
+          call particle_coupling_update
           !call mpi_barrier(mpi_comm_world,ierr)
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time cpl: ', t_f - t_s
