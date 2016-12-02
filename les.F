@@ -318,7 +318,6 @@ c
          !t_s = mpi_wtime()
          !call particle_update_cn(it,istage)
          call particle_update_rk3(it,istage)
-         call compare_particles()
 
          !t_f = mpi_wtime()
          !call mpi_barrier(mpi_comm_world,ierr)
@@ -345,6 +344,7 @@ c
       go to 9000
 c
 99000 continue
+      call compare_particles()
       te_mpi = mpi_wtime()
       write(6,9997) (te_mpi - ts_mpi)
  9997 format(' Job Execution Time = ',e15.6)
