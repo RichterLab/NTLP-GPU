@@ -77,18 +77,6 @@ c
 !----- Read the input file for all necessary parameters
       call read_input_file
 
-#ifdef BUILD_CUDA
-      ! Find Available GPU
-      gpuid = select_gpu_master(numprocs)
-      if(gpuid .eq. -1) then
-            write(*,*) "GPU Device not found"
-      end if
-
-      call mpi_bcast(gpuid,1,mpi_int,0,mpi_comm_world,ierr)
-
-      if (l_root .eqv. .true.) write(*,*) "Selected GPU Rank:", gpuid
-#endif
-
 c
 c -------- set number of x-y slab cpus
 c
@@ -143,6 +131,20 @@ c
          end if
       endif
 
+#ifdef BUILD_CUDA
+      ! Find Available GPU
+      call select_gpu_master(numprocs)
+      if(gpu_master_rank .eq. -1) then
+            write(*,*) "GPU Device not found"
+      end if
+
+      if (l_root .eqv. .true.) then
+        write(*,*) "Selected GPU Rank:", gpu_master_rank
+        call initialize_gpu()
+      end if
+
+      call transfer_particles()
+#endif
 
 c
 c --------------- time loop ------------
@@ -301,10 +303,22 @@ c
 !      if ( (ispray==1) .AND. (iss == 0)) then
 !        call particle_generate(istage)
 !      end if
+#ifdef BUILD_CUDA
+      call assemble_gpu_data
+
+      if( myid .eq. gpu_master_rank ) then
+        call gpuinterpolate(gpu,dx,dy,nnz,-1,-1,0)
+        call gpustep(gpu, it, istage, dt)
+        call gpunonperiodic(gpu)
+        call gpuperiodic(gpu)
+      end if
+#endif
+
       if (ispray==1) then
          !t_s = mpi_wtime()
          !call particle_update_cn(it,istage)
          call particle_update_rk3(it,istage)
+         call compare_particles()
 
          !t_f = mpi_wtime()
          !call mpi_barrier(mpi_comm_world,ierr)
@@ -9588,6 +9602,230 @@ c
       if (myid==0) print constants
       CpaCpp = Cpa/Cpp
 
-
-
       end subroutine read_input_file
+
+      subroutine assemble_gpu_data
+      use pars
+      use fields
+      use particle_c
+      use con_stats, only: z, zz
+      implicit none
+      include 'mpif.h'
+
+      integer :: i, j, k
+      integer :: receive_size,send_size
+      integer :: istart,iend,kstart,kend
+      integer :: buf_size(4),buf_dims(4)
+      integer :: iproc,istatus(mpi_status_size),ierr
+      real,allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
+
+      !The fields to be assembeled on GPU proc: (2 periodic halos to the left, 3 to right, top/bottom in nz)
+      real :: u_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+      real :: v_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+      real :: w_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+      real :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+      real :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+
+      !Linear array data to send to the gpu
+      integer :: asize
+      real, allocatable :: u_gpu(:),v_gpu(:),w_gpu(:),T_gpu(:),q_gpu(:)
+
+      !NOTE: THE Z HALOS (0 and nz+1) WILL BE ZERO, BUT THIS SHOULDN'T MATTER SINCE THEY DON'T GET USED
+      u_full = 0.0
+      v_full = 0.0
+      w_full = 0.0
+      T_full = 0.0
+      q_full = 0.0
+
+      !The GPU proc (assumed proc 0 here) receives, everyone else sends
+      if (myid == 0) then
+
+          do iproc=0,numprocs-1
+
+             if (myid .ne. iproc) then
+
+             !Figure out how much data is coming:
+             call mpi_recv(buf_size,4,mpi_integer,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Allocate the receive buffer;
+             buf_dims(1) = nnx
+             buf_dims(2) = buf_size(2)-buf_size(1) + 1
+             buf_dims(3) = buf_size(4)-buf_size(3) + 1
+
+
+             allocate(receive_buf(buf_dims(1),buf_dims(2),buf_dims(3)))
+             receive_size = buf_dims(1)*buf_dims(2)*buf_dims(3)
+
+             !u-velocity
+             !receive the buffer:
+             call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Now put into full field
+             u_full(1:nnx,buf_size(1):buf_size(2),
+     +       buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),
+     +       1:buf_dims(2),1:buf_dims(3))
+
+             !v-velocity
+             !receive the buffer:
+             call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Now put into full field
+             v_full(1:nnx,buf_size(1):buf_size(2),
+     +       buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),
+     +       1:buf_dims(2),1:buf_dims(3))
+
+             !w-velocity
+             !receive the buffer:
+             call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Now put into full field
+             w_full(1:nnx,buf_size(1):buf_size(2),
+     +       buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),
+     +       1:buf_dims(2),1:buf_dims(3))
+
+             !temperature
+             !receive the buffer:
+             call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Now put into full field
+             T_full(1:nnx,buf_size(1):buf_size(2),
+     +       buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),
+     +       1:buf_dims(2),1:buf_dims(3))
+
+             !humidity
+             !receive the buffer:
+             call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,
+     +         mpi_comm_world,istatus,ierr)
+
+             !Now put into full field
+             q_full(1:nnx,buf_size(1):buf_size(2),
+     +       buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),
+     +       1:buf_dims(2),1:buf_dims(3))
+
+
+             deallocate(receive_buf)
+
+             else !the GPU proc simply puts its portion into full
+
+              u_full(1:nnx,iys:iye,izs:ize) = u(1:nnx,iys:iye,izs:ize)
+              v_full(1:nnx,iys:iye,izs:ize) = v(1:nnx,iys:iye,izs:ize)
+              w_full(1:nnx,iys:iye,izs:ize) = w(1:nnx,iys:iye,izs:ize)
+              T_full(1:nnx,iys:iye,izs:ize) = t(1:nnx,iys:iye,1,izs:ize)
+              q_full(1:nnx,iys:iye,izs:ize) = t(1:nnx,iys:iye,2,izs:ize)
+
+
+            end if
+         end do
+
+              !Finally fill the halos so that GPU doesn't have to conditionally search for periodicity
+              u_full(-1:0,1:maxny,0:maxnz+1) =
+     +             u_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+              u_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) =
+     +             u_full(1:3,1:maxny,0:maxnz+1)
+              u_full(-1:maxnx+3,-1:0,0:maxnz+1) =
+     +             u_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+              u_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
+     +             u_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+              v_full(-1:0,1:maxny,0:maxnz+1) =
+     +             v_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+              v_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) =
+     +             v_full(1:3,1:maxny,0:maxnz+1)
+              v_full(-1:maxnx+3,-1:0,0:maxnz+1) =
+     +             v_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+              v_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
+     +             v_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+              w_full(-1:0,1:maxny,0:maxnz+1) =
+     +             w_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+              w_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) =
+     +             w_full(1:3,1:maxny,0:maxnz+1)
+              w_full(-1:maxnx+3,-1:0,0:maxnz+1) =
+     +             w_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+              w_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
+     +             w_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+              T_full(-1:0,1:maxny,0:maxnz+1) =
+     +             T_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+              T_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) =
+     +             T_full(1:3,1:maxny,0:maxnz+1)
+              T_full(-1:maxnx+3,-1:0,0:maxnz+1) =
+     +             T_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+              T_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
+     +             T_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+              q_full(-1:0,1:maxny,0:maxnz+1) =
+     +             q_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+              q_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) =
+     +             q_full(1:3,1:maxny,0:maxnz+1)
+              q_full(-1:maxnx+3,-1:0,0:maxnz+1) =
+     +             q_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+              q_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
+     +             q_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+            ! Resize arrays to pass to GPU
+            asize = size(u_full,1)*size(u_full,2)*size(u_full,3)
+            allocate(u_gpu(asize),v_gpu(asize))
+            allocate(w_gpu(asize),t_gpu(asize),q_gpu(asize))
+
+            u_gpu = reshape(u_full, (/asize/))
+            v_gpu = reshape(v_full, (/asize/))
+            w_gpu = reshape(w_full, (/asize/))
+            t_gpu = reshape(T_full, (/asize/))
+            q_gpu = reshape(q_full, (/asize/))
+
+            !Now the "full" fields are complete and can be transferred to GPU
+            call gpucopyfield(gpu,u_gpu,v_gpu,w_gpu,t_gpu,q_gpu,z,zz)
+       else
+          allocate(send_buf(nnx,iye-iys+1,ize-izs+1))
+
+          !First need to send the size of my buffer:
+          buf_size(1) = iys
+          buf_size(2) = iye
+          buf_size(3) = izs
+          buf_size(4) = ize
+
+          call mpi_send(buf_size,4,mpi_integer,0,1,
+     +         mpi_comm_world,ierr)
+
+
+          send_size = nnx*(iye-iys+1)*(ize-izs+1)
+
+          !u-velocity
+          send_buf = u(1:nnx,iys:iye,izs:ize)
+
+          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+     +         mpi_comm_world,ierr)
+
+          !v-velocity
+          send_buf = v(1:nnx,iys:iye,izs:ize)
+
+          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+     +         mpi_comm_world,ierr)
+
+          !w-velocity
+          send_buf = w(1:nnx,iys:iye,izs:ize)
+
+          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+     +         mpi_comm_world,ierr)
+
+          !temperature
+          send_buf = t(1:nnx,iys:iye,1,izs:ize)
+
+          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+     +         mpi_comm_world,ierr)
+
+          !humidity
+          send_buf = t(1:nnx,iys:iye,2,izs:ize)
+
+          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+     +         mpi_comm_world,ierr)
+
+          deallocate(send_buf)
+       end if  !if myid==0
+      end subroutine assemble_gpu_data

@@ -20,7 +20,13 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 
-__global__ void GPUFieldInterpolate( const int GridWidth, const int GridDepth, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
+__device__ double FortranIndex(const double* array, const int width, const int height, const int depth, const int ofx, const int ofy, const int ofz, const int x, const int y, const int z) {
+    const int xActual = x+ofx-1, yActual = y+ofy-1, zActual = z+ofz-1;
+    const int pos = zActual+yActual*(depth-1)+xActual*(width-1)*(depth-1);
+    return array[pos];
+}
+
+__global__ void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
 
@@ -186,16 +192,16 @@ __global__ void GPUFieldInterpolate( const int GridWidth, const int GridDepth, c
     for( int k = 0; k < 6; k++ ){
         for( int j = 0; j < 6; j++ ){
             for( int i = 0; i < 6; i++ ){
-                const int ix = ijpts[0][i] + offsetZ - 1;
-                const int iy = ijpts[1][j] + offsetY - 1;
-                const int izuv = kuvpts[k] + offsetX - 1;
-                const int izw = kwpts[k] + offsetX - 1;
+                const int ix = ijpts[0][i];
+                const int iy = ijpts[1][j];
+                const int izuv = kuvpts[k];
+                const int izw = kwpts[k];
 
-                particles[idx].uf[0] = particles[idx].uf[0]+uext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].uf[1] = particles[idx].uf[1]+vext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].uf[2] = particles[idx].uf[2]+wext[iy*GridWidth+ix*GridWidth*GridDepth+izw]*wt[0][i]*wt[1][j]*wt[3][k];
-                particles[idx].Tf = particles[idx].Tf+Text[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].qinf = particles[idx].qinf+T2ext[iy*GridWidth+ix*GridWidth*GridDepth+izuv]*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[0] = particles[idx].uf[0]+FortranIndex(uext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[1] = particles[idx].uf[1]+FortranIndex(vext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[2] = particles[idx].uf[2]+FortranIndex(wext,ny,nnz,nx,offsetZ,offsetY,offsetX,izw,iy,ix)*wt[0][i]*wt[1][j]*wt[3][k];
+                particles[idx].Tf = particles[idx].Tf+FortranIndex(Text,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].qinf = particles[idx].qinf+FortranIndex(T2ext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
             }
         }
     }
@@ -380,13 +386,19 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const int zsize) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const int zsize, const double fWidth, const double fHeight, const double fDepth, const double fVis) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
 
     // Particle Data
     retVal->pCount = particles;
     retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
     gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
+
+    // Field Data
+    retVal->FieldWidth = fWidth;
+    retVal->FieldHeight = fHeight;
+    retVal->FieldDepth = fDepth;
+    retVal->FieldVis = fVis;
 
     // Grid Data
     retVal->GridWidth = width;
@@ -404,6 +416,17 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->ZSize ) );
 
     return retVal;
+}
+
+extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext, double *z, double *zz ) {
+    gpuErrchk( cudaMemcpy( gpu->dUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+
+    gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
 }
 
 extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle *input ){
@@ -470,16 +493,9 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
     free(hParticles);
 }
 
-extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy, const int nnz, double* z, double *zz, const int offsetX, const int offsetY, const int offsetZ, double *uext, double *vext, double *wext, double *text, double *t2ext ) {
-    const size_t gSize = gpu->GridWidth * gpu->GridHeight * gpu->GridDepth;
-    gpuErrchk( cudaMemcpy( gpu->dUext, uext, sizeof(double) * gSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dVext, vext, sizeof(double) * gSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dWext, wext, sizeof(double) * gSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dText, text, sizeof(double) * gSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dQext, t2ext, sizeof(double) * gSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
-    GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, nnz, gpu->dZ, gpu->dZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy, const int nnz, const int offsetX, const int offsetY, const int offsetZ ) {
+    GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    gpuErrchk( cudaPeekAtLastError() );
 }
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
@@ -487,13 +503,13 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
     gpuErrchk( cudaPeekAtLastError() );
 }
 
-extern "C" void ParticleUpdateNonPeriodic( GPU *gpu, const double grid_width, const double delta_viz ) {
-    GPUUpdateNonperiodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, delta_viz, gpu->pCount, gpu->dParticles);
+extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
+    GPUUpdateNonperiodic<<< (gpu->pCount / 32) + 1, 32 >>> (gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 }
 
-extern "C" void ParticleUpdatePeriodic( GPU *gpu, const double grid_width, const double grid_height ) {
-    GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (grid_width, grid_height, gpu->pCount, gpu->dParticles);
+extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
+    GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 }
 
@@ -535,4 +551,18 @@ GPU* ParticleRead(char * path){
 
     fclose(data);
     return retVal;
+}
+
+void PrintFreeMemory(){
+    size_t free_byte, total_byte ;
+    cudaError_t cuda_status = cudaMemGetInfo( &free_byte, &total_byte ) ;
+    if ( cudaSuccess != cuda_status ){
+        printf("Error: cudaMemGetInfo fails, %s \n", cudaGetErrorString(cuda_status) );
+        exit(1);
+    }
+
+    double free_db = (double)free_byte ;
+    double total_db = (double)total_byte ;
+    double used_db = total_db - free_db ;
+    printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 }
