@@ -111,9 +111,9 @@ TEST( ParticleCUDA, ParticleUpdateNonPeriodic ) {
 	std::vector<Particle> expected = ReadParticles( "../test/data/particle_nonperiodic_expected.dat" );
 	ASSERT_EQ( expected.size(), 10 );
 
-	GPU *gpu = (GPU*) malloc( sizeof(GPU) );
+	GPU *gpu = NewGPU(10, 0, 0, 0, 0, 0.04, 0.0, 0.0, 0.000163 );
 	ParticleInit(gpu, 10, &input[0]);
-	ParticleUpdateNonPeriodic(gpu, 0.04, 0.000163);
+	ParticleUpdateNonPeriodic(gpu);
     Particle *result = ParticleDownload(gpu);
 
     for( int i = 0; i < 10; i++ ) {
@@ -159,9 +159,10 @@ TEST( ParticleCUDA, ParticleUpdatePeriodic ) {
 	std::vector<Particle> expected = ReadParticles( "../test/data/particle_periodic_expected.dat" );
 	ASSERT_EQ( expected.size(), 10 );
 
-	GPU *gpu = (GPU*) malloc( sizeof(GPU) );
+
+	GPU *gpu = NewGPU(10, 0, 0, 0, 0, 0.251327, 0.251327, 0.0, 0.0 );
 	ParticleInit(gpu, 10, &input[0]);
-	ParticleUpdatePeriodic(gpu, 0.251327, 0.251327);
+	ParticleUpdatePeriodic(gpu);
     Particle *result = ParticleDownload(gpu);
 
     for( int i = 0; i < 10; i++ ) {

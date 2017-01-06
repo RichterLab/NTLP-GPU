@@ -9,8 +9,7 @@ struct Particle {
 
 struct GPU {
 	unsigned int pCount;
-	Particle* dParticles;
-	Particle* hParticles;
+	Particle *hParticles, *dParticles;
 
 	int GridHeight, GridWidth, GridDepth, ZSize;
 	double FieldWidth, FieldHeight, FieldDepth, FieldVis;
