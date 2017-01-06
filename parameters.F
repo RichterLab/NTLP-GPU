@@ -65,7 +65,7 @@
         character*80 path_viz_xy, path_viz_xz, path_viz_yz, path_stuf,
      +   path_seed
         integer :: myid, numprocs, i_root, ziloc, myid_newvis, ncpu_s,
-     +   ncpu_z, maxp, gpuid
+     +   ncpu_z, maxp
         integer, allocatable, dimension(:) ::
      +   ix_s, ix_e, jx_s, jx_e,
      +   kx_s, kx_e, mx_s, mx_e,

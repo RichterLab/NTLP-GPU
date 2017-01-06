@@ -35,8 +35,20 @@ if (BUILD_FORTRAN)
   set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -i4 -r8")
   set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -i4 -r8")
 
+  # Handle ulimit issue for intel compiler
+  option( BUILD_FORTRAN_RESTRICT_STACK "Restrict stack size for intel compiler" ON)
+  if (BUILD_FORTRAN_RESTRICT_STACK)
+    set( BUILD_FORTRAN_RESTRICT_STACK_MAX "256" CACHE STRING "Maximum stack size in kilobytes")
+
+    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -heap-arrays ${BUILD_FORTRAN_RESTRICT_STACK_MAX}")
+    set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -heap-arrays ${BUILD_FORTRAN_RESTRICT_STACK_MAX}")
+  endif (BUILD_FORTRAN_RESTRICT_STACK)
+
   # Build Library
   add_library (fft STATIC "fft.f")
+
+  # Set source parameters
+  set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-free")
 
   # Build Executable
   add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})

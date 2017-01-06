@@ -38,7 +38,6 @@
         real :: radius_init,radius_mass,rhow,nuf
         real :: CpaCpp,Cpa,Cpp,Pra,Sc,Mw,Ru,rhoa
         real :: m_s,Sal,Ms,delta_vis,Gam,Ion,Os
-        type(c_ptr) :: gpu
 
         !REMEMBER: IF ADDING ANYTHING, MUST UPDATE MPI DATATYPE!
         type :: particle
@@ -52,7 +51,6 @@
       contains
         subroutine particle_setup
         use pars
-        use particle_c
         implicit none
         include 'mpif.h'
 
@@ -138,12 +136,6 @@
         end if
 
         call mpi_type_commit(particletype,ierr)
-
-#ifdef BUILD_CUDA
-        if (myid .eq. 0) then
-            gpu = newgpu(tnumpart)
-        end if
-#endif
         end subroutine particle_setup
 
         subroutine particle_init
@@ -182,7 +174,8 @@
             xp_init(1) = ran2(iseed)*(xmax-xmin) + xmin
             xp_init(2) = ran2(iseed)*(ymax-ymin) + ymin
             xp_init(3) = ran2(iseed)*(zl-2.0*delta_vis) + delta_vis
-            call particle_create(xp_init,vp_init,Tp_init,qf_init,idx)
+            call particle_create(xp_init,vp_init,Tp_init,qf_init,
+     +        myid*numpart+idx)
           end do
 
           partTsrc = 0.0
@@ -315,22 +308,16 @@
           use pars
           use con_data
           use con_stats
-          use particle_c
-          use particle_struct
-          use iso_c_binding, only: c_ptr
           implicit none
           include 'mpif.h'
 
-          integer :: istage,ierr,it, iCurrent, i, j
+          integer :: istage,ierr,it, iCurrent, i, j, k
           real :: g(3)
           real :: Rep,diff(3),diffnorm,corrfac,myRep_avg
           real :: xtmp(3),vtmp(3),Tptmp,radiustmp
           real :: Nup,Shp,rhop,taup_i,estar,einf
           real :: myphip_sum,myphiw_sum,myphiv_sum,Volp
           real :: TfC,TpC,Lv,Eff_C,Eff_S
-          integer, allocatable :: pCounts(:), pDispls(:)
-          type(particle), allocatable :: pCurrent(:), pTotal(:)
-          type(gpu_particle) :: gpuParticle
 
           g(1:3) = (/0.0, 0.0, part_grav/)
 
@@ -360,113 +347,11 @@
           myphiv_sum = 0.0
           qstarsum_t = 0.0
 
-          part => first_particle
-          do while (associated(part))
-            call uf_interp
-            part => part%next
-          end do
-
-#ifdef BUILD_CUDA
-          call mpi_barrier(mpi_comm_world,ierr)
-          allocate(pCurrent(numpart), pTotal(tnumpart))
-          allocate(pCounts(numprocs), pDispls(numprocs))
-
-          iCurrent = 1
-          part => first_particle
-          do while (associated(part))
-            pCurrent(iCurrent) = part
-            iCurrent = iCurrent + 1
-            part => part%next
-          end do
-          iCurrent = iCurrent - 1
-
-          call mpi_gather(iCurrent, 1, mpi_integer, pCounts,
-     +      1, mpi_integer, 0, mpi_comm_world, ierr)
-
-          if (myid .eq. 0) then
-            iCurrent = 0
-            do  i=1,numprocs
-              pDispls(i) = iCurrent
-              iCurrent = iCurrent + pCounts(i)
-            end do
-          end if
-
-          call mpi_gatherv(pCurrent, numpart, particletype, pTotal,
-     +      pCounts, pDispls, particletype, 0, mpi_comm_world, ierr)
-
-          if (myid .eq. 0) then
-            do i = 1,tnumpart
-                  gpuParticle%pidx = pTotal(i)%pidx
-                  gpuParticle%procidx = pTotal(i)%procidx
-
-                  gpuParticle%vp(1:3) = pTotal(i)%vp(1:3)
-                  gpuParticle%xp(1:3) = pTotal(i)%xp(1:3)
-                  gpuParticle%uf(1:3) = pTotal(i)%uf(1:3)
-                  gpuParticle%xrhs(1:3) = pTotal(i)%xrhs(1:3)
-                  gpuParticle%vrhs(1:3) = pTotal(i)%vrhs(1:3)
-
-                  gpuParticle%Tp = pTotal(i)%Tp
-                  gpuParticle%Tprhs_s = pTotal(i)%Tprhs_s
-                  gpuParticle%Tprhs_L = pTotal(i)%Tprhs_L
-                  gpuParticle%Tf = pTotal(i)%Tf
-                  gpuParticle%radius = pTotal(i)%radius
-                  gpuParticle%radrhs = pTotal(i)%radrhs
-                  gpuParticle%qinf = pTotal(i)%qinf
-                  gpuParticle%qstar = pTotal(i)%qstar
-
-                  !write(*,*) "Input:", i, gpuParticle
-                  call gpuadd(gpu, i - 1, gpuParticle)
-            end do
-            call gpuwrite(gpu)
-
-            call gpuupload(gpu)
-            call gpustep(gpu, it, istage, dt)
-            call gpunonperiodic(gpu, zl, delta_vis)
-            call gpuperiodic(gpu, xl, yl)
-            call gpudownload(gpu)
-
-            do i = 1,tnumpart
-                gpuParticle = gpuget(gpu, i - 1)
-                !write(*,*) "Output:", i, gpuParticle
-
-                pTotal(i)%pidx = gpuParticle%pidx
-                pTotal(i)%procidx = gpuParticle%procidx
-
-                pTotal(i)%vp(1:3) = gpuParticle%vp(1:3)
-                pTotal(i)%xp(1:3) = gpuParticle%xp(1:3)
-                pTotal(i)%uf(1:3) = gpuParticle%uf(1:3)
-                pTotal(i)%xrhs(1:3) = gpuParticle%xrhs(1:3)
-                pTotal(i)%vrhs(1:3) = gpuParticle%vrhs(1:3)
-
-                pTotal(i)%Tp = gpuParticle%Tp
-                pTotal(i)%Tprhs_s = gpuParticle%Tprhs_s
-                pTotal(i)%Tprhs_L = gpuParticle%Tprhs_L
-                pTotal(i)%Tf = gpuParticle%Tf
-                pTotal(i)%radius = gpuParticle%radius
-                pTotal(i)%radrhs = gpuParticle%radrhs
-                pTotal(i)%qinf = gpuParticle%qinf
-                pTotal(i)%qstar = gpuParticle%qstar
-            end do
-          end if
-
-          call mpi_scatterv(pTotal, pCounts, pDispls, particletype,
-     +      pCurrent, numpart, particletype, 0, mpi_comm_world, ierr)
-
-          call mpi_barrier(mpi_comm_world,ierr)
-
-          iCurrent = 1
-          part => first_particle
-          do while (associated(part))
-            part = pCurrent(iCurrent)
-            part => part%next
-           iCurrent = iCurrent + 1
-         end do
-#ifndef BUILD_CUDA_VERIFY
-#else // BUILD_CUDA
-#endif
           !Loop over the linked list of particles:
           part => first_particle
           do while (associated(part))
+            call uf_interp
+
             if (it .LE. 1 ) then
               part%vp(1:3) = part%uf
               part%Tp = part%Tf
@@ -539,7 +424,7 @@
             part%radius = radiustmp + dt*gama(istage)*part%radrhs
 
             part => part%next
-          end do
+         end do
 
           !t_f1 = mpi_wtime()
           !write(*,*) 'proc,loop time: ',myid,t_f1-t_s
@@ -562,155 +447,6 @@
           !call mpi_barrier(mpi_comm_world,ierr)
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time bc_per:', t_f - t_s
-
-#ifdef BUILD_CUDA_VERIFY
-          iCurrent = 1
-          part => first_particle
-          do while (associated(part))
-            pCurrent(iCurrent) = part
-            iCurrent = iCurrent + 1
-            part => part%next
-          end do
-          iCurrent = iCurrent - 1
-
-          call mpi_gatherv(pCurrent, numpart, particletype, pTotal,
-     +      pCounts, pDispls, particletype, 0, mpi_comm_world, ierr)
-
-          if (myid .eq. 0) then
-            gpu = newgpu(tnumpart)
-            do i = 1,tnumpart
-                  gpuParticle%pidx = pTotal(i)%pidx
-                  gpuParticle%procidx = pTotal(i)%procidx
-
-                  gpuParticle%vp(1:3) = pTotal(i)%vp(1:3)
-                  gpuParticle%xp(1:3) = pTotal(i)%xp(1:3)
-                  gpuParticle%uf(1:3) = pTotal(i)%uf(1:3)
-                  gpuParticle%xrhs(1:3) = pTotal(i)%xrhs(1:3)
-                  gpuParticle%vrhs(1:3) = pTotal(i)%vrhs(1:3)
-
-                  gpuParticle%Tp = pTotal(i)%Tp
-                  gpuParticle%Tprhs_s = pTotal(i)%Tprhs_s
-                  gpuParticle%Tprhs_L = pTotal(i)%Tprhs_L
-                  gpuParticle%Tf = pTotal(i)%Tf
-                  gpuParticle%radius = pTotal(i)%radius
-                  gpuParticle%radrhs = pTotal(i)%radrhs
-                  gpuParticle%qinf = pTotal(i)%qinf
-                  gpuParticle%qstar = pTotal(i)%qstar
-
-                  !write(*,*) "Input:", i, gpuParticle
-                  call gpuadd(gpu, i - 1, gpuParticle)
-            end do
-            call gpuwrite(gpu)
-          end if
-
-          !Compare Results
-          do i = 0,numprocs
-            if( myid .eq. i ) then
-          iCurrent = 1
-          part => first_particle
-          do while (associated(part))
-            write(*,*) "Particle:", iCurrent, "Processor:", part%procidx
-     +        , "ID:", part%pidx
-
-
- 9001       format(a10, 3x, 'expected:', T40, f8.3, T60,
-     +        'actual:', 1x, f8.3)
- 9002       format(a10, 1x, i1, 1x, 'expected:', T40, f8.3, T60,
-     +        'actual:', 1x, f8.3)
-
-            do j = 1,3
-              if( dabs(part%vp(j)-pCurrent(iCurrent)%vp(j)) .gt. 1e-5 )
-     +          then
-                write(*,9002) "vp", j, part%vp(j),
-     +            pCurrent(iCurrent)%vp(j)
-              end if
-            end do
-
-            do j = 1,3
-              if( dabs(part%xp(j)-pCurrent(iCurrent)%xp(j)) .gt. 1e-5 )
-     +          then
-                write(*,9002) "xp", j, part%xp(j),
-     +          pCurrent(iCurrent)%xp(j)
-              end if
-            end do
-
-            do j = 1,3
-            if( dabs(part%uf(j) - pCurrent(iCurrent)%uf(j)) .gt. 1e-5 )
-     +          then
-                write(*,9002) "uf", j, part%uf(j),
-     +          pCurrent(iCurrent)%uf(j)
-              end if
-            end do
-
-            do j = 1,3
-            if( dabs(part%xrhs(j)-pCurrent(iCurrent)%xrhs(j)) .gt. 1e-5)
-     +          then
-                write(*,9002)
-     +            "xrhs", j, part%xrhs(j), pCurrent(iCurrent)%xrhs(j)
-              end if
-            end do
-
-            do j = 1,3
-            if(dabs(part%vrhs(j)-pCurrent(iCurrent)%vrhs(j)) .gt. 1e-5)
-     +          then
-                write(*,9002)
-     +            "vrhs", j, part%vrhs(j), pCurrent(iCurrent)%vrhs(j)
-              end if
-            end do
-
-            if( dabs(part%Tp - pCurrent(iCurrent)%Tp) .gt. 1e-5 )
-     +      then
-              write(*,9001) "Tp", part%Tp, pCurrent(iCurrent)%Tp
-            end if
-
-            if(dabs(part%Tprhs_s-pCurrent(iCurrent)%Tprhs_s) .gt. 1e-5)
-     +      then
-              write(*,9001) "Tprhs_s", part%Tprhs_s,
-     +        pCurrent(iCurrent)%Tprhs_s
-            end if
-
-            if( dabs(part%Tprhs_L-pCurrent(iCurrent)%Tprhs_L) .gt. 1e-5)
-     +      then
-              write(*,9001) "Tprhs_L",
-     +          part%Tprhs_L, pCurrent(iCurrent)%Tprhs_L
-            end if
-
-            if( dabs(part%Tf - pCurrent(iCurrent)%Tf) .gt. 1e-5 )
-     +      then
-              write(*,9001) "Tf", part%Tf, pCurrent(iCurrent)%Tf
-            end if
-
-            if(dabs(part%radius - pCurrent(iCurrent)%radius) .gt. 1e-5)
-     +      then
-              write(*,9001) "radius",
-     +          part%radius, pCurrent(iCurrent)%radius
-            end if
-
-            if(dabs(part%radrhs-pCurrent(iCurrent)%radrhs) .gt. 1e-5)
-     +        then
-              write(*,9001) "radrhs",
-     +          part%radrhs, pCurrent(iCurrent)%radrhs
-            end if
-
-            if(dabs(part%qinf-pCurrent(iCurrent)%qinf) .gt. 1e-5) then
-              write(*,9001) "qinf",
-     +          part%qinf, pCurrent(iCurrent)%qinf
-            end if
-
-            if(dabs(part%qstar-pCurrent(iCurrent)%qstar) .gt. 1e-5) then
-              write(*,9001) "qstar",
-     +          part%qstar, pCurrent(iCurrent)%qstar
-            end if
-
-            write(*,*) ""
-            part => part%next
-           iCurrent = iCurrent + 1
-         end do
-         end if
-          call mpi_barrier(mpi_comm_world,ierr)
-         end do
-#endif
-#endif // BUILD_CUDA
 
           !Check to see if particles left processor
           !If they did, remove from one list and add to another
@@ -2155,29 +1891,29 @@
       end do
 
       !Now we have the weights - compute the velocity at xp:
-        part%uf(1:3) = 0.0
-        part%Tf = 0.0
-        part%qinf = 0.0
-        do k = 1,6
-        do j = 1,6
-        do i = 1,6
-            ix = ijpts(1,i)
-            iy = ijpts(2,j)
-            izuv = kuvpts(k)
-            izw = kwpts(k)
-            part%uf(1) = part%uf(1)+uext(izuv,iy,ix)*wt(1,i)*
+      part%uf(1:3) = 0.0
+      part%Tf = 0.0
+      part%qinf = 0.0
+      do k = 1,6
+      do j = 1,6
+      do i = 1,6
+         ix = ijpts(1,i)
+         iy = ijpts(2,j)
+         izuv = kuvpts(k)
+         izw = kwpts(k)
+         part%uf(1) = part%uf(1)+uext(izuv,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(3,k)
-            part%uf(2) = part%uf(2)+vext(izuv,iy,ix)*wt(1,i)*
+         part%uf(2) = part%uf(2)+vext(izuv,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(3,k)
-            part%uf(3) = part%uf(3)+wext(izw,iy,ix)*wt(1,i)*
+         part%uf(3) = part%uf(3)+wext(izw,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(4,k)
-            part%Tf = part%Tf+Text(izuv,iy,ix)*wt(1,i)*
+         part%Tf = part%Tf+Text(izuv,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(3,k)
-            part%qinf = part%qinf+T2ext(izuv,iy,ix)*wt(1,i)*
+         part%qinf = part%qinf+T2ext(izuv,iy,ix)*wt(1,i)*
      +                   wt(2,j)*wt(3,k)
-         end do
-         end do
-         end do
+      end do
+      end do
+      end do
       end subroutine uf_interp
       subroutine save_particles
       use pars
