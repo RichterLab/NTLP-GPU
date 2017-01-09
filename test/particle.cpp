@@ -281,12 +281,292 @@ TEST( Particle, NonPeriodicBelow ) {
 	free(gpu);
 }
 
-// Periodic
-//	- Center of Box
-//	- Less than Left, Center Y
-//	- Greater than Right, Center Y
-//	- Center X, Below Bottom
-//	- Center X, Above Top
+// ------------------------------------------------------------------
+// Periodic Boundary Condition Tests
+// ------------------------------------------------------------------
+
+// This test should test that the particle is in the center and should
+// not change the particle
+TEST( Particle, PeriodicCenter ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and should set its X position to Width+X
+TEST( Particle, PeriodicNegativeX ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// vertical and should set its Y position to Height+Y
+TEST( Particle, PeriodicNegativeY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and vertically and should set its X position to Width+X
+// and Y position to Height+Y
+TEST( Particle, PeriodicNegativeXY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// horizontally and should set its X position to X-Width
+TEST( Particle, PeriodicPositiveX ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {1.0, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// vertically and should set its Y position to Y-Height
+TEST( Particle, PeriodicPositiveY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 2.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 1.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// horizontally and vertically and should set its X position to X-Width
+// and Y position to Y-Height
+TEST( Particle, PeriodicPositiveXY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.75, 1.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and positively vertically and should set its X position
+// to Width+X and Y position to Y-Height
+TEST( Particle, PeriodicNegativeXPositiveY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, 1.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and positively vertically and should set its X position
+// to Width+X and Y position to Y-Height
+TEST( Particle, PeriodicPositiveXNegativeY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.75, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
 
 // Interpolate
 //
