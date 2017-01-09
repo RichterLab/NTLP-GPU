@@ -191,7 +191,7 @@ void CompareParticle(Particle* actual, Particle* expected){
 // not change the particle
 TEST( Particle, NonPeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
@@ -222,7 +222,7 @@ TEST( Particle, NonPeriodicCenter ) {
 // should invert the Z velocity and set the Z position to (top - (Z-top))
 TEST( Particle, NonPeriodicAbove ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
@@ -254,7 +254,7 @@ TEST( Particle, NonPeriodicAbove ) {
 // (bottom + (bottom + Z))
 TEST( Particle, NonPeriodicBelow ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
