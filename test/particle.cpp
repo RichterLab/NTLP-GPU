@@ -104,54 +104,6 @@ TEST( ParticleCUDA, ParticleUpdate ) {
 	}
 }
 
-TEST( ParticleCUDA, ParticleUpdateNonPeriodic ) {
-    std::vector<Particle> input = ReadParticles( "../test/data/particle_nonperiodic_input.dat" );
-	ASSERT_EQ( input.size(), 10 );
-
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_nonperiodic_expected.dat" );
-	ASSERT_EQ( expected.size(), 10 );
-
-	GPU *gpu = NewGPU(10, 0, 0, 0, 0, 0.04, 0.0, 0.0, 0.000163 );
-	ParticleInit(gpu, 10, &input[0]);
-	ParticleUpdateNonPeriodic(gpu);
-    Particle *result = ParticleDownload(gpu);
-
-    for( int i = 0; i < 10; i++ ) {
-		for( int k = 0; k < 10; k++ ){
-			if(expected[i].pidx != result[k].pidx) continue;
-			if(expected[i].procidx != result[k].procidx) continue;
-
-			ASSERT_FLOAT_EQ( expected[i].pidx, result[k].pidx ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].procidx, result[k].procidx ) << "I: " << i;
-
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vp[j], result[k].vp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xp[j], result[k].xp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].uf[j], result[k].uf[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xrhs[j], result[k].xrhs[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vrhs[j], result[k].vrhs[j] ) << "I: " << i << " J: " << j;
-			}
-
-			ASSERT_FLOAT_EQ( expected[i].Tp, result[k].Tp ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_s, result[k].Tprhs_s ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_L, result[k].Tprhs_L ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tf, result[k].Tf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radius, result[k].radius ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radrhs, result[k].radrhs ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qinf, result[k].qinf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qstar, result[k].qstar ) << "I: " << i;
-		}
-	}
-}
-
 TEST( ParticleCUDA, ParticleUpdatePeriodic ) {
     std::vector<Particle> input = ReadParticles( "../test/data/particle_periodic_input.dat" );
 	ASSERT_EQ( input.size(), 10 );
@@ -200,3 +152,141 @@ TEST( ParticleCUDA, ParticleUpdatePeriodic ) {
 		}
 	}
 }
+
+void CompareParticle(Particle* actual, Particle* expected){
+	if(actual->pidx != expected->pidx) return;
+	if(actual->procidx != expected->procidx) return;
+
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->vp[j], expected->vp[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->xp[j], expected->xp[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->uf[j], expected->uf[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->xrhs[j], expected->xrhs[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->vrhs[j], expected->vrhs[j] ) << " J: " << j;
+	}
+
+	ASSERT_FLOAT_EQ( actual->Tp, expected->Tp );
+	ASSERT_FLOAT_EQ( actual->Tprhs_s, expected->Tprhs_s );
+	ASSERT_FLOAT_EQ( actual->Tprhs_L, expected->Tprhs_L );
+	ASSERT_FLOAT_EQ( actual->Tf, expected->Tf );
+	ASSERT_FLOAT_EQ( actual->radius, expected->radius );
+	ASSERT_FLOAT_EQ( actual->radrhs, expected->radrhs );
+	ASSERT_FLOAT_EQ( actual->qinf, expected->qinf );
+	ASSERT_FLOAT_EQ( actual->qstar, expected->qstar );
+}
+
+// ------------------------------------------------------------------
+// Non Periodic Boundary Condition Tests
+// ------------------------------------------------------------------
+
+// This test should test that the particle is in the center and should
+// not change the particle
+TEST( Particle, NonPeriodicCenter ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdateNonPeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is above the top and it
+// should invert the Z velocity and set the Z position to (top - (Z-top))
+TEST( Particle, NonPeriodicAbove ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 2.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdateNonPeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, -1.0}, {0.0, 0.0, -0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is below the bottom and it
+// should invert the Z velocity and set the Z position to
+// (bottom + (bottom + Z))
+TEST( Particle, NonPeriodicBelow ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 10, 1.0, 1.0, 1.0, 0.25 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdateNonPeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 1.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// Periodic
+//	- Center of Box
+//	- Less than Left, Center Y
+//	- Greater than Right, Center Y
+//	- Center X, Below Bottom
+//	- Center X, Above Top
+
+// Interpolate
+//
