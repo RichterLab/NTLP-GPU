@@ -628,6 +628,8 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 #ifdef BUILD_CUDA
     GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
+#else
+    GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
 #endif
 }
 
