@@ -39,4 +39,8 @@ extern "C" void ParticleWrite( GPU* gpu );
 extern "C" GPU* ParticleRead(char *path);
 
 extern "C" void PrintFreeMemory();
+
+// Test Functions
+extern "C" int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* particle);
+
 #endif // PARTICLE_H_

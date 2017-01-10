@@ -519,5 +519,29 @@ TEST( Particle, PeriodicPositiveXNegativeY ) {
 	free(gpu);
 }
 
-// Interpolate
-//
+// ------------------------------------------------------------------
+// Neighbour Tests
+// ------------------------------------------------------------------
+
+TEST( Particle, Neighbours ) {
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -0.00005}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+
+	// Get Result
+	int *result = ParticleFindXYNeighbours(dx, dy, &input);
+
+	// Compare Results
+	int expected[12] = {2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7 };
+	for( int i = 0; i < 12; i++ ){
+		ASSERT_EQ(result[i], expected[i]);
+	}
+}
+

@@ -47,6 +47,48 @@ DEVICE double FortranIndex(const double* array, const int width, const int heigh
 }
 
 GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
+DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
+    neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
+    neighbours[1*6+2] = floor(particles[0].xp[1]/dy) + 1;
+
+    neighbours[0*6+1] = neighbours[0*6+2]-1;
+    neighbours[0*6+0] = neighbours[0*6+1]-1;
+    neighbours[0*6+3] = neighbours[0*6+2]+1;
+    neighbours[0*6+4] = neighbours[0*6+3]+1;
+    neighbours[0*6+5] = neighbours[0*6+4]+1;
+
+    neighbours[1*6+1] = neighbours[1*6+2]-1;
+    neighbours[1*6+0] = neighbours[1*6+1]-1;
+    neighbours[1*6+3] = neighbours[1*6+2]+1;
+    neighbours[1*6+4] = neighbours[1*6+3]+1;
+    neighbours[1*6+5] = neighbours[1*6+4]+1;
+}
+
+GLOBAL void GGPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
+    GPUFindXYNeighbours(dx, dy, particles, neighbours);
+}
+
+int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* particle) {
+    int *hResult = (int*) malloc(sizeof(int) * 12);
+
+#ifdef BUILD_CUDA
+    int *dResult;
+    gpuErrchk( cudaMalloc( (void **)&dResult, sizeof(int) * 12 ) );
+
+    Particle *dParticle;
+    gpuErrchk( cudaMalloc( (void **)&dParticle, sizeof(Particle) * 1 ) );
+    gpuErrchk( cudaMemcpy( dParticle, particle, sizeof(Particle) * 1, cudaMemcpyHostToDevice ) );
+
+    GGPUFindXYNeighbours<<< 1, 1 >>> ( dx, dy, dParticle, dResult);
+    gpuErrchk( cudaPeekAtLastError() );
+
+    gpuErrchk( cudaMemcpy( hResult, dResult, sizeof(int) * 12 , cudaMemcpyDeviceToHost ) );
+#else
+    GPUFindXYNeighbours(dx, dy, particle, hResult);
+#endif
+    return hResult;
+}
+
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
