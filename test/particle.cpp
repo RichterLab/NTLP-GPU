@@ -6,6 +6,7 @@
 
 #include "particle_gpu.h"
 #include "utility.h"
+#include "field_data.h"
 
 TEST( ParticleCUDA, Random ) {
     ASSERT_DOUBLE_EQ(rand2(1080), 0.65541634834855311);
@@ -543,5 +544,279 @@ TEST( Particle, Neighbours ) {
 	for( int i = 0; i < 12; i++ ){
 		ASSERT_EQ(result[i], expected[i]);
 	}
+}
+
+// ------------------------------------------------------------------
+// Interpolation Tests
+// ------------------------------------------------------------------
+
+TEST( Particle, InterpolationZZEQZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -0.00005}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZZEQZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQ1 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.00010}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQ1.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZLTZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -5.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZLTZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQ2 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0016}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQ2.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0401}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZGTNNZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0402}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZGTNNZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZM1 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0399}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM1.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZM2 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0385}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM2.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZELSE ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.021}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZELSE.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
 }
 

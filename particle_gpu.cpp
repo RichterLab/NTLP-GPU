@@ -644,7 +644,7 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy,
     GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
-
+    GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
 #endif
 }
 
