@@ -700,36 +700,6 @@ TEST( Particle, InterpolationZEQNNZ ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZGTNNZ ) {
-	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
-
-	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
-	double xl = 0.251327, yl = 0.251327;
-
-	// Setup Particle
-	Particle input = {
-		0, 0,
-		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0402}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
-	};
-	ParticleAdd(gpu, 0, &input);
-
-	// Update Particle
-	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
-	ParticleDownload(gpu);
-
-	// Compare Results
-	GPU *expected = ParticleRead("../test/data/InterpolationZGTNNZ.dat");
-	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
-
-	// Free Data
-	free(gpu);
-}
-
 TEST( Particle, InterpolationZEQNNZM1 ) {
 	// Create GPU
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
