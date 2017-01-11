@@ -389,6 +389,31 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 #endif
 }
 
+GLOBAL void GPUCalculateStatistics( const int nx, const int ny, const int nnz, const double dx, const double dy, const double *z, const double *zz, double *partcount_t, const int pcount, Particle* particles ) {
+#ifdef BUILD_CUDA
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if ( idx >= nnz ) return;
+#else
+    for( int idx = 0; idx < nnz; idx++){
+#endif
+
+    partcount_t[idx] = 0.0;
+    for( int i = 0; i < pcount; i++ ){
+        int kpt = -1;
+        for( int iz = 0; iz < nnz+1; iz++ ){
+            if (z[iz] > particles[i].xp[2]){
+                kpt = iz-1;
+                break;
+            }
+        }
+        if( kpt == idx ) partcount_t[idx] += 1.0;
+    }
+
+#ifndef BUILD_CUDA
+    }
+#endif
+}
+
 extern "C" double rand2(int idum, bool reset) {
       const int NTAB = 32;
       static int iv[NTAB], iy = 0, idum2 = 123456789;
@@ -457,6 +482,8 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->GridDepth = depth;
     retVal->ZSize = zsize;
 
+    // Statistics
+    retVal->hPartCount = (double*) malloc( sizeof(double) * retVal->GridDepth );
 
 #ifdef BUILD_CUDA
     gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
@@ -469,6 +496,8 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->ZSize ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->ZSize ) );
+
+    gpuErrchk( cudaMalloc( (void **)&retVal->dPartCount, sizeof(double) * retVal->GridDepth ) );
 #endif
 
     return retVal;
@@ -601,6 +630,22 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
     gpuErrchk( cudaPeekAtLastError() );
 #endif
 }
+
+extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy, const int nnz, const int nny, const int nnx, double* dzw ) {
+#ifdef BUILD_CUDA
+    GPUCalculateStatistics<<< (gpu->GridDepth / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->dZ, gpu->dZZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
+    gpuErrchk( cudaPeekAtLastError() );
+    gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
+#else
+
+#endif
+
+    for( int i = 0; i < gpu->GridDepth; i++ ){
+        printf("Z[%d] Count: %f\n", i, gpu->hPartCount[i]);
+    }
+    printf("\n");
+}
+
 
 extern "C" void ParticleDownloadHost( GPU *gpu ) {
 #ifdef BUILD_CUDA

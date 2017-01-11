@@ -333,6 +333,10 @@ c
          if(mhis  .and. istage .eq. 1)  call write_his(itop)
          if(mhis  .and. istage .eq. 1 .and. mtape) call close_his
       endif
+
+#ifdef BUILD_CUDA
+      call calculate_statistics
+#endif
 c
  8999 continue
       t_stage_f = mpi_wtime()

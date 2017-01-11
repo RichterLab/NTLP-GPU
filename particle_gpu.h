@@ -14,6 +14,9 @@ struct GPU {
 	int GridHeight, GridWidth, GridDepth, ZSize;
 	double FieldWidth, FieldHeight, FieldDepth, FieldVis;
 	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
+
+	// Statistics
+	double *hPartCount, *dPartCount;
 };
 
 extern "C" double rand2(int idum, bool reset = false);
@@ -28,6 +31,7 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy,
 extern "C" void ParticleStep( GPU* gpu, const int it, const int istage, const double dt );
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu );
 extern "C" void ParticleUpdatePeriodic( GPU *gpu );
+extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy, const int nnz, const int nny, const int nnx, double *dzw );
 extern "C" void ParticleDownloadHost( GPU *gpu );
 extern "C" Particle* ParticleDownload( GPU* gpu );
 
