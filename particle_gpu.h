@@ -13,6 +13,7 @@ struct GPU {
 
 	int GridHeight, GridWidth, GridDepth, ZSize;
 	double FieldWidth, FieldHeight, FieldDepth, FieldVis;
+	double *hUext, *hVext, *hWext, *hText, *hQext, *hZ, *hZZ;
 	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
 
 	// Statistics

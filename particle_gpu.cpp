@@ -538,8 +538,16 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->ZSize ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->ZSize ) );
-
     gpuErrchk( cudaMalloc( (void **)&retVal->dPartCount, sizeof(double) * retVal->GridDepth ) );
+#else
+    retVal->hUext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+    retVal->hVext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+    retVal->hWext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+    retVal->hText = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+    retVal->hQext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+
+    retVal->hZ = (double*) malloc( sizeof(double) * retVal->ZSize );
+    retVal->hZZ = (double*) malloc( sizeof(double) * retVal->ZSize );
 #endif
 
     return retVal;
@@ -556,7 +564,14 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
     gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
 #else
+    memcpy( gpu->hUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
+    memcpy( gpu->hVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
+    memcpy( gpu->hWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
+    memcpy( gpu->hText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
+    memcpy( gpu->hQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
 
+    memcpy( gpu->hZ, z, sizeof(double) * gpu->ZSize );
+    memcpy( gpu->hZZ, zz, sizeof(double) * gpu->ZSize );
 #endif
 }
 
