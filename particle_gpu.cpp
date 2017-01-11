@@ -46,7 +46,6 @@ DEVICE double FortranIndex(const double* array, const int width, const int heigh
     return array[pos];
 }
 
-GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
 DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
     neighbours[1*6+2] = floor(particles[0].xp[1]/dy) + 1;
@@ -89,6 +88,7 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     return hResult;
 }
 
+GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -96,21 +96,8 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     for( int idx = 0; idx < pcount; idx++){
 #endif
 
-    int ijpts[2][6];
-    ijpts[0][2] = floor(particles[idx].xp[0]/dx) + 1;
-    ijpts[1][2] = floor(particles[idx].xp[1]/dy) + 1;
-
-    ijpts[0][1] = ijpts[0][2]-1;
-    ijpts[0][0] = ijpts[0][1]-1;
-    ijpts[0][3] = ijpts[0][2]+1;
-    ijpts[0][4] = ijpts[0][3]+1;
-    ijpts[0][5] = ijpts[0][4]+1;
-
-    ijpts[1][1] = ijpts[1][2]-1;
-    ijpts[1][0] = ijpts[1][1]-1;
-    ijpts[1][3] = ijpts[1][2]+1;
-    ijpts[1][4] = ijpts[1][3]+1;
-    ijpts[1][5] = ijpts[1][4]+1;
+    int ijpts[12];
+    GPUFindXYNeighbours(dx, dy, particles, ijpts);
 
     int kuvpts[6];
     for( int iz = 0; iz < nnz+1; iz++ ){
@@ -150,10 +137,10 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     double dxvec[2] = { dx, dy };
     for( int iz = 0; iz < 2; iz++ ){
         for( int j = 0; j < 6; j++ ){
-            double xjval = dxvec[iz]*(ijpts[iz][j]-1);
+            double xjval = dxvec[iz]*(ijpts[iz*6+j]-1);
             double pj = 1.0;
             for( int k = 0; k < 6; k++ ){
-                double xkval = dxvec[iz]*(ijpts[iz][k]-1);
+                double xkval = dxvec[iz]*(ijpts[iz*6+k]-1);
                 if (j != k) {
                     pj = pj*(particles[idx].xp[iz]-xkval)/(xjval-xkval);
                 }
@@ -258,8 +245,8 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     for( int k = 0; k < 6; k++ ){
         for( int j = 0; j < 6; j++ ){
             for( int i = 0; i < 6; i++ ){
-                const int ix = ijpts[0][i];
-                const int iy = ijpts[1][j];
+                const int ix = ijpts[0*6+i];
+                const int iy = ijpts[1*6+j];
                 const int izuv = kuvpts[k];
                 const int izw = kwpts[k];
 
