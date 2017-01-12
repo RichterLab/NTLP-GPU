@@ -694,7 +694,7 @@ extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const do
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
 #else
-
+    GPUCalculateStatistics( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->hZ, gpu->hZZ, gpu->hPartCount, gpu->pCount, gpu->hParticles);
 #endif
 }
 
