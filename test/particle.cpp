@@ -909,3 +909,90 @@ TEST( Particle, InterpolationZELSE ) {
 	free(gpu);
 }
 
+// ------------------------------------------------------------------
+// Statistics Tests
+// ------------------------------------------------------------------
+
+TEST( Particle, StatisticCountEvenDistribution ) {
+	// Create GPU
+	GPU *gpu = NewGPU(8, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Setup Particle
+	for( int i = 0; i < size; i++ ){
+		Particle p = { 0, 0, {0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, Z[i]}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		ParticleAdd(gpu, i, &p);
+	}
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleCalculateStatistics(gpu, dx, dy);
+
+	// Compare Results
+	for( int i = 0; i < size; i++ ){
+		ASSERT_EQ(gpu->hPartCount[i], 1);
+	}
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, StatisticCountEveryOther ) {
+	// Create GPU
+	GPU *gpu = NewGPU(8, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Setup Particle
+	int j = 0;
+	for( int i = 0; i < size; i++ ){
+		if( i != 0 && i % 2 == 0 ){
+			j += 2;
+		}
+		Particle p = { 0, 0, {0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, Z[j]}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		ParticleAdd(gpu, i, &p);
+	}
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleCalculateStatistics(gpu, dx, dy);
+
+	// Compare Results
+	for( int i = 0; i < size; i++ ){
+		if( i % 2 == 0 ){
+			ASSERT_EQ(gpu->hPartCount[i], 2);
+		}else{
+			ASSERT_EQ(gpu->hPartCount[i], 0);
+		}
+	}
+
+	// Free Data
+	free(gpu);
+}

@@ -439,13 +439,13 @@ GLOBAL void GPUCalculateStatistics( const int nx, const int ny, const int nnz, c
 
     partcount_t[idx] = 0.0;
     for( int i = 0; i < pcount; i++ ){
-        int kpt = -1;
-        for( int iz = 0; iz < nnz+1; iz++ ){
-            if (z[iz] > particles[i].xp[2]){
-                kpt = iz-1;
+        int kpt = 0;
+        for( ; kpt < nnz; kpt++ ){
+            if (z[kpt] > particles[i].xp[2]){
                 break;
             }
         }
+        kpt -= 1;
         if( kpt == idx ) partcount_t[idx] += 1.0;
     }
 
@@ -688,19 +688,14 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 #endif
 }
 
-extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy, const int nnz, const int nny, const int nnx, double* dzw ) {
+extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
     GPUCalculateStatistics<<< (gpu->GridDepth / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->dZ, gpu->dZZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
 #else
-
+    GPUCalculateStatistics( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->hZ, gpu->hZZ, gpu->hPartCount, gpu->pCount, gpu->hParticles);
 #endif
-
-    for( int i = 0; i < gpu->GridDepth; i++ ){
-        printf("Z[%d] Count: %f\n", i, gpu->hPartCount[i]);
-    }
-    printf("\n");
 }
 
 
