@@ -104,99 +104,808 @@ TEST( ParticleCUDA, ParticleUpdate ) {
 	}
 }
 
-TEST( ParticleCUDA, ParticleUpdateNonPeriodic ) {
-    std::vector<Particle> input = ReadParticles( "../test/data/particle_nonperiodic_input.dat" );
-	ASSERT_EQ( input.size(), 10 );
+void CompareParticle(Particle* actual, Particle* expected){
+	if(actual->pidx != expected->pidx) return;
+	if(actual->procidx != expected->procidx) return;
 
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_nonperiodic_expected.dat" );
-	ASSERT_EQ( expected.size(), 10 );
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->vp[j], expected->vp[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->xp[j], expected->xp[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->uf[j], expected->uf[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->xrhs[j], expected->xrhs[j] ) << " J: " << j;
+	}
+	for( int j = 0; j < 3; j++ ) {
+		ASSERT_FLOAT_EQ( actual->vrhs[j], expected->vrhs[j] ) << " J: " << j;
+	}
 
-	GPU *gpu = NewGPU(10, 0, 0, 0, 0, 0.04, 0.0, 0.0, 0.000163 );
-	ParticleInit(gpu, 10, &input[0]);
+	ASSERT_FLOAT_EQ( actual->Tp, expected->Tp );
+	ASSERT_FLOAT_EQ( actual->Tprhs_s, expected->Tprhs_s );
+	ASSERT_FLOAT_EQ( actual->Tprhs_L, expected->Tprhs_L );
+	ASSERT_FLOAT_EQ( actual->Tf, expected->Tf );
+	ASSERT_FLOAT_EQ( actual->radius, expected->radius );
+	ASSERT_FLOAT_EQ( actual->radrhs, expected->radrhs );
+	ASSERT_FLOAT_EQ( actual->qinf, expected->qinf );
+	ASSERT_FLOAT_EQ( actual->qstar, expected->qstar );
+}
+
+// ------------------------------------------------------------------
+// Non Periodic Boundary Condition Tests
+// ------------------------------------------------------------------
+
+// This test should test that the particle is in the center and should
+// not change the particle
+TEST( Particle, NonPeriodicCenter ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
 	ParticleUpdateNonPeriodic(gpu);
-    Particle *result = ParticleDownload(gpu);
+	ParticleDownload(gpu);
 
-    for( int i = 0; i < 10; i++ ) {
-		for( int k = 0; k < 10; k++ ){
-			if(expected[i].pidx != result[k].pidx) continue;
-			if(expected[i].procidx != result[k].procidx) continue;
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
 
-			ASSERT_FLOAT_EQ( expected[i].pidx, result[k].pidx ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].procidx, result[k].procidx ) << "I: " << i;
-
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vp[j], result[k].vp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xp[j], result[k].xp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].uf[j], result[k].uf[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xrhs[j], result[k].xrhs[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vrhs[j], result[k].vrhs[j] ) << "I: " << i << " J: " << j;
-			}
-
-			ASSERT_FLOAT_EQ( expected[i].Tp, result[k].Tp ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_s, result[k].Tprhs_s ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_L, result[k].Tprhs_L ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tf, result[k].Tf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radius, result[k].radius ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radrhs, result[k].radrhs ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qinf, result[k].qinf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qstar, result[k].qstar ) << "I: " << i;
-		}
-	}
+	// Free Data
+	free(gpu);
 }
 
-TEST( ParticleCUDA, ParticleUpdatePeriodic ) {
-    std::vector<Particle> input = ReadParticles( "../test/data/particle_periodic_input.dat" );
-	ASSERT_EQ( input.size(), 10 );
+// This test should test that the particle is above the top and it
+// should invert the Z velocity and set the Z position to (top - (Z-top))
+TEST( Particle, NonPeriodicAbove ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_periodic_expected.dat" );
-	ASSERT_EQ( expected.size(), 10 );
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 2.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
 
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdateNonPeriodic(gpu);
+	ParticleDownload(gpu);
 
-	GPU *gpu = NewGPU(10, 0, 0, 0, 0, 0.251327, 0.251327, 0.0, 0.0 );
-	ParticleInit(gpu, 10, &input[0]);
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, -1.0}, {0.0, 0.0, -0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is below the bottom and it
+// should invert the Z velocity and set the Z position to
+// (bottom + (bottom + Z))
+TEST( Particle, NonPeriodicBelow ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdateNonPeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 1.0}, {0.0, 0.0, 1.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// ------------------------------------------------------------------
+// Periodic Boundary Condition Tests
+// ------------------------------------------------------------------
+
+// This test should test that the particle is in the center and should
+// not change the particle
+TEST( Particle, PeriodicCenter ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-    Particle *result = ParticleDownload(gpu);
+	ParticleDownload(gpu);
 
-    for( int i = 0; i < 10; i++ ) {
-		for( int k = 0; k < 10; k++ ){
-			if(expected[i].pidx != result[k].pidx) continue;
-			if(expected[i].procidx != result[k].procidx) continue;
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
 
-			ASSERT_FLOAT_EQ( expected[i].pidx, result[k].pidx ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].procidx, result[k].procidx ) << "I: " << i;
+	// Free Data
+	free(gpu);
+}
 
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vp[j], result[k].vp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xp[j], result[k].xp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].uf[j], result[k].uf[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xrhs[j], result[k].xrhs[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vrhs[j], result[k].vrhs[j] ) << "I: " << i << " J: " << j;
-			}
+// This test should test that the particle is negatively out of bounds
+// horizontally and should set its X position to Width+X
+TEST( Particle, PeriodicNegativeX ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
-			ASSERT_FLOAT_EQ( expected[i].Tp, result[k].Tp ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_s, result[k].Tprhs_s ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_L, result[k].Tprhs_L ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tf, result[k].Tf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radius, result[k].radius ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radrhs, result[k].radrhs ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qinf, result[k].qinf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qstar, result[k].qstar ) << "I: " << i;
-		}
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// vertical and should set its Y position to Height+Y
+TEST( Particle, PeriodicNegativeY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and vertically and should set its X position to Width+X
+// and Y position to Height+Y
+TEST( Particle, PeriodicNegativeXY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// horizontally and should set its X position to X-Width
+TEST( Particle, PeriodicPositiveX ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {1.0, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.5, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// vertically and should set its Y position to Y-Height
+TEST( Particle, PeriodicPositiveY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 2.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 1.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is positively out of bounds
+// horizontally and vertically and should set its X position to X-Width
+// and Y position to Y-Height
+TEST( Particle, PeriodicPositiveXY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.75, 1.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and positively vertically and should set its X position
+// to Width+X and Y position to Y-Height
+TEST( Particle, PeriodicNegativeXPositiveY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {-0.25, 1.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// This test should test that the particle is negatively out of bounds
+// horizontally and positively vertically and should set its X position
+// to Width+X and Y position to Y-Height
+TEST( Particle, PeriodicPositiveXNegativeY ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.75, -0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleUpdatePeriodic(gpu);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	Particle expected = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {0.25, 0.5, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	CompareParticle(&gpu->hParticles[0], &expected);
+
+	// Free Data
+	free(gpu);
+}
+
+// ------------------------------------------------------------------
+// Neighbour Tests
+// ------------------------------------------------------------------
+
+TEST( Particle, Neighbours ) {
+	// Setup Variables
+	double dx = 0.04188783, dy = 0.04188783;
+	double xl = 0.251327, yl = 0.251327;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -0.00005}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+
+	// Get Result
+	int *result = ParticleFindXYNeighbours(dx, dy, &input);
+
+	// Compare Results
+	int expected[12] = {2, 3, 4, 5, 6, 7, 2, 3, 4, 5, 6, 7 };
+	for( int i = 0; i < 12; i++ ){
+		ASSERT_EQ(result[i], expected[i]);
 	}
 }
+
+// ------------------------------------------------------------------
+// Interpolation Tests
+// ------------------------------------------------------------------
+
+TEST( Particle, InterpolationZZEQZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -0.00005}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZZEQZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQ1 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.00010}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQ1.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZLTZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, -5.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZLTZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQ2 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0016}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQ2.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.04003}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZGTNNZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0401}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZGTNNZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZM1 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0399}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM1.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZEQNNZM2 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0385}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM2.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZELSE ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.021}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZELSE.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+

@@ -13,6 +13,7 @@ struct GPU {
 
 	int GridHeight, GridWidth, GridDepth, ZSize;
 	double FieldWidth, FieldHeight, FieldDepth, FieldVis;
+	double *hUext, *hVext, *hWext, *hText, *hQext, *hZ, *hZZ;
 	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
 
 	// Statistics
@@ -39,4 +40,8 @@ extern "C" void ParticleWrite( GPU* gpu );
 extern "C" GPU* ParticleRead(char *path);
 
 extern "C" void PrintFreeMemory();
+
+// Test Functions
+extern "C" int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* particle);
+
 #endif // PARTICLE_H_
