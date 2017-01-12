@@ -6,7 +6,6 @@
 
 #include "particle_gpu.h"
 #include "utility.h"
-#include "field_data.h"
 
 TEST( ParticleCUDA, Random ) {
     ASSERT_DOUBLE_EQ(rand2(1080), 0.65541634834855311);
@@ -555,8 +554,8 @@ TEST( Particle, InterpolationZZEQZ ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -565,6 +564,16 @@ TEST( Particle, InterpolationZZEQZ ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -585,8 +594,8 @@ TEST( Particle, InterpolationZEQ1 ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -595,6 +604,16 @@ TEST( Particle, InterpolationZEQ1 ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -615,8 +634,8 @@ TEST( Particle, InterpolationZLTZ ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -625,6 +644,16 @@ TEST( Particle, InterpolationZLTZ ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -645,8 +674,8 @@ TEST( Particle, InterpolationZEQ2 ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -655,6 +684,16 @@ TEST( Particle, InterpolationZEQ2 ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -675,8 +714,8 @@ TEST( Particle, InterpolationZEQNNZ ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -685,6 +724,16 @@ TEST( Particle, InterpolationZEQNNZ ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -705,8 +754,8 @@ TEST( Particle, InterpolationZEQNNZM1 ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -715,6 +764,16 @@ TEST( Particle, InterpolationZEQNNZM1 ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -735,8 +794,8 @@ TEST( Particle, InterpolationZEQNNZM2 ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -745,6 +804,16 @@ TEST( Particle, InterpolationZEQNNZM2 ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);
@@ -765,8 +834,8 @@ TEST( Particle, InterpolationZELSE ) {
 	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
-	double dx = 0.04188783, dy = 0.04188783;
 	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	Particle input = {
@@ -775,6 +844,16 @@ TEST( Particle, InterpolationZELSE ) {
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Update Particle
 	ParticleUpload(gpu);

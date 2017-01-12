@@ -40,12 +40,6 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 #endif
 
-DEVICE double FortranIndex(const double* array, const int width, const int height, const int depth, const int ofx, const int ofy, const int ofz, const int x, const int y, const int z) {
-    const int xActual = x+ofx-1, yActual = y+ofy-1, zActual = z+ofz-1;
-    const int pos = zActual+yActual*(depth-1)+xActual*(width-1)*(depth-1);
-    return array[pos];
-}
-
 DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
     neighbours[1*6+2] = floor(particles[0].xp[1]/dy) + 1;
@@ -99,13 +93,13 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     int ijpts[12];
     GPUFindXYNeighbours(dx, dy, particles, ijpts);
 
-    int kuvpts[6];
-    for( int iz = 0; iz < nnz+1; iz++ ){
-        if (zz[iz] > particles[idx].xp[2]){
-            kuvpts[2] = iz-1;
+    int kuvpts[6] = { 0, 0, 0, 0, 0, 0 };
+    for( ; kuvpts[2] < nnz; kuvpts[2]++ ){
+        if (zz[kuvpts[2]] > particles[idx].xp[2]){
             break;
         }
     }
+    kuvpts[2] -= 1;
 
     kuvpts[3] = kuvpts[2]+1;
     kuvpts[4] = kuvpts[3]+1;
@@ -113,13 +107,13 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     kuvpts[1] = kuvpts[2]-1;
     kuvpts[0] = kuvpts[1]-1;
 
-    int kwpts[6];
-    for( int iz = 0; iz < nnz+1; iz++ ){
-        if (z[iz] > particles[idx].xp[2]) {
-            kwpts[2] = iz-1;
+    int kwpts[6] = { 0, 0, 0, 0, 0, 0 };
+    for( ; kwpts[2] < nnz; kwpts[2]++ ){
+        if (z[kwpts[2]] > particles[idx].xp[2]) {
             break;
         }
     }
+    kwpts[2] -= 1;
 
     kwpts[3] = kwpts[2]+1;
     kwpts[4] = kwpts[3]+1;
@@ -167,18 +161,18 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     } else if (kuvpts[2] == 2) {
         first = 2;
         last = 5;
-    } else if (kuvpts[2] == nnz) {
+    } else if (kuvpts[2] == nnz-2) {
         first = 2;
         last = 3;
-        kuvpts[3] = nnz;
-        kuvpts[4] = nnz;
-        kuvpts[5] = nnz;
-    } else if (kuvpts[2] == nnz-1) {
+        kuvpts[3] = nnz-2;
+        kuvpts[4] = nnz-2;
+        kuvpts[5] = nnz-2;
+    } else if (kuvpts[2] == nnz-3) {
         first = 3;
         last = 4;
-        kuvpts[4] = nnz;
-        kuvpts[5] = nnz;
-    } else if (kuvpts[2] == nnz-2) {
+        kuvpts[4] = nnz-2;
+        kuvpts[5] = nnz-2;
+    } else if (kuvpts[2] == nnz-4) {
         first = 2;
         last = 5;
     } else {
@@ -207,10 +201,10 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     } else if (kwpts[2] == 1) {
         first = 2;
         last = 5;
-    } else if (kwpts[2] == nnz-1) {
+    } else if (kwpts[2] == nnz-3) {
         first = 3;
         last = 4;
-    } else if (kwpts[2] == nnz-2) {
+    } else if (kwpts[2] == nnz-4) {
         first = 2;
         last = 5;
     } else {
@@ -243,12 +237,11 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
                 const int iy = ijpts[1*6+j];
                 const int izuv = kuvpts[k];
                 const int izw = kwpts[k];
-
-                particles[idx].uf[0] = particles[idx].uf[0]+FortranIndex(uext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].uf[1] = particles[idx].uf[1]+FortranIndex(vext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].uf[2] = particles[idx].uf[2]+FortranIndex(wext,ny,nnz,nx,offsetZ,offsetY,offsetX,izw,iy,ix)*wt[0][i]*wt[1][j]*wt[3][k];
-                particles[idx].Tf = particles[idx].Tf+FortranIndex(Text,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
-                particles[idx].qinf = particles[idx].qinf+FortranIndex(T2ext,ny,nnz,nx,offsetZ,offsetY,offsetX,izuv,iy,ix)*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[0] = particles[idx].uf[0]+uext[(ix+1)+(iy+1)*nx+izuv*ny*nx]*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[1] = particles[idx].uf[1]+vext[(ix+1)+(iy+1)*nx+izuv*ny*nx]*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].uf[2] = particles[idx].uf[2]+wext[(ix+1)+(iy+1)*nx+izw*ny*nx]*wt[0][i]*wt[1][j]*wt[3][k];
+                particles[idx].Tf = particles[idx].Tf+Text[(ix+1)+(iy+1)*nx+izuv*ny*nx]*wt[0][i]*wt[1][j]*wt[2][k];
+                particles[idx].qinf = particles[idx].qinf+T2ext[(ix+1)+(iy+1)*nx+izuv*ny*nx]*wt[0][i]*wt[1][j]*wt[2][k];
             }
         }
     }
@@ -527,8 +520,8 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->hText = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
     retVal->hQext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
 
-    retVal->hZ = (double*) malloc( sizeof(double) * retVal->ZSize );
-    retVal->hZZ = (double*) malloc( sizeof(double) * retVal->ZSize );
+    retVal->hZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
+    retVal->hZZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
 #endif
 
     return retVal;
@@ -551,8 +544,8 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
     memcpy( gpu->hText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
     memcpy( gpu->hQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
 
-    memcpy( gpu->hZ, z, sizeof(double) * gpu->ZSize );
-    memcpy( gpu->hZZ, zz, sizeof(double) * gpu->ZSize );
+    memcpy( gpu->hZ, z, sizeof(double) * gpu->GridDepth );
+    memcpy( gpu->hZZ, zz, sizeof(double) * gpu->GridDepth );
 #endif
 }
 

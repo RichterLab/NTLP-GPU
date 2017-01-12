@@ -65,3 +65,14 @@ TEST( ParticleUtility, ParseParticles ) {
 	std::vector<Particle> particle = ReadParticles( "../test/data/particle_input.dat" );
 	EXPECT_EQ( particle.size(), 10 );
 }
+
+double* ReadArray(const char* path, unsigned int *size){
+	FILE *data = fopen(path,"rb");
+    fread(size, sizeof(unsigned int), 1, data);
+
+	double *retVal = (double*) malloc( sizeof(double) * *size);
+    fread(retVal, sizeof(double), *size, data);
+
+    fclose(data);
+	return retVal;
+}
