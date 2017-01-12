@@ -145,12 +145,12 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 
     int first, last;
     if (kuvpts[2] == 1) {
-        first = 3;
+        first = 2;
         last = 4;
         kuvpts[0] = 1;
         kuvpts[1] = 1;
     } else if (kuvpts[2] == 0) {
-        first = 4;
+        first = 3;
         last = 5;
         kuvpts[0] = 1;
         kuvpts[1] = 1;
@@ -159,31 +159,37 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
         first = 0;
         last = 0;
     } else if (kuvpts[2] == 2) {
-        first = 2;
+        first = 1;
         last = 5;
     } else if (kuvpts[2] == nnz-2) {
-        first = 2;
+        first = 1;
         last = 3;
         kuvpts[3] = nnz-2;
         kuvpts[4] = nnz-2;
         kuvpts[5] = nnz-2;
+    } else if ( kuvpts[2] > nnz-2) {
+        first = 0;
+        last = 0;
+        kuvpts[3] = nnz-2;
+        kuvpts[4] = nnz-2;
+        kuvpts[5] = nnz-2;
     } else if (kuvpts[2] == nnz-3) {
-        first = 3;
+        first = 2;
         last = 4;
         kuvpts[4] = nnz-2;
         kuvpts[5] = nnz-2;
     } else if (kuvpts[2] == nnz-4) {
-        first = 2;
+        first = 1;
         last = 5;
     } else {
-        first = 1;
+        first = 0;
         last = 6;
     }
 
-    for( int j = first-1; j < last; j++){
+    for( int j = first; j < last; j++){
         double xjval = zz[kuvpts[j]];
         double pj = 1.0;
-        for( int k = first-1; k < last; k++ ){
+        for( int k = first; k < last; k++ ){
             double xkval = zz[kuvpts[k]];
             if (j != k) {
                 pj = pj*(particles[idx].xp[2]-xkval)/(xjval-xkval);
@@ -193,29 +199,35 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     }
 
     if (kwpts[2] == 0) {
-        first = 3;
+        first = 2;
         last = 4;
     } else if (kwpts[2] < 0) {
         first = 0;
         last = 0;
     } else if (kwpts[2] == 1) {
-        first = 2;
+        first = 1;
         last = 5;
+    } else if (kwpts[2] >= nnz - 2 ){
+        first = 0;
+        last = 0;
+        kwpts[3] = nnz-2;
+        kwpts[4] = nnz-2;
+        kwpts[5] = nnz-2;
     } else if (kwpts[2] == nnz-3) {
-        first = 3;
+        first = 2;
         last = 4;
     } else if (kwpts[2] == nnz-4) {
-        first = 2;
+        first = 1;
         last = 5;
     } else {
-        first = 1;
+        first = 0;
         last = 6;
     }
 
-    for( int j = first-1; j < last; j++){
+    for( int j = first; j < last; j++){
         double xjval = z[kwpts[j]];
         double pj = 1.0;
-        for( int k = first-1; k < last; k++ ){
+        for( int k = first; k < last; k++ ){
             double xkval = z[kwpts[k]];
             if (j != k){
                 pj = pj*(particles[idx].xp[2]-xkval)/(xjval-xkval);

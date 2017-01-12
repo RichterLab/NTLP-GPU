@@ -578,7 +578,7 @@ TEST( Particle, InterpolationZZEQZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -618,7 +618,7 @@ TEST( Particle, InterpolationZEQ1 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -658,7 +658,7 @@ TEST( Particle, InterpolationZLTZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 4, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -720,7 +720,7 @@ TEST( Particle, InterpolationZEQNNZ ) {
 	// Setup Particle
 	Particle input = {
 		0, 0,
-		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0401}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.04003}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
 		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
@@ -743,6 +743,46 @@ TEST( Particle, InterpolationZEQNNZ ) {
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZ.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
+TEST( Particle, InterpolationZGTNNZ ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, 0.0401}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZGTNNZ.dat");
 	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
 
 	// Free Data
