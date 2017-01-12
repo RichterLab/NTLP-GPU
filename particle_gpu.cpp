@@ -147,17 +147,20 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     if (kuvpts[2] == 1) {
         first = 2;
         last = 4;
-        kuvpts[0] = 1;
-        kuvpts[1] = 1;
+        kuvpts[0] = 0;
+        kuvpts[1] = 0;
     } else if (kuvpts[2] == 0) {
         first = 3;
         last = 5;
-        kuvpts[0] = 1;
-        kuvpts[1] = 1;
-        kuvpts[2] = 1;
+        kuvpts[0] = 0;
+        kuvpts[1] = 0;
+        kuvpts[2] = 0;
     } else if (kuvpts[2] < 0) {
         first = 0;
         last = 0;
+        kuvpts[0] = 0;
+        kuvpts[1] = 0;
+        kuvpts[2] = 0;
     } else if (kuvpts[2] == 2) {
         first = 1;
         last = 5;
@@ -201,12 +204,18 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     if (kwpts[2] == 0) {
         first = 2;
         last = 4;
+        kwpts[0] = 0;
+        kwpts[1] = 0;
     } else if (kwpts[2] < 0) {
         first = 0;
         last = 0;
+        kwpts[0] = 0;
+        kwpts[1] = 0;
+        kwpts[2] = 0;
     } else if (kwpts[2] == 1) {
         first = 1;
         last = 5;
+        kwpts[0] = 0;
     } else if (kwpts[2] >= nnz - 2 ){
         first = 0;
         last = 0;
@@ -216,9 +225,12 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     } else if (kwpts[2] == nnz-3) {
         first = 2;
         last = 4;
+        kwpts[4] = nnz-2;
+        kwpts[5] = nnz-2;
     } else if (kwpts[2] == nnz-4) {
         first = 1;
         last = 5;
+        kuvpts[0] = 0;
     } else {
         first = 0;
         last = 6;
