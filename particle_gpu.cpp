@@ -534,8 +534,8 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     gpuErrchk( cudaMalloc( (void **)&retVal->dText, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dQext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth ) );
 
-    gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->ZSize ) );
-    gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->ZSize ) );
+    gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->GridDepth ) );
+    gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->GridDepth ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dPartCount, sizeof(double) * retVal->GridDepth ) );
 #else
     retVal->hUext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
@@ -571,8 +571,8 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
     gpuErrchk( cudaMemcpy( gpu->dText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( gpu->dQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
 
-    gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->ZSize, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
 #else
     memcpy( gpu->hUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
     memcpy( gpu->hVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );

@@ -909,6 +909,46 @@ TEST( Particle, InterpolationZELSE ) {
 	free(gpu);
 }
 
+TEST( Particle, InterpolationZELSE16 ) {
+	// Create GPU
+	GPU *gpu = NewGPU(1, 21, 21, 18, 8, 0.5, 1.0, 0.0, 0.0 );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/16.0, dy = yl/16.0;
+
+	// Setup Particle
+	Particle input = {
+		0, 0,
+		{0.0, 0.0, 0.0}, {xl / 16.0, yl / 16.0, 0.021}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
+		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+	};
+	ParticleAdd(gpu, 0, &input);
+
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext16.dat", &size);
+	double* vext = ReadArray("../test/data/vext16.dat", &size);
+	double* wext = ReadArray("../test/data/wext16.dat", &size);
+	double* text = ReadArray("../test/data/text16.dat", &size);
+	double* qext = ReadArray("../test/data/qext16.dat", &size);
+	double* Z = ReadArray("../test/data/Z16.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ16.dat", &size);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/InterpolationZELSE16.dat");
+	CompareParticle(&gpu->hParticles[0], &expected->hParticles[0]);
+
+	// Free Data
+	free(gpu);
+}
+
 // ------------------------------------------------------------------
 // Statistics Tests
 // ------------------------------------------------------------------
