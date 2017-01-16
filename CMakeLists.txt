@@ -7,6 +7,12 @@ if (NOT CMAKE_BUILD_TYPE)
   set (CMAKE_BUILD_TYPE Release CACHE STRING "Choose the type of build, options are: None Debug Release." FORCE)
 endif (NOT CMAKE_BUILD_TYPE)
 
+# NAN Verification
+option( BUILD_VERIFYNAN "Build code to test if fields contain NANs" OFF)
+if (BUILD_VERIFYNAN)
+  add_definitions(-DBUILD_VERIFYNAN)
+endif (BUILD_VERIFYNAN)
+
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)
