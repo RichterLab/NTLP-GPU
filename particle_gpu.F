@@ -148,7 +148,7 @@ contains
             use con_stats, only: z
             use particles
 
-            gpu = newgpu(tnumpart,maxnx+6,maxny+6,maxnz+2,size(z), xl,yl,zl,delta_vis)
+            gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,size(z), xl,yl,zl,delta_vis)
         end subroutine
 
         subroutine transfer_particles()
