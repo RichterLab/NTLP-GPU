@@ -105,8 +105,8 @@ TEST( ParticleCUDA, ParticleUpdate ) {
 }
 
 void CompareParticle(Particle* actual, Particle* expected){
-	if(actual->pidx != expected->pidx) return;
-	if(actual->procidx != expected->procidx) return;
+	ASSERT_EQ(actual->pidx, expected->pidx);
+	ASSERT_EQ(actual->procidx, expected->procidx);
 
 	for( int j = 0; j < 3; j++ ) {
 		ASSERT_FLOAT_EQ( actual->vp[j], expected->vp[j] ) << " J: " << j;
