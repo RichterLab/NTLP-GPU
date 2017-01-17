@@ -23,13 +23,12 @@ module particle_c
             integer(c_int) :: count
         end function
 
-        type(c_ptr) function newgpu(count,h,w,d,z,xl,yl,zl,vis) bind(c,name="NewGPU")
+        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis) bind(c,name="NewGPU")
             use iso_c_binding, only: c_ptr, c_int, c_double
             integer(c_int), VALUE, intent(in)      :: count
             integer(c_int), VALUE, intent(in)      :: h
             integer(c_int), VALUE, intent(in)      :: w
             integer(c_int), VALUE, intent(in)      :: d
-            integer(c_int), VALUE, intent(in)      :: z
             real(c_double), VALUE, intent(in)      :: xl
             real(c_double), VALUE, intent(in)      :: yl
             real(c_double), VALUE, intent(in)      :: zl
@@ -145,7 +144,7 @@ contains
             use particles
 
             if( myid .eq. gpu_master_rank ) then
-                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,size(z), xl,yl,zl,delta_vis)
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis)
             end if
         end subroutine
 

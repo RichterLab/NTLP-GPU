@@ -503,7 +503,7 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const int zsize, const double fWidth, const double fHeight, const double fDepth, const double fVis) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
 
     // Particle Data
@@ -520,7 +520,6 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->GridWidth = width;
     retVal->GridHeight = height;
     retVal->GridDepth = depth;
-    retVal->ZSize = zsize;
 
     // Statistics
     retVal->hPartCount = (double*) malloc( sizeof(double) * retVal->GridDepth );
@@ -746,7 +745,7 @@ GPU* ParticleRead(const char * path){
     unsigned int particles = 0;
     fread(&particles, sizeof(unsigned int), 1, data);
 
-    GPU *retVal = NewGPU(particles, 0, 0, 0, 0, 0.0, 0.0, 0.0, 0.0 );
+    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0 );
     for( int i = 0; i < retVal->pCount; i++ ){
         fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
     }

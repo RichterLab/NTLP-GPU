@@ -142,7 +142,7 @@ void CompareParticle(Particle* actual, Particle* expected){
 // not change the particle
 TEST( Particle, NonPeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
@@ -173,7 +173,7 @@ TEST( Particle, NonPeriodicCenter ) {
 // should invert the Z velocity and set the Z position to (top - (Z-top))
 TEST( Particle, NonPeriodicAbove ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
@@ -205,7 +205,7 @@ TEST( Particle, NonPeriodicAbove ) {
 // (bottom + (bottom + Z))
 TEST( Particle, NonPeriodicBelow ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
 
 	// Setup Particle
 	Particle input = {
@@ -240,7 +240,7 @@ TEST( Particle, NonPeriodicBelow ) {
 // not change the particle
 TEST( Particle, PeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -271,7 +271,7 @@ TEST( Particle, PeriodicCenter ) {
 // horizontally and should set its X position to Width+X
 TEST( Particle, PeriodicNegativeX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -302,7 +302,7 @@ TEST( Particle, PeriodicNegativeX ) {
 // vertical and should set its Y position to Height+Y
 TEST( Particle, PeriodicNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -334,7 +334,7 @@ TEST( Particle, PeriodicNegativeY ) {
 // and Y position to Height+Y
 TEST( Particle, PeriodicNegativeXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -365,7 +365,7 @@ TEST( Particle, PeriodicNegativeXY ) {
 // horizontally and should set its X position to X-Width
 TEST( Particle, PeriodicPositiveX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -396,7 +396,7 @@ TEST( Particle, PeriodicPositiveX ) {
 // vertically and should set its Y position to Y-Height
 TEST( Particle, PeriodicPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -428,7 +428,7 @@ TEST( Particle, PeriodicPositiveY ) {
 // and Y position to Y-Height
 TEST( Particle, PeriodicPositiveXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -460,7 +460,7 @@ TEST( Particle, PeriodicPositiveXY ) {
 // to Width+X and Y position to Y-Height
 TEST( Particle, PeriodicNegativeXPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -492,7 +492,7 @@ TEST( Particle, PeriodicNegativeXPositiveY ) {
 // to Width+X and Y position to Y-Height
 TEST( Particle, PeriodicPositiveXNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Particle
 	Particle input = {
@@ -551,7 +551,7 @@ TEST( Particle, Neighbours ) {
 
 TEST( Particle, InterpolationZZEQZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -591,7 +591,7 @@ TEST( Particle, InterpolationZZEQZ ) {
 
 TEST( Particle, InterpolationZEQ1 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -631,7 +631,7 @@ TEST( Particle, InterpolationZEQ1 ) {
 
 TEST( Particle, InterpolationZLTZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -671,7 +671,7 @@ TEST( Particle, InterpolationZLTZ ) {
 
 TEST( Particle, InterpolationZEQ2 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -711,7 +711,7 @@ TEST( Particle, InterpolationZEQ2 ) {
 
 TEST( Particle, InterpolationZEQNNZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -751,7 +751,7 @@ TEST( Particle, InterpolationZEQNNZ ) {
 
 TEST( Particle, InterpolationZGTNNZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -791,7 +791,7 @@ TEST( Particle, InterpolationZGTNNZ ) {
 
 TEST( Particle, InterpolationZEQNNZM1 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -831,7 +831,7 @@ TEST( Particle, InterpolationZEQNNZM1 ) {
 
 TEST( Particle, InterpolationZEQNNZM2 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -871,7 +871,7 @@ TEST( Particle, InterpolationZEQNNZM2 ) {
 
 TEST( Particle, InterpolationZELSE ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -911,7 +911,7 @@ TEST( Particle, InterpolationZELSE ) {
 
 TEST( Particle, InterpolationZELSE16 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 21, 21, 18, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -955,7 +955,7 @@ TEST( Particle, InterpolationZELSE16 ) {
 
 TEST( Particle, StatisticCountEvenDistribution ) {
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -993,7 +993,7 @@ TEST( Particle, StatisticCountEvenDistribution ) {
 
 TEST( Particle, StatisticCountEveryOther ) {
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
