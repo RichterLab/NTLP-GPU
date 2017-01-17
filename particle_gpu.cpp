@@ -429,7 +429,7 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 #endif
 }
 
-GLOBAL void GPUCalculateStatistics( const int nx, const int ny, const int nnz, const double dx, const double dy, const double *z, const double *zz, double *partcount_t, const int pcount, Particle* particles ) {
+GLOBAL void GPUCalculateStatistics( const int nnz, const double *z, double *partcount_t, const int pcount, Particle* particles ) {
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= nnz ) return;
@@ -702,11 +702,11 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
-    GPUCalculateStatistics<<< (gpu->GridDepth / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->dZ, gpu->dZZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
+    GPUCalculateStatistics<<< (gpu->GridDepth / 32) + 1, 32 >>> ( gpu->GridDepth, gpu->dZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
 #else
-    GPUCalculateStatistics( gpu->GridWidth, gpu->GridHeight, gpu->GridDepth, dx, dy, gpu->hZ, gpu->hZZ, gpu->hPartCount, gpu->pCount, gpu->hParticles);
+    GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->pCount, gpu->hParticles);
 #endif
 }
 
