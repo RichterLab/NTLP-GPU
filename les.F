@@ -307,7 +307,7 @@ c
       call assemble_gpu_data
 
       if( myid .eq. gpu_master_rank ) then
-        call gpuinterpolate(gpu,dx,dy,nnz,-1,-1,0)
+        call gpuinterpolate(gpu,dx,dy)
         call gpustep(gpu, it, istage, dt)
         call gpunonperiodic(gpu)
         call gpuperiodic(gpu)

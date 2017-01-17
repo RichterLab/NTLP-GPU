@@ -82,7 +82,7 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     return hResult;
 }
 
-GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const int offsetX, const int offsetY, const int offsetZ, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles ){
+GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles){
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -664,12 +664,12 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 #endif
 }
 
-extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy, const int nnz, const int offsetX, const int offsetY, const int offsetZ ) {
+extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
-    GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32 >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
-    GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, 1-offsetX, 1-offsetY, 1-offsetZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
+    GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
 #endif
 }
 

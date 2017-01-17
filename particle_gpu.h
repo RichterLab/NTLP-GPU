@@ -28,7 +28,7 @@ extern "C" Particle ParticleGet( GPU *gpu, const int position );
 extern "C" void ParticleUpload( GPU *gpu );
 extern "C" void ParticleInit( GPU* gpu, const int particles, const Particle* input );
 extern "C" void ParticleGenerate( GPU* gpu, const int processors, const int particles, const int seed, const double temperature, const double xmin, const double xmax, const double ymin, const double ymax, const double zl, const double delta_vis, const double radius, const double qinfp );
-extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy, const int nnz, const int offsetX, const int offsetY, const int offsetZ );
+extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy );
 extern "C" void ParticleStep( GPU* gpu, const int it, const int istage, const double dt );
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu );
 extern "C" void ParticleUpdatePeriodic( GPU *gpu );

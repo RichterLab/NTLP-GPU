@@ -578,7 +578,7 @@ TEST( Particle, InterpolationZZEQZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -618,7 +618,7 @@ TEST( Particle, InterpolationZEQ1 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -658,7 +658,7 @@ TEST( Particle, InterpolationZLTZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -698,7 +698,7 @@ TEST( Particle, InterpolationZEQ2 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -738,7 +738,7 @@ TEST( Particle, InterpolationZEQNNZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -778,7 +778,7 @@ TEST( Particle, InterpolationZGTNNZ ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -818,7 +818,7 @@ TEST( Particle, InterpolationZEQNNZM1 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -858,7 +858,7 @@ TEST( Particle, InterpolationZEQNNZM2 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -898,7 +898,7 @@ TEST( Particle, InterpolationZELSE ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results
@@ -938,7 +938,7 @@ TEST( Particle, InterpolationZELSE16 ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
-	ParticleInterpolate(gpu, dx, dy, 6, -1, -1, 0);
+	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
 	// Compare Results

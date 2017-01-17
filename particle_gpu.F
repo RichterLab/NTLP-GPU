@@ -74,15 +74,11 @@ module particle_c
             type(c_ptr), VALUE, intent(in)  :: gpu
         end subroutine
 
-        subroutine gpuinterpolate(gpu,dx,dy,nnz,ox,oy,oz) bind(c,name="ParticleInterpolate")
+        subroutine gpuinterpolate(gpu,dx,dy) bind(c,name="ParticleInterpolate")
             use iso_c_binding, only: c_ptr, c_int, c_double
             type(c_ptr), VALUE, intent(in)      :: gpu
             real(c_double), VALUE, intent(in)   :: dx
             real(c_double), VALUE, intent(in)   :: dy
-            integer(c_int), VALUE, intent(in)   :: nnz
-            integer(c_int), VALUE, intent(in)   :: ox
-            integer(c_int), VALUE, intent(in)   :: oy
-            integer(c_int), VALUE, intent(in)   :: oz
         end subroutine
 
         subroutine gpustep(gpu, it, istage, dt) bind(c,name="ParticleStep")
