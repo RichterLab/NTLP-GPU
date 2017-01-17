@@ -37,7 +37,7 @@ extern "C" void ParticleDownloadHost( GPU *gpu );
 extern "C" Particle* ParticleDownload( GPU* gpu );
 
 extern "C" void ParticleWrite( GPU* gpu );
-extern "C" GPU* ParticleRead(char *path);
+extern "C" GPU* ParticleRead(const char *path);
 
 extern "C" void PrintFreeMemory();
 

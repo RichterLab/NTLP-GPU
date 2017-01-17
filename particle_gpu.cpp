@@ -740,7 +740,7 @@ void ParticleWrite( GPU* gpu ){
     fclose(write_ptr);
 }
 
-GPU* ParticleRead(char * path){
+GPU* ParticleRead(const char * path){
     FILE *data = fopen(path,"rb");
 
     unsigned int particles = 0;
