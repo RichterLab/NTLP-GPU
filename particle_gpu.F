@@ -144,7 +144,7 @@ contains
         end subroutine
 
         subroutine initialize_gpu()
-            use pars, only: maxnx,maxny,maxnz,xl,yl,zl
+            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid
             use con_stats, only: z
             use particles
 
