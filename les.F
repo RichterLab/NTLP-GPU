@@ -134,15 +134,15 @@ c
 #ifdef BUILD_CUDA
       ! Find Available GPU
       call select_gpu_master(numprocs)
-      if(gpu_master_rank .eq. -1) then
-            write(*,*) "GPU Device not found"
-      end if
-
       if (l_root .eqv. .true.) then
-        write(*,*) "Selected GPU Rank:", gpu_master_rank
-        call initialize_gpu()
+            if(gpu_master_rank .eq. -1) then
+                  write(*,*) "GPU Device not found"
+            else
+                  write(*,*) "Selected GPU Rank:", gpu_master_rank
+            end if
       end if
 
+      call initialize_gpu()
       call transfer_particles()
 #endif
 

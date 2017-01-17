@@ -148,7 +148,9 @@ contains
             use con_stats, only: z
             use particles
 
-            gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,size(z), xl,yl,zl,delta_vis)
+            if( myid .eq. gpu_master_rank ) then
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,size(z), xl,yl,zl,delta_vis)
+            end if
         end subroutine
 
         subroutine transfer_particles()
