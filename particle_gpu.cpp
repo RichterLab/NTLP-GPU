@@ -91,7 +91,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 #endif
 
     int ijpts[12];
-    GPUFindXYNeighbours(dx, dy, particles, ijpts);
+    GPUFindXYNeighbours(dx, dy, &particles[idx], ijpts);
 
     int kuvpts[6] = { 0, 0, 0, 0, 0, 0 };
     for( ; kuvpts[2] < nnz; kuvpts[2]++ ){
