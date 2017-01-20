@@ -333,10 +333,6 @@ c
          if(mhis  .and. istage .eq. 1)  call write_his(itop)
          if(mhis  .and. istage .eq. 1 .and. mtape) call close_his
       endif
-
-#ifdef BUILD_CUDA
-      call calculate_statistics
-#endif
 c
  8999 continue
       t_stage_f = mpi_wtime()
@@ -348,7 +344,10 @@ c
       go to 9000
 c
 99000 continue
+#ifdef BUILD_CUDA_VERIFY
+      call calculate_statistics()
       call compare_particles()
+#endif
       te_mpi = mpi_wtime()
       write(6,9997) (te_mpi - ts_mpi)
  9997 format(' Job Execution Time = ',e15.6)
