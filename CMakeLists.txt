@@ -8,10 +8,10 @@ if (NOT CMAKE_BUILD_TYPE)
 endif (NOT CMAKE_BUILD_TYPE)
 
 # NAN Verification
-option( BUILD_VERIFYNAN "Build code to test if fields contain NANs" OFF)
-if (BUILD_VERIFYNAN)
-  add_definitions(-DBUILD_VERIFYNAN)
-endif (BUILD_VERIFYNAN)
+option( BUILD_VERIFY_NAN "Build code to test if fields contain NANs" OFF)
+if (BUILD_VERIFY_NAN)
+  add_definitions(-DBUILD_VERIFY_NAN)
+endif (BUILD_VERIFY_NAN)
 
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)

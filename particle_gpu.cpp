@@ -554,17 +554,17 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 }
 
 extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext, double *z, double *zz ) {
-#ifdef BUILD_VERIFYNAN
-    printf("Testing for NAN in field:\n");
+#ifdef BUILD_VERIFY_NAN
+    std::cout << "Testing for NAN in field:" << std::endl;
     for( int i = 0; i < gpu->GridWidth * gpu->GridHeight * gpu->GridDepth; i++ ){
-        if( isnan(uext[i]) ) printf("UEXT NAN found at index %d\n", i);
-        if( isnan(vext[i]) ) printf("VEXT NAN found at index %d\n", i);
-        if( isnan(wext[i]) ) printf("WEXT NAN found at index %d\n", i);
-        if( isnan(text[i]) ) printf("TEXT NAN found at index %d\n", i);
-        if( isnan(qext[i]) ) printf("QEXT NAN found at index %d\n", i);
+        if( isnan(uext[i]) ) std::cerr << "UEXT NAN found at index " << i << std::endl;;
+        if( isnan(vext[i]) ) std::cerr << "VEXT NAN found at index " << i << std::endl;
+        if( isnan(wext[i]) ) std::cerr << "WEXT NAN found at index " << i << std::endl;
+        if( isnan(text[i]) ) std::cerr << "TEXT NAN found at index " << i << std::endl;
+        if( isnan(qext[i]) ) std::cerr << "QEXT NAN found at index " << i << std::endl;
     }
-    printf("\tComplete\n");
-#endif
+    std::cout << "\tComplete" << std::endl;
+#endif // BUILD_VERIFY_NAN
 
 #ifdef BUILD_CUDA
     gpuErrchk( cudaMemcpy( gpu->dUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
