@@ -1,6 +1,9 @@
 #include "particle_gpu.h"
 #include "stdio.h"
 #include "assert.h"
+#include <iomanip>
+#include <fstream>
+#include <iostream>
 
 #ifndef BUILD_CUDA
 #include "math.h"
@@ -768,6 +771,7 @@ void PrintFreeMemory(){
     double used_db = total_db - free_db ;
     printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 #endif
+}
 
 // Particle Functions
 std::ostream& operator<< (std::ostream& stream, const Particle& p) {
@@ -789,4 +793,39 @@ std::ostream& operator<< (std::ostream& stream, const Particle& p) {
 
     return stream;
 }
+
+// Helper Functions
+const std::vector<double> ReadDoubleArray(const std::string& path){
+    std::vector<double> retVal;
+
+    std::ifstream iStream(path, std::ifstream::in | std::ifstream::binary);
+    if( iStream.fail() ){
+        std::cerr << "Unable to open " << path << " to read from.";
+        return retVal;
+    }
+
+    unsigned int size = 0;
+    iStream >> size;
+
+    retVal.resize(size);
+    for( unsigned int i = 0; i < size; i++ ){
+        iStream >> retVal[i];
+    }
+    iStream.close();
+
+    return retVal;
+}
+
+void WriteDoubleArray(const std::string& path, const std::vector<double>& array){
+    std::ofstream oStream(path, std::ofstream::out | std::ofstream::binary );
+    if( oStream.fail() ){
+        std::cerr << "Unable to open " << path << " to write to.";
+        return;
+    }
+
+    oStream << array.size();
+    for( unsigned int i = 0; i < array.size(); i++ ){
+        oStream << array[i];
+    }
+    oStream.close();
 }

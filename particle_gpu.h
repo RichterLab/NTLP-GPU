@@ -2,6 +2,9 @@
 #define PARTICLE_H_
 
 #include <ostream>
+#include <string>
+#include <vector>
+
 struct Particle {
 	int pidx, procidx;
 	double vp[3], xp[3], uf[3], xrhs[3], vrhs[3];
@@ -43,6 +46,10 @@ extern "C" void ParticleWrite( GPU* gpu );
 extern "C" GPU* ParticleRead(const char *path);
 
 extern "C" void PrintFreeMemory();
+
+// Helper Functions
+const std::vector<double> ReadDoubleArray(const std::string& path);
+void WriteDoubleArray(const std::string& path, const std::vector<double>& array);
 
 // Test Functions
 extern "C" int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* particle);
