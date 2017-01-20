@@ -1,10 +1,13 @@
 #ifndef PARTICLE_H_
 #define PARTICLE_H_
 
+#include <ostream>
 struct Particle {
 	int pidx, procidx;
 	double vp[3], xp[3], uf[3], xrhs[3], vrhs[3];
 	double Tp, Tprhs_s, Tprhs_L, Tf, radius, radrhs, qinf, qstar;
+
+	friend std::ostream& operator<< (std::ostream& stream, const Particle& p);
 };
 
 struct GPU {

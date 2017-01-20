@@ -768,4 +768,25 @@ void PrintFreeMemory(){
     double used_db = total_db - free_db ;
     printf("GPU memory usage: used = %f, free = %f MB, total = %f MB\n", used_db/1024.0/1024.0, free_db/1024.0/1024.0, total_db/1024.0/1024.0);
 #endif
+
+// Particle Functions
+std::ostream& operator<< (std::ostream& stream, const Particle& p) {
+    stream << std::fixed << std::setprecision(12);
+    stream << "Particle[" << p.procidx << ":" << p.pidx << "]" << std::endl;
+    stream << "\t VP: " << p.vp[0] << ", " << p.vp[1] << ", " << p.vp[2] << std::endl;
+	stream << "\t XP: " << p.xp[0] << ", " << p.xp[1] << ", " << p.xp[2] << std::endl;
+	stream << "\t UF: " << p.uf[0] << ", " << p.uf[1] << ", " << p.uf[2] << std::endl;
+	stream << "\t XRHS: " << p.xrhs[0] << ", " << p.xrhs[1] << ", " << p.xrhs[2] << std::endl;
+	stream << "\t VRHS: " << p.vrhs[0] << ", " << p.vrhs[1] << ", " << p.vrhs[2] << std::endl;
+	stream << "\t Tp: " << p.Tp << std::endl;
+	stream << "\t Tprhs_s: " << p.Tprhs_s << std::endl;
+	stream << "\t Tprhs_L: " << p.Tprhs_L << std::endl;
+	stream << "\t Tf: " << p.Tf << std::endl;
+	stream << "\t Radius: " << p.radius << std::endl;
+	stream << "\t Radius RHS: " << p.radrhs << std::endl;
+	stream << "\t QInf: " << p.qinf << std::endl;
+	stream << "\t QStar: " << p.qstar << std::endl;
+
+    return stream;
+}
 }
