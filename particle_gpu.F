@@ -225,6 +225,59 @@ contains
             ! Distribute Statistics to Processors
         end subroutine
 
+        subroutine setup_particles()
+            use pars, only: myid, xl, yl
+            use con_data, only: dx, dy
+            use particles
+            use fields
+
+            integer :: i, j, k
+
+            ! Setup Particles
+            part => first_particle
+            do while (associated(part))
+                part%vp(1:3) = (/0.0, 0.0, 0.0/)
+                part%xp(1:3) = (/0.087370281899,0.125141144198,0.018382617541/)
+                part%uf(1:3) = (/0.0, 0.0, 0.0/)
+                part%xrhs(1:3) = (/0.0, 0.0, 0.0/)
+                part%vrhs(1:3) = (/0.0, 0.0, 0.0/)
+
+                part%Tp = 0.0
+                part%Tprhs_s = 0.0
+                part%Tprhs_L = 0.0
+                part%Tf = 0.0
+                part%radius = 0.0
+                part%radrhs = 0.0
+                part%qinf = 0.0
+                part%qstar = 0.0
+
+                part => part%next
+            end do
+
+            ! Move to master and save
+            call transfer_particles
+            if (myid .eq. gpu_master_rank) then
+                call gpuwrite(gpu)
+            end if
+
+            ! Run interpolation
+            call fill_ext
+
+            part => first_particle
+            do while (associated(part))
+                call uf_interp
+                part => part%next
+            end do
+
+            ! Move to master and save
+            call transfer_particles
+            if (myid .eq. gpu_master_rank) then
+                call gpuwrite(gpu)
+            end if
+
+            stop 0
+        end subroutine
+
         subroutine compare_particles()
             use pars, only: numprocs, myid
             use particles
