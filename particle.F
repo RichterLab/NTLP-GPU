@@ -175,7 +175,7 @@
             xp_init(2) = ran2(iseed)*(ymax-ymin) + ymin
             xp_init(3) = ran2(iseed)*(zl-2.0*delta_vis) + delta_vis
             call particle_create(xp_init,vp_init,Tp_init,qf_init,
-     +        myid*numpart+idx)
+     +        myid*tnumpart+idx)
           end do
 
           partTsrc = 0.0
