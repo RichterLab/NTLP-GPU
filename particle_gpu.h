@@ -22,7 +22,7 @@ struct Parameters {
 	double rhoa, nuf, Cpa, Pra, Sc;
 
 	// Particle Properties
-	double rhow, part_grav, Cpp, Mw, Ru, Ms, Gam, Ion, Os;
+	double rhow, part_grav, Cpp, Mw, Ru, Ms, Sal, Gam, Ion, Os;
 
 	// Particle Initial Conditions
 };

@@ -283,9 +283,8 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
 	const double pi   = 4.0 * atan( 1.0 );
 	const double pi2  = 2.0 * pi;
-	const double Sal = 34.0;
 	const double radius_mass = 40.0e-6;
-	const double m_s = Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * cParams.rhow;
+	const double m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * cParams.rhow;
 
     const double CpaCpp = cParams.Cpa/cParams.Cpp;
 
