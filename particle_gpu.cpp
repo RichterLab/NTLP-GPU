@@ -787,7 +787,7 @@ std::ostream& operator<< (std::ostream& stream, const Particle& p) {
 const std::vector<double> ReadDoubleArray(const std::string& path){
     std::vector<double> retVal;
 
-    std::ifstream iStream(path, std::ifstream::in | std::ifstream::binary);
+    std::ifstream iStream(path.c_str(), std::ifstream::in | std::ifstream::binary);
     if( iStream.fail() ){
         std::cerr << "Unable to open " << path << " to read from.";
         return retVal;
@@ -806,7 +806,7 @@ const std::vector<double> ReadDoubleArray(const std::string& path){
 }
 
 void WriteDoubleArray(const std::string& path, const std::vector<double>& array){
-    std::ofstream oStream(path, std::ofstream::out | std::ofstream::binary );
+    std::ofstream oStream(path.c_str(), std::ofstream::out | std::ofstream::binary );
     if( oStream.fail() ){
         std::cerr << "Unable to open " << path << " to write to.";
         return;
