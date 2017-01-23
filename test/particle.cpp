@@ -146,6 +146,7 @@ class ParticleTest : public ::testing::Test {
 
 	params.rhow = 1000.0;
 	params.Mw = 0.018015;
+	params.Ru = 8.3144;
 	params.Gam = 7.28e-2;
 	params.Ion = 2.0;
 	params.Os = 1.093;
