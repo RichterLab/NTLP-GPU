@@ -286,7 +286,6 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 	const double Sal = 34.0;
 	const double radius_mass = 40.0e-6;
 	const double m_s = Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * cParams.rhow;
-    const double Mw = 0.018015;
     const double Ru = 8.3144;
     const double Ms = 0.05844;
     const double Cpa = 1006.0;
@@ -330,10 +329,10 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     double TfC = particles[idx].Tf - 273.15;
     double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
     double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
-    double Eff_C = 2.0 * Mw * cParams.Gam / ( Ru * cParams.rhow * particles[idx].radius * particles[idx].Tp );
-    double Eff_S = cParams.Ion * cParams.Os * m_s * Mw / Ms / ( Volp * rhop - m_s );
-    double estar = einf * exp( Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
-    particles[idx].qstar = Mw / Ru * estar / particles[idx].Tp / cParams.rhoa;
+    double Eff_C = 2.0 * cParams.Mw * cParams.Gam / ( Ru * cParams.rhow * particles[idx].radius * particles[idx].Tp );
+    double Eff_S = cParams.Ion * cParams.Os * m_s * cParams.Mw / Ms / ( Volp * rhop - m_s );
+    double estar = einf * exp( cParams.Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
+    particles[idx].qstar = cParams.Mw / Ru * estar / particles[idx].Tp / cParams.rhoa;
 
     double xtmp[3], vtmp[3];
     for( int j = 0; j < 3; j++ ) {
