@@ -287,8 +287,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 	const double radius_mass = 40.0e-6;
 	const double m_s = Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * cParams.rhow;
 
-    const double Cpp = 4179.0;
-    const double CpaCpp = cParams.Cpa/Cpp;
+    const double CpaCpp = cParams.Cpa/cParams.Cpp;
 
     const double zetas[3] = {0.0, -17.0/60.0, -5.0/12.0};
     const double gama[3]  = {8.0/15.0, 5.0/12.0, 3.0/4.0};
@@ -356,7 +355,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     }
 
     particles[idx].Tprhs_s = -Nup / 3.0 / cParams.Pra * CpaCpp * rhop / cParams.rhow * taup_i * ( particles[idx].Tp - particles[idx].Tf );
-    particles[idx].Tprhs_L = 3.0 * Lv / Cpp / particles[idx].radius * particles[idx].radrhs;
+    particles[idx].Tprhs_L = 3.0 * Lv / cParams.Cpp / particles[idx].radius * particles[idx].radrhs;
 
     for( int j = 0; j < 3; j++ ) {
         particles[idx].xp[j] = xtmp[j] + dt * gama[istage] * particles[idx].xrhs[j];
