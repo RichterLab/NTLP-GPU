@@ -14,7 +14,7 @@ module particle_struct
 
         real(c_double) :: rhoa, nuf, Pra, Sc
 
-        real(c_double) :: rhow, Mw, Ru, Gam, Ion, Os
+        real(c_double) :: rhow, Mw, Ru, Ms, Gam, Ion, Os
     end type gpu_parameters
 end module
 
@@ -168,6 +168,7 @@ contains
                 parameters%rhow = rhow
                 parameters%Mw = Mw
                 parameters%Ru = Ru
+                parameters%Ms = Ms
                 parameters%Gam = Gam
                 parameters%Ion = Ion
                 parameters%Os = Os
