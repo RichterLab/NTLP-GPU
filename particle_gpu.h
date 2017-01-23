@@ -13,7 +13,21 @@ struct Particle {
 	friend std::ostream& operator<< (std::ostream& stream, const Particle& p);
 };
 
+struct Parameters {
+	int Evaporation;
+
+	// Material Properties
+
+	// Air Properties
+
+	// Particle Properties
+
+	// Particle Initial Conditions
+};
+
 struct GPU {
+	Parameters mParameters;
+
 	unsigned int pCount;
 	Particle *hParticles, *dParticles;
 
@@ -27,7 +41,7 @@ struct GPU {
 };
 
 extern "C" double rand2(int idum, bool reset = false);
-extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis);
+extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, const Parameters* params);
 extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext, double* z, double* zz );
 extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle* input );
 extern "C" Particle ParticleGet( GPU *gpu, const int position );

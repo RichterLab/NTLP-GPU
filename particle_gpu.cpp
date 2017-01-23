@@ -43,6 +43,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 #endif
 
+__constant__ Parameters cParams;
+
 DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
     neighbours[1*6+2] = floor(particles[0].xp[1]/dy) + 1;
@@ -279,8 +281,6 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 }
 
 GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
-    const double ievap = 1;
-
 	const double Gam = 7.28 * pow( 10.0, -2 );
 	const double Ion = 2.0;
 	const double Os = 1.093;
@@ -361,7 +361,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
         particles[idx].vrhs[j] = corrfac * taup_i * (particles[idx].uf[j] - particles[idx].vp[j]) - g[j];
     }
 
-    if( ievap == 1 ) {
+    if( cParams.Evaporation == 1 ) {
         particles[idx].radrhs = Shp / 9.0 / Sc * rhop / rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
     } else {
         particles[idx].radrhs = 0.0;
@@ -506,8 +506,9 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, const Parameters* params) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
+    memcpy( &retVal->mParameters, params, sizeof(Parameters) );
 
     // Particle Data
     retVal->pCount = particles;
@@ -528,6 +529,8 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->hPartCount = (double*) malloc( sizeof(double) * retVal->GridDepth );
 
 #ifdef BUILD_CUDA
+    gpuErrchk( cudaMemcpyToSymbol(cParams, &retVal->mParameters, sizeof(Parameters)) );
+
     gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
 
     gpuErrchk( cudaMalloc( (void **)&retVal->dUext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth ) );
@@ -748,7 +751,8 @@ GPU* ParticleRead(const char * path){
     unsigned int particles = 0;
     fread(&particles, sizeof(unsigned int), 1, data);
 
-    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0 );
+    Parameters params;
+    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, &params );
     for( int i = 0; i < retVal->pCount; i++ ){
         fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
     }
