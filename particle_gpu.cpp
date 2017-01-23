@@ -281,7 +281,6 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 }
 
 GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
-	const double rhoa = 1.1;
 	const double rhow = 1000.0;
 	const double nuf  = 1.537e-5;
 	const double pi   = 4.0 * atan( 1.0 );
@@ -326,7 +325,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     double Rep = 2.0 * particles[idx].radius * diffnorm / nuf;
     double Volp = pi2 * 2.0 / 3.0 * ( particles[idx].radius * particles[idx].radius * particles[idx].radius);
     double rhop = ( m_s + Volp * rhow ) / Volp;
-    double taup_i = 18.0 * rhoa * nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
+    double taup_i = 18.0 * cParams.rhoa * nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
 
     double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
     double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Pra, 1.0 / 3.0 );
@@ -338,7 +337,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     double Eff_C = 2.0 * Mw * cParams.Gam / ( Ru * rhow * particles[idx].radius * particles[idx].Tp );
     double Eff_S = cParams.Ion * cParams.Os * m_s * Mw / Ms / ( Volp * rhop - m_s );
     double estar = einf * exp( Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
-    particles[idx].qstar = Mw / Ru * estar / particles[idx].Tp / rhoa;
+    particles[idx].qstar = Mw / Ru * estar / particles[idx].Tp / cParams.rhoa;
 
     double xtmp[3], vtmp[3];
     for( int j = 0; j < 3; j++ ) {

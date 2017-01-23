@@ -138,6 +138,9 @@ class ParticleTest : public ::testing::Test {
  protected:
   virtual void SetUp() {
     params.Evaporation = 1;
+
+	params.rhoa = 1.1;
+
 	params.Gam = 7.28e-2;
 	params.Ion = 2.0;
 	params.Os = 1.093;

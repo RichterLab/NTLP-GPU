@@ -12,6 +12,8 @@ module particle_struct
     type, bind(c) :: gpu_parameters
         integer(c_int) :: Evaporation
 
+        real(c_double) :: rhoa
+
         real(c_double) :: Gam, Ion, Os
     end type gpu_parameters
 end module
@@ -157,6 +159,8 @@ contains
             if( myid .eq. gpu_master_rank ) then
                 ! Setup Parameters
                 parameters%Evaporation = ievap
+
+                parameters%rhoa = rhoa
 
                 parameters%Gam = Gam
                 parameters%Ion = Ion
