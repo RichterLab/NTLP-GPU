@@ -17,9 +17,11 @@
 #ifdef BUILD_CUDA
 #define DEVICE __device__
 #define GLOBAL __global__
+#define CONSTANT __constant__
 #else
 #define DEVICE
 #define GLOBAL
+#define CONSTANT
 #endif
 
 extern "C" int gpudevices(){
@@ -42,6 +44,8 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
    }
 }
 #endif
+
+CONSTANT Parameters cParams;
 
 DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
@@ -279,32 +283,15 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 }
 
 GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
-    const double ievap = 1;
-
-	const double Gam = 7.28 * pow( 10.0, -2 );
-	const double Ion = 2.0;
-	const double Os = 1.093;
-	const double rhoa = 1.1;
-	const double rhow = 1000.0;
-	const double nuf  = 1.537e-5;
 	const double pi   = 4.0 * atan( 1.0 );
 	const double pi2  = 2.0 * pi;
-	const double Sal = 34.0;
-	const double radius_mass = 40.0e-6;
-	const double m_s = Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * rhow;
-    const double Pra = 0.715;
-    const double Sc = 0.615;
-    const double Mw = 0.018015;
-    const double Ru = 8.3144;
-    const double Ms = 0.05844;
-    const double Cpa = 1006.0;
-    const double Cpp = 4179.0;
-    const double CpaCpp = Cpa/Cpp;
-    const double part_grav = 0.0;
+	const double m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
+
+    const double CpaCpp = cParams.Cpa/cParams.Cpp;
 
     const double zetas[3] = {0.0, -17.0/60.0, -5.0/12.0};
     const double gama[3]  = {8.0/15.0, 5.0/12.0, 3.0/4.0};
-    const double g[3] = {0.0, 0.0, part_grav};
+    const double g[3] = {0.0, 0.0, cParams.part_grav};
 
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -326,22 +313,22 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
         diff[j] = particles[idx].vp[j] - particles[idx].uf[j];
     }
     double diffnorm = sqrt( diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2] );
-    double Rep = 2.0 * particles[idx].radius * diffnorm / nuf;
+    double Rep = 2.0 * particles[idx].radius * diffnorm / cParams.nuf;
     double Volp = pi2 * 2.0 / 3.0 * ( particles[idx].radius * particles[idx].radius * particles[idx].radius);
-    double rhop = ( m_s + Volp * rhow ) / Volp;
-    double taup_i = 18.0 * rhoa * nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
+    double rhop = ( m_s + Volp * cParams.rhow ) / Volp;
+    double taup_i = 18.0 * cParams.rhoa * cParams.nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
 
     double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
-    double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Pra, 1.0 / 3.0 );
-    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Sc, 1.0 / 3.0 );
+    double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Pra, 1.0 / 3.0 );
+    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Sc, 1.0 / 3.0 );
 
     double TfC = particles[idx].Tf - 273.15;
     double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
     double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
-    double Eff_C = 2.0 * Mw * Gam / ( Ru * rhow * particles[idx].radius * particles[idx].Tp );
-    double Eff_S = Ion * Os * m_s * Mw / Ms / ( Volp * rhop - m_s );
-    double estar = einf * exp( Mw * Lv / Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
-    particles[idx].qstar = Mw / Ru * estar / particles[idx].Tp / rhoa;
+    double Eff_C = 2.0 * cParams.Mw * cParams.Gam / ( cParams.Ru * cParams.rhow * particles[idx].radius * particles[idx].Tp );
+    double Eff_S = cParams.Ion * cParams.Os * m_s * cParams.Mw / cParams.Ms / ( Volp * rhop - m_s );
+    double estar = einf * exp( cParams.Mw * Lv / cParams.Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
+    particles[idx].qstar = cParams.Mw / cParams.Ru * estar / particles[idx].Tp / cParams.rhoa;
 
     double xtmp[3], vtmp[3];
     for( int j = 0; j < 3; j++ ) {
@@ -361,14 +348,14 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
         particles[idx].vrhs[j] = corrfac * taup_i * (particles[idx].uf[j] - particles[idx].vp[j]) - g[j];
     }
 
-    if( ievap == 1 ) {
-        particles[idx].radrhs = Shp / 9.0 / Sc * rhop / rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
+    if( cParams.Evaporation == 1 ) {
+        particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
     } else {
         particles[idx].radrhs = 0.0;
     }
 
-    particles[idx].Tprhs_s = -Nup / 3.0 / Pra * CpaCpp * rhop / rhow * taup_i * ( particles[idx].Tp - particles[idx].Tf );
-    particles[idx].Tprhs_L = 3.0 * Lv / Cpp / particles[idx].radius * particles[idx].radrhs;
+    particles[idx].Tprhs_s = -Nup / 3.0 / cParams.Pra * CpaCpp * rhop / cParams.rhow * taup_i * ( particles[idx].Tp - particles[idx].Tf );
+    particles[idx].Tprhs_L = 3.0 * Lv / cParams.Cpp / particles[idx].radius * particles[idx].radrhs;
 
     for( int j = 0; j < 3; j++ ) {
         particles[idx].xp[j] = xtmp[j] + dt * gama[istage] * particles[idx].xrhs[j];
@@ -506,8 +493,9 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, const Parameters* params) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
+    SetParameters(retVal, params);
 
     // Particle Data
     retVal->pCount = particles;
@@ -748,7 +736,8 @@ GPU* ParticleRead(const char * path){
     unsigned int particles = 0;
     fread(&particles, sizeof(unsigned int), 1, data);
 
-    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0 );
+    Parameters params;
+    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, &params );
     for( int i = 0; i < retVal->pCount; i++ ){
         fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
     }
@@ -798,7 +787,7 @@ std::ostream& operator<< (std::ostream& stream, const Particle& p) {
 const std::vector<double> ReadDoubleArray(const std::string& path){
     std::vector<double> retVal;
 
-    std::ifstream iStream(path, std::ifstream::in | std::ifstream::binary);
+    std::ifstream iStream(path.c_str(), std::ifstream::in | std::ifstream::binary);
     if( iStream.fail() ){
         std::cerr << "Unable to open " << path << " to read from.";
         return retVal;
@@ -817,7 +806,7 @@ const std::vector<double> ReadDoubleArray(const std::string& path){
 }
 
 void WriteDoubleArray(const std::string& path, const std::vector<double>& array){
-    std::ofstream oStream(path, std::ofstream::out | std::ofstream::binary );
+    std::ofstream oStream(path.c_str(), std::ofstream::out | std::ofstream::binary );
     if( oStream.fail() ){
         std::cerr << "Unable to open " << path << " to write to.";
         return;
@@ -828,4 +817,15 @@ void WriteDoubleArray(const std::string& path, const std::vector<double>& array)
         oStream << array[i];
     }
     oStream.close();
+}
+
+// Test Helper Functions
+void SetParameters(GPU* gpu, const Parameters* params) {
+    memcpy( &gpu->mParameters, params, sizeof(Parameters) );
+
+#ifdef BUILD_CUDA
+    gpuErrchk( cudaMemcpyToSymbol(cParams, &gpu->mParameters, sizeof(Parameters)) );
+#else
+    memcpy( &cParams, &gpu->mParameters, sizeof(Parameters) );
+#endif
 }

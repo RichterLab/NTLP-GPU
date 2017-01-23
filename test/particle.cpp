@@ -56,54 +56,6 @@ TEST( ParticleCUDA, ParticleInit ) {
 	}
 }
 
-TEST( ParticleCUDA, ParticleUpdate ) {
-	GPU *input = ParticleRead("../test/data/c_particle_init.dat");
-	ASSERT_EQ( input->pCount, 10 );
-
-	GPU *expected = ParticleRead("../test/data/c_particle_expected.dat");
-	ASSERT_EQ( expected->pCount, 10 );
-
-	ParticleUpload(input);
-	ParticleStep(input, 1, 1, 4.134832649154196E-004);
-    Particle *result = ParticleDownload(input);
-
-    for( int i = 0; i < 10; i++ ) {
-		for( int k = 0; k < 10; k++ ){
-			if(expected->hParticles[i].pidx != result[k].pidx) continue;
-			if(expected->hParticles[i].procidx != result[k].procidx) continue;
-
-			EXPECT_FLOAT_EQ( expected->hParticles[i].pidx, result[k].pidx ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].procidx, result[k].procidx ) << "I: " << i;
-
-			for( int j = 0; j < 3; j++ ) {
-				EXPECT_FLOAT_EQ( expected->hParticles[i].vp[j], result[k].vp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				EXPECT_FLOAT_EQ( expected->hParticles[i].xp[j], result[k].xp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				EXPECT_FLOAT_EQ( expected->hParticles[i].uf[j], result[k].uf[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				EXPECT_FLOAT_EQ( expected->hParticles[i].xrhs[j], result[k].xrhs[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				EXPECT_FLOAT_EQ( expected->hParticles[i].vrhs[j], result[k].vrhs[j] ) << "I: " << i << " J: " << j;
-			}
-
-			EXPECT_FLOAT_EQ( expected->hParticles[i].Tp, result[k].Tp ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].Tprhs_s, result[k].Tprhs_s ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].Tprhs_L, result[k].Tprhs_L ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].Tf, result[k].Tf ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].Tf, result[k].Tf ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].radius, result[k].radius ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].radrhs, result[k].radrhs ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].qinf, result[k].qinf ) << "I: " << i;
-			EXPECT_FLOAT_EQ( expected->hParticles[i].qstar, result[k].qstar ) << "I: " << i;
-		}
-	}
-}
-
 void CompareParticle(Particle* actual, Particle* expected){
 	ASSERT_EQ(actual->pidx, expected->pidx);
 	ASSERT_EQ(actual->procidx, expected->procidx);
@@ -134,15 +86,154 @@ void CompareParticle(Particle* actual, Particle* expected){
 	ASSERT_FLOAT_EQ( actual->qstar, expected->qstar );
 }
 
+class ParticleTest : public ::testing::Test {
+ protected:
+  virtual void SetUp() {
+    params.Evaporation = 1;
+
+	params.rhoa = 1.1;
+	params.nuf = 1.537e-5;
+	params.Cpa = 1006.0;
+	params.Pra = 0.715;
+	params.Sc = 0.615;
+
+	params.rhow = 1000.0;
+	params.part_grav = 0.0;
+	params.Cpp = 4179.0;
+	params.Mw = 0.018015;
+	params.Ru = 8.3144;
+	params.Ms = 0.05844;
+	params.Sal = 34.0;
+	params.Gam = 7.28e-2;
+	params.Ion = 2.0;
+	params.Os = 1.093;
+
+	params.radius_mass = 40.0e-6;
+  }
+
+  Parameters params;
+};
+
+// ------------------------------------------------------------------
+// Particle Update Tests
+// ------------------------------------------------------------------
+TEST_F( ParticleTest, UpdateFirstIteration ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateFirstIterationInput.dat");
+	SetParameters(gpu, &params);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 1, 1, 4.134832649154196e-4);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateFirstIterationExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
+
+TEST_F( ParticleTest, UpdateOtherIteration ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateOtherIterationInput.dat");
+	SetParameters(gpu, &params);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 2, 1, 4.134832649154196e-4);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateOtherIterationExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
+
+TEST_F( ParticleTest, UpdateStageTwo ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateStageTwoInput.dat");
+	SetParameters(gpu, &params);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 1, 2, 4.134832649154196e-4);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateStageTwoExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
+
+TEST_F( ParticleTest, UpdateStageThree ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateStageThreeInput.dat");
+	SetParameters(gpu, &params);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 1, 3, 4.134832649154196e-4);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateStageThreeExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
+
 // ------------------------------------------------------------------
 // Non Periodic Boundary Condition Tests
 // ------------------------------------------------------------------
 
 // This test should test that the particle is in the center and should
 // not change the particle
-TEST( Particle, NonPeriodicCenter ) {
+TEST_F( ParticleTest, NonPeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -171,9 +262,9 @@ TEST( Particle, NonPeriodicCenter ) {
 
 // This test should test that the particle is above the top and it
 // should invert the Z velocity and set the Z position to (top - (Z-top))
-TEST( Particle, NonPeriodicAbove ) {
+TEST_F( ParticleTest, NonPeriodicAbove ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -203,9 +294,9 @@ TEST( Particle, NonPeriodicAbove ) {
 // This test should test that the particle is below the bottom and it
 // should invert the Z velocity and set the Z position to
 // (bottom + (bottom + Z))
-TEST( Particle, NonPeriodicBelow ) {
+TEST_F( ParticleTest, NonPeriodicBelow ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -238,9 +329,9 @@ TEST( Particle, NonPeriodicBelow ) {
 
 // This test should test that the particle is in the center and should
 // not change the particle
-TEST( Particle, PeriodicCenter ) {
+TEST_F( ParticleTest, PeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -269,9 +360,9 @@ TEST( Particle, PeriodicCenter ) {
 
 // This test should test that the particle is negatively out of bounds
 // horizontally and should set its X position to Width+X
-TEST( Particle, PeriodicNegativeX ) {
+TEST_F( ParticleTest, PeriodicNegativeX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -300,9 +391,9 @@ TEST( Particle, PeriodicNegativeX ) {
 
 // This test should test that the particle is negatively out of bounds
 // vertical and should set its Y position to Height+Y
-TEST( Particle, PeriodicNegativeY ) {
+TEST_F( ParticleTest, PeriodicNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -332,9 +423,9 @@ TEST( Particle, PeriodicNegativeY ) {
 // This test should test that the particle is negatively out of bounds
 // horizontally and vertically and should set its X position to Width+X
 // and Y position to Height+Y
-TEST( Particle, PeriodicNegativeXY ) {
+TEST_F( ParticleTest, PeriodicNegativeXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -363,9 +454,9 @@ TEST( Particle, PeriodicNegativeXY ) {
 
 // This test should test that the particle is positively out of bounds
 // horizontally and should set its X position to X-Width
-TEST( Particle, PeriodicPositiveX ) {
+TEST_F( ParticleTest, PeriodicPositiveX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -394,9 +485,9 @@ TEST( Particle, PeriodicPositiveX ) {
 
 // This test should test that the particle is positively out of bounds
 // vertically and should set its Y position to Y-Height
-TEST( Particle, PeriodicPositiveY ) {
+TEST_F( ParticleTest, PeriodicPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -426,9 +517,9 @@ TEST( Particle, PeriodicPositiveY ) {
 // This test should test that the particle is positively out of bounds
 // horizontally and vertically and should set its X position to X-Width
 // and Y position to Y-Height
-TEST( Particle, PeriodicPositiveXY ) {
+TEST_F( ParticleTest, PeriodicPositiveXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -458,9 +549,9 @@ TEST( Particle, PeriodicPositiveXY ) {
 // This test should test that the particle is negatively out of bounds
 // horizontally and positively vertically and should set its X position
 // to Width+X and Y position to Y-Height
-TEST( Particle, PeriodicNegativeXPositiveY ) {
+TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -490,9 +581,9 @@ TEST( Particle, PeriodicNegativeXPositiveY ) {
 // This test should test that the particle is negatively out of bounds
 // horizontally and positively vertically and should set its X position
 // to Width+X and Y position to Y-Height
-TEST( Particle, PeriodicPositiveXNegativeY ) {
+TEST_F( ParticleTest, PeriodicPositiveXNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Particle
 	Particle input = {
@@ -549,9 +640,9 @@ TEST( Particle, Neighbours ) {
 // Interpolation Tests
 // ------------------------------------------------------------------
 
-TEST( Particle, InterpolationZZEQZ ) {
+TEST_F( ParticleTest, InterpolationZZEQZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -589,9 +680,9 @@ TEST( Particle, InterpolationZZEQZ ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZEQ1 ) {
+TEST_F( ParticleTest, InterpolationZEQ1 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -629,9 +720,9 @@ TEST( Particle, InterpolationZEQ1 ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZLTZ ) {
+TEST_F( ParticleTest, InterpolationZLTZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -669,9 +760,9 @@ TEST( Particle, InterpolationZLTZ ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZEQ2 ) {
+TEST_F( ParticleTest, InterpolationZEQ2 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -709,9 +800,9 @@ TEST( Particle, InterpolationZEQ2 ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZEQNNZ ) {
+TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -749,9 +840,9 @@ TEST( Particle, InterpolationZEQNNZ ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZGTNNZ ) {
+TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -789,9 +880,9 @@ TEST( Particle, InterpolationZGTNNZ ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZEQNNZM1 ) {
+TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -829,9 +920,9 @@ TEST( Particle, InterpolationZEQNNZM1 ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZEQNNZM2 ) {
+TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -869,9 +960,9 @@ TEST( Particle, InterpolationZEQNNZM2 ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZELSE ) {
+TEST_F( ParticleTest, InterpolationZELSE ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -909,9 +1000,9 @@ TEST( Particle, InterpolationZELSE ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationZELSE16 ) {
+TEST_F( ParticleTest, InterpolationZELSE16 ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -949,9 +1040,9 @@ TEST( Particle, InterpolationZELSE16 ) {
 	free(gpu);
 }
 
-TEST( Particle, InterpolationMulti ) {
+TEST_F( ParticleTest, InterpolationMulti ) {
 	// Create GPU
-	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1008,9 +1099,9 @@ TEST( Particle, InterpolationMulti ) {
 // Statistics Tests
 // ------------------------------------------------------------------
 
-TEST( Particle, StatisticCountEvenDistribution ) {
+TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1046,9 +1137,9 @@ TEST( Particle, StatisticCountEvenDistribution ) {
 	free(gpu);
 }
 
-TEST( Particle, StatisticCountEveryOther ) {
+TEST_F( ParticleTest, StatisticCountEveryOther ) {
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0 );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;

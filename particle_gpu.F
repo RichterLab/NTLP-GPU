@@ -8,6 +8,16 @@ module particle_struct
         real(c_double) :: Tp, Tprhs_s, Tprhs_L, Tf, radius
         real(c_double) :: radrhs, qinf, qstar
     end type gpu_particle
+
+    type, bind(c) :: gpu_parameters
+        integer(c_int) :: Evaporation
+
+        real(c_double) :: rhoa, nuf, Cpa, Pra, Sc
+
+        real(c_double) :: rhow, part_grav, Cpp, Mw, Ru, Ms, Sal, Gam, Ion, Os
+
+        real(c_double) :: radius_mass
+    end type gpu_parameters
 end module
 
 module particle_c
@@ -23,7 +33,8 @@ module particle_c
             integer(c_int) :: count
         end function
 
-        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis) bind(c,name="NewGPU")
+        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis,params) bind(c,name="NewGPU")
+            use particle_struct, only: gpu_parameters
             use iso_c_binding, only: c_ptr, c_int, c_double
             integer(c_int), VALUE, intent(in)      :: count
             integer(c_int), VALUE, intent(in)      :: h
@@ -33,6 +44,7 @@ module particle_c
             real(c_double), VALUE, intent(in)      :: yl
             real(c_double), VALUE, intent(in)      :: zl
             real(c_double), VALUE, intent(in)      :: vis
+            type(gpu_parameters)                   :: params
         end function
 
         subroutine gpucopyfield(gpu,uext,vext,wext,text,qext,z,zz) bind(c,name="ParticleFieldSet")
@@ -139,12 +151,38 @@ contains
         end subroutine
 
         subroutine initialize_gpu()
-            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid
+            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap
             use con_stats, only: z
             use particles
+            use particle_struct, only: gpu_parameters
+
+            type(gpu_parameters) :: parameters
 
             if( myid .eq. gpu_master_rank ) then
-                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis)
+                ! Setup Parameters
+                parameters%Evaporation = ievap
+
+                parameters%rhoa = rhoa
+                parameters%nuf = nuf
+                parameters%Cpa = Cpa
+                parameters%Pra = Pra
+                parameters%Sc = Sc
+
+                parameters%rhow = rhow
+                parameters%part_grav = part_grav
+                parameters%Cpp = Cpp
+                parameters%Mw = Mw
+                parameters%Ru = Ru
+                parameters%Ms = Ms
+                parameters%Sal = Sal
+                parameters%Gam = Gam
+                parameters%Ion = Ion
+                parameters%Os = Os
+
+                parameters%radius_mass = radius_mass
+
+                ! Create GPU Instance
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,parameters)
             end if
         end subroutine
 
