@@ -19,7 +19,7 @@ struct Parameters {
 	// Material Properties
 
 	// Air Properties
-	double rhoa, nuf;
+	double rhoa, nuf, Pra;
 
 	// Particle Properties
 	double rhow, Gam, Ion, Os;
