@@ -12,7 +12,7 @@ module particle_struct
     type, bind(c) :: gpu_parameters
         integer(c_int) :: Evaporation
 
-        real(c_double) :: Gam, Ion
+        real(c_double) :: Gam, Ion, Os
     end type gpu_parameters
 end module
 
@@ -160,6 +160,7 @@ contains
 
                 parameters%Gam = Gam
                 parameters%Ion = Ion
+                parameters%Os = Os
 
                 ! Create GPU Instance
                 gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,parameters)
