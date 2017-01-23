@@ -155,6 +155,8 @@ class ParticleTest : public ::testing::Test {
 	params.Gam = 7.28e-2;
 	params.Ion = 2.0;
 	params.Os = 1.093;
+
+	params.radius_mass = 40.0e-6;
   }
 
   Parameters params;

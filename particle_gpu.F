@@ -15,6 +15,8 @@ module particle_struct
         real(c_double) :: rhoa, nuf, Cpa, Pra, Sc
 
         real(c_double) :: rhow, part_grav, Cpp, Mw, Ru, Ms, Sal, Gam, Ion, Os
+
+        real(c_double) :: radius_mass
     end type gpu_parameters
 end module
 
@@ -176,6 +178,8 @@ contains
                 parameters%Gam = Gam
                 parameters%Ion = Ion
                 parameters%Os = Os
+
+                parameters%radius_mass = radius_mass
 
                 ! Create GPU Instance
                 gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,parameters)

@@ -25,6 +25,7 @@ struct Parameters {
 	double rhow, part_grav, Cpp, Mw, Ru, Ms, Sal, Gam, Ion, Os;
 
 	// Particle Initial Conditions
+	double radius_mass;
 };
 
 struct GPU {
