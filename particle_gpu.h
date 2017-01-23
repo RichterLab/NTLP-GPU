@@ -21,6 +21,7 @@ struct Parameters {
 	// Air Properties
 
 	// Particle Properties
+	double Gam;
 
 	// Particle Initial Conditions
 };

@@ -158,6 +158,7 @@ contains
                 ! Setup Parameters
                 parameters%Evaporation = ievap
 
+                parameters%Gam = Gam
                 ! Create GPU Instance
                 gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,parameters)
             end if
