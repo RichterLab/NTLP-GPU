@@ -141,6 +141,7 @@ class ParticleTest : public ::testing::Test {
 
 	params.rhoa = 1.1;
 	params.nuf = 1.537e-5;
+	params.Cpa = 1006.0;
 	params.Pra = 0.715;
 	params.Sc = 0.615;
 

@@ -12,7 +12,7 @@ module particle_struct
     type, bind(c) :: gpu_parameters
         integer(c_int) :: Evaporation
 
-        real(c_double) :: rhoa, nuf, Pra, Sc
+        real(c_double) :: rhoa, nuf, Cpa, Pra, Sc
 
         real(c_double) :: rhow, part_grav, Mw, Ru, Ms, Gam, Ion, Os
     end type gpu_parameters
@@ -162,6 +162,7 @@ contains
 
                 parameters%rhoa = rhoa
                 parameters%nuf = nuf
+                parameters%Cpa = Cpa
                 parameters%Pra = Pra
                 parameters%Sc = Sc
 
