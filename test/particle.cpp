@@ -193,11 +193,30 @@ TEST_F( ParticleTest, UpdateFirstIteration ){
 }
 
 TEST_F( ParticleTest, UpdateOtherIteration ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateOtherIterationInput.dat");
+	SetParameters(gpu, &params);
 
-}
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 2, 1, 4.134832649154196e-4);
+	ParticleDownload(gpu);
 
-TEST_F( ParticleTest, UpdateStageOne ){
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateOtherIterationExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
 
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
 }
 
 TEST_F( ParticleTest, UpdateStageTwo ){
