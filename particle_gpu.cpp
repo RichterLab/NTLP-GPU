@@ -286,7 +286,6 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 	const double Sal = 34.0;
 	const double radius_mass = 40.0e-6;
 	const double m_s = Sal / 1000.0 * 4.0 / 3.0 * pi * pow(radius_mass, 3) * cParams.rhow;
-    const double Sc = 0.615;
     const double Mw = 0.018015;
     const double Ru = 8.3144;
     const double Ms = 0.05844;
@@ -326,7 +325,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 
     double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
     double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Pra, 1.0 / 3.0 );
-    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Sc, 1.0 / 3.0 );
+    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Sc, 1.0 / 3.0 );
 
     double TfC = particles[idx].Tf - 273.15;
     double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
@@ -355,7 +354,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     }
 
     if( cParams.Evaporation == 1 ) {
-        particles[idx].radrhs = Shp / 9.0 / Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
+        particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
     } else {
         particles[idx].radrhs = 0.0;
     }
