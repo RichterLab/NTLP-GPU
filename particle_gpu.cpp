@@ -281,7 +281,6 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 }
 
 GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
-	const double nuf  = 1.537e-5;
 	const double pi   = 4.0 * atan( 1.0 );
 	const double pi2  = 2.0 * pi;
 	const double Sal = 34.0;
@@ -321,10 +320,10 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
         diff[j] = particles[idx].vp[j] - particles[idx].uf[j];
     }
     double diffnorm = sqrt( diff[0] * diff[0] + diff[1] * diff[1] + diff[2] * diff[2] );
-    double Rep = 2.0 * particles[idx].radius * diffnorm / nuf;
+    double Rep = 2.0 * particles[idx].radius * diffnorm / cParams.nuf;
     double Volp = pi2 * 2.0 / 3.0 * ( particles[idx].radius * particles[idx].radius * particles[idx].radius);
     double rhop = ( m_s + Volp * cParams.rhow ) / Volp;
-    double taup_i = 18.0 * cParams.rhoa * nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
+    double taup_i = 18.0 * cParams.rhoa * cParams.nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
 
     double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
     double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( Pra, 1.0 / 3.0 );

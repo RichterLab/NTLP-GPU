@@ -140,6 +140,7 @@ class ParticleTest : public ::testing::Test {
     params.Evaporation = 1;
 
 	params.rhoa = 1.1;
+	params.nuf = 1.537e-5;
 
 	params.rhow = 1000.0;
 	params.Gam = 7.28e-2;
