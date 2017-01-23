@@ -17,9 +17,11 @@
 #ifdef BUILD_CUDA
 #define DEVICE __device__
 #define GLOBAL __global__
+#define CONSTANT __constant__
 #else
 #define DEVICE
 #define GLOBAL
+#define CONSTANT
 #endif
 
 extern "C" int gpudevices(){
@@ -43,7 +45,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 }
 #endif
 
-__constant__ Parameters cParams;
+CONSTANT Parameters cParams;
 
 DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
@@ -493,7 +495,7 @@ extern "C" double rand2(int idum, bool reset) {
 
 extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, const Parameters* params) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
-    memcpy( &retVal->mParameters, params, sizeof(Parameters) );
+    SetParameters(retVal, params);
 
     // Particle Data
     retVal->pCount = particles;
@@ -514,8 +516,6 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->hPartCount = (double*) malloc( sizeof(double) * retVal->GridDepth );
 
 #ifdef BUILD_CUDA
-    gpuErrchk( cudaMemcpyToSymbol(cParams, &retVal->mParameters, sizeof(Parameters)) );
-
     gpuErrchk( cudaMalloc( (void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount ) );
 
     gpuErrchk( cudaMalloc( (void **)&retVal->dUext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth ) );
@@ -817,4 +817,15 @@ void WriteDoubleArray(const std::string& path, const std::vector<double>& array)
         oStream << array[i];
     }
     oStream.close();
+}
+
+// Test Helper Functions
+void SetParameters(GPU* gpu, const Parameters* params) {
+    memcpy( &gpu->mParameters, params, sizeof(Parameters) );
+
+#ifdef BUILD_CUDA
+    gpuErrchk( cudaMemcpyToSymbol(cParams, &gpu->mParameters, sizeof(Parameters)) );
+#else
+    memcpy( &cParams, &gpu->mParameters, sizeof(Parameters) );
+#endif
 }

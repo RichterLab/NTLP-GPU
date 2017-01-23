@@ -71,4 +71,7 @@ void WriteDoubleArray(const std::string& path, const std::vector<double>& array)
 // Test Functions
 extern "C" int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* particle);
 
+// Test Helper Functions
+void SetParameters(GPU* gpu, const Parameters* params);
+
 #endif // PARTICLE_H_
