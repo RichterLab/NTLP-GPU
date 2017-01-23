@@ -162,6 +162,59 @@ class ParticleTest : public ::testing::Test {
   Parameters params;
 };
 
+// ------------------------------------------------------------------
+// Particle Update Tests
+// ------------------------------------------------------------------
+TEST_F( ParticleTest, UpdateFirstIteration ){
+	// Create GPU
+	GPU *gpu = ParticleRead("../test/data/UpdateFirstIterationInput.dat");
+	SetParameters(gpu, &params);
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleStep(gpu, 1, 1, 4.134832649154196e-4);
+	ParticleDownload(gpu);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/UpdateFirstIterationExpected.dat");
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+
+	for( int i = 0; i < gpu->pCount; i++ ){
+		for( int j = 0; j < gpu->pCount; j++ ){
+			if( gpu->hParticles[i].pidx == expected->hParticles[j].pidx ){
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+			}
+		}
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
+
+TEST_F( ParticleTest, UpdateOtherIteration ){
+
+}
+
+TEST_F( ParticleTest, UpdateStageOne ){
+
+}
+
+TEST_F( ParticleTest, UpdateStageTwo ){
+
+}
+
+TEST_F( ParticleTest, UpdateStageThree ){
+
+}
+
+TEST_F( ParticleTest, UpdateEvaporationOff ){
+
+}
+
+TEST_F( ParticleTest, UpdateEvaporationOn ){
+
+}
 
 // ------------------------------------------------------------------
 // Non Periodic Boundary Condition Tests
