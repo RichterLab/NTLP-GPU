@@ -9641,8 +9641,7 @@ c
       q_full = 0.0
 
       !The GPU proc (assumed proc 0 here) receives, everyone else sends
-      if (myid == 0) then
-
+      if (myid == gpu_master_rank) then
           do iproc=0,numprocs-1
 
              if (myid .ne. iproc) then
@@ -9793,7 +9792,7 @@ c
           buf_size(3) = izs
           buf_size(4) = ize
 
-          call mpi_send(buf_size,4,mpi_integer,0,1,
+          call mpi_send(buf_size,4,mpi_integer,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
 
@@ -9802,31 +9801,31 @@ c
           !u-velocity
           send_buf = u(1:nnx,iys:iye,izs:ize)
 
-          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+          call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
           !v-velocity
           send_buf = v(1:nnx,iys:iye,izs:ize)
 
-          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+          call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
           !w-velocity
           send_buf = w(1:nnx,iys:iye,izs:ize)
 
-          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+          call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
           !temperature
           send_buf = t(1:nnx,iys:iye,1,izs:ize)
 
-          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+          call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
           !humidity
           send_buf = t(1:nnx,iys:iye,2,izs:ize)
 
-          call mpi_send(send_buf,send_size,mpi_real8,0,1,
+          call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,
      +         mpi_comm_world,ierr)
 
           deallocate(send_buf)
