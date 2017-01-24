@@ -127,7 +127,7 @@ module particle_c
         end subroutine
     end interface
 contains
-    subroutine select_gpu_master(processors)
+        subroutine select_gpu_master(processors)
             integer, intent(in)     :: processors
             include 'mpif.h'
 
@@ -140,14 +140,17 @@ contains
             call mpi_gather(gpu_count,1,mpi_integer,gpus,1,mpi_integer,0,mpi_comm_world,ierr)
 
             if( myid .eq. 0 ) then
-            gpu_master_rank = -1
-            do  i=1,processors
-                if( gpus(i) .gt. 0 ) then
-                gpu_master_rank = i-1
-                exit
-                end if
-            end  do
+                gpu_master_rank = -1
+                do  i=1,processors
+                    if( gpus(i) .gt. 0 ) then
+                        gpu_master_rank = i-1
+                        exit
+                    end if
+                end  do
             end if
+
+            ! Distribute to all processors
+            call mpi_bcast(gpu_master_rank, 1, mpi_integer, 0, mpi_comm_world)
         end subroutine
 
         subroutine initialize_gpu()
