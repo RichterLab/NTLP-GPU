@@ -25,13 +25,16 @@
 #endif
 
 extern "C" int gpudevices(){
-    int nDevices;
 #ifdef BUILD_CUDA
-    cudaGetDeviceCount(&nDevices);
-#else
-    nDevices = 1;
-#endif
+    int nDevices;
+    if( cudaGetDeviceCount(&nDevices) == cudaErrorInsufficientDriver ){
+        return 0;
+    }
+
     return nDevices;
+#else
+    return 1;
+#endif
 }
 
 #ifdef BUILD_CUDA
