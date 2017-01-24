@@ -150,7 +150,7 @@ contains
             end if
 
             ! Distribute to all processors
-            call mpi_bcast(gpu_master_rank, 1, mpi_integer, 0, mpi_comm_world)
+            call mpi_bcast(gpu_master_rank, 1, mpi_integer, 0, mpi_comm_world, ierr)
         end subroutine
 
         subroutine initialize_gpu()
