@@ -127,21 +127,20 @@ module particle_c
         end subroutine
     end interface
 contains
-        subroutine select_gpu_master(processors)
-            integer, intent(in)     :: processors
+        subroutine select_gpu_master()
+            use pars, only: numprocs, myid
+
             include 'mpif.h'
 
-            integer :: gpu_count = 0, i = 0, myid = 0, ierr = 0
-            integer, dimension(processors) :: gpus
-
-            call mpi_comm_rank(mpi_comm_world,myid,ierr)
+            integer :: gpu_count, i, ierr
+            integer, dimension(numprocs) :: gpus
 
             gpu_count = gpudevices()
             call mpi_gather(gpu_count,1,mpi_integer,gpus,1,mpi_integer,0,mpi_comm_world,ierr)
 
             if( myid .eq. 0 ) then
                 gpu_master_rank = -1
-                do  i=1,processors
+                do  i=1,numprocs
                     if( gpus(i) .gt. 0 ) then
                         gpu_master_rank = i-1
                         exit

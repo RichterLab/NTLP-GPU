@@ -133,7 +133,7 @@ c
 
 #ifdef BUILD_CUDA
       ! Find Available GPU
-      call select_gpu_master(numprocs)
+      call select_gpu_master()
       if (l_root .eqv. .true.) then
             if(gpu_master_rank .eq. -1) then
                   write(*,*) "GPU Device not found"
