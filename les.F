@@ -9647,8 +9647,7 @@ c
       integer :: iproc,istatus(mpi_status_size),ierr
       real,allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
 #ifdef BUILD_PERFORMANCE_PROFILE
-      real :: recStart, recEnd
-      real :: haloStart,haloEnd,gpuRStart, gpuREnd, gpuTStart, gpuTEnd
+      real :: recStart, recEnd, haloStart,haloEnd,gpuTStart, gpuTEnd
 #endif
 
       !The fields to be assembeled on GPU proc: (2 periodic halos to the left, 3 to right, top/bottom in nz)
@@ -9657,10 +9656,6 @@ c
       real :: w_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
       real :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
       real :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
-
-      !Linear array data to send to the gpu
-      integer :: asize
-      real, allocatable :: u_gpu(:),v_gpu(:),w_gpu(:),T_gpu(:),q_gpu(:)
 
       !NOTE: THE Z HALOS (0 and nz+1) WILL BE ZERO, BUT THIS SHOULDN'T MATTER SINCE THEY DON'T GET USED
       u_full = 0.0
@@ -9811,29 +9806,15 @@ c
               haloEnd = mpi_wtime()
               write(*,'(a,f10.8,a)') "Halo Time: ",
      +            (haloEnd - haloStart),"s"
-            gpuRStart = mpi_wtime()
 #endif
 
-            ! Resize arrays to pass to GPU
-            asize = size(u_full,1)*size(u_full,2)*size(u_full,3)
-            allocate(u_gpu(asize),v_gpu(asize))
-            allocate(w_gpu(asize),t_gpu(asize),q_gpu(asize))
-
-            u_gpu = reshape(u_full, (/asize/))
-            v_gpu = reshape(v_full, (/asize/))
-            w_gpu = reshape(w_full, (/asize/))
-            t_gpu = reshape(T_full, (/asize/))
-            q_gpu = reshape(q_full, (/asize/))
-
 #ifdef BUILD_PERFORMANCE_PROFILE
-            gpuREnd = mpi_wtime()
-            write(*,'(a,f10.8,a)') "Reshape Time: ",
-     +            (gpuREnd - gpuRStart),"s"
             gpuTStart = mpi_wtime()
 #endif
 
             !Now the "full" fields are complete and can be transferred to GPU
-            call gpucopyfield(gpu,u_gpu,v_gpu,w_gpu,t_gpu,q_gpu,z,zz)
+            call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full,
+     +            z,zz)
 #ifdef BUILD_PERFORMANCE_PROFILE
             gpuTEnd = mpi_wtime()
             write(*,'(a,f10.8,a)') "GPU Transfer Time: ",
