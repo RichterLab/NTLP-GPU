@@ -233,7 +233,8 @@ TEST_F( ParticleTest, UpdateStageThree ){
 // not change the particle
 TEST_F( ParticleTest, NonPeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -264,7 +265,8 @@ TEST_F( ParticleTest, NonPeriodicCenter ) {
 // should invert the Z velocity and set the Z position to (top - (Z-top))
 TEST_F( ParticleTest, NonPeriodicAbove ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -296,7 +298,8 @@ TEST_F( ParticleTest, NonPeriodicAbove ) {
 // (bottom + (bottom + Z))
 TEST_F( ParticleTest, NonPeriodicBelow ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -331,7 +334,8 @@ TEST_F( ParticleTest, NonPeriodicBelow ) {
 // not change the particle
 TEST_F( ParticleTest, PeriodicCenter ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -362,7 +366,8 @@ TEST_F( ParticleTest, PeriodicCenter ) {
 // horizontally and should set its X position to Width+X
 TEST_F( ParticleTest, PeriodicNegativeX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -393,7 +398,8 @@ TEST_F( ParticleTest, PeriodicNegativeX ) {
 // vertical and should set its Y position to Height+Y
 TEST_F( ParticleTest, PeriodicNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -425,7 +431,8 @@ TEST_F( ParticleTest, PeriodicNegativeY ) {
 // and Y position to Height+Y
 TEST_F( ParticleTest, PeriodicNegativeXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -456,7 +463,8 @@ TEST_F( ParticleTest, PeriodicNegativeXY ) {
 // horizontally and should set its X position to X-Width
 TEST_F( ParticleTest, PeriodicPositiveX ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -487,7 +495,8 @@ TEST_F( ParticleTest, PeriodicPositiveX ) {
 // vertically and should set its Y position to Y-Height
 TEST_F( ParticleTest, PeriodicPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -519,7 +528,8 @@ TEST_F( ParticleTest, PeriodicPositiveY ) {
 // and Y position to Y-Height
 TEST_F( ParticleTest, PeriodicPositiveXY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -551,7 +561,8 @@ TEST_F( ParticleTest, PeriodicPositiveXY ) {
 // to Width+X and Y position to Y-Height
 TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -583,7 +594,8 @@ TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 // to Width+X and Y position to Y-Height
 TEST_F( ParticleTest, PeriodicPositiveXNegativeY ) {
 	// Create GPU
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &params );
+	double z[1], zz[1];
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -641,8 +653,18 @@ TEST( Particle, Neighbours ) {
 // ------------------------------------------------------------------
 
 TEST_F( ParticleTest, InterpolationZZEQZ ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -656,19 +678,9 @@ TEST_F( ParticleTest, InterpolationZZEQZ ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -681,8 +693,18 @@ TEST_F( ParticleTest, InterpolationZZEQZ ) {
 }
 
 TEST_F( ParticleTest, InterpolationZEQ1 ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -696,19 +718,9 @@ TEST_F( ParticleTest, InterpolationZEQ1 ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -721,8 +733,18 @@ TEST_F( ParticleTest, InterpolationZEQ1 ) {
 }
 
 TEST_F( ParticleTest, InterpolationZLTZ ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -736,19 +758,9 @@ TEST_F( ParticleTest, InterpolationZLTZ ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -761,8 +773,18 @@ TEST_F( ParticleTest, InterpolationZLTZ ) {
 }
 
 TEST_F( ParticleTest, InterpolationZEQ2 ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -776,19 +798,9 @@ TEST_F( ParticleTest, InterpolationZEQ2 ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -801,8 +813,18 @@ TEST_F( ParticleTest, InterpolationZEQ2 ) {
 }
 
 TEST_F( ParticleTest, InterpolationZEQNNZ ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -816,19 +838,9 @@ TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -841,8 +853,18 @@ TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 }
 
 TEST_F( ParticleTest, InterpolationZGTNNZ ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -856,19 +878,9 @@ TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -881,8 +893,18 @@ TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 }
 
 TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -896,19 +918,9 @@ TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -921,8 +933,18 @@ TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 }
 
 TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -936,19 +958,9 @@ TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -961,8 +973,18 @@ TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 }
 
 TEST_F( ParticleTest, InterpolationZELSE ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -976,19 +998,9 @@ TEST_F( ParticleTest, InterpolationZELSE ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext.dat", &size);
-	double* vext = ReadArray("../test/data/vext.dat", &size);
-	double* wext = ReadArray("../test/data/wext.dat", &size);
-	double* text = ReadArray("../test/data/text.dat", &size);
-	double* qext = ReadArray("../test/data/qext.dat", &size);
-	double* Z = ReadArray("../test/data/Z.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -1001,8 +1013,18 @@ TEST_F( ParticleTest, InterpolationZELSE ) {
 }
 
 TEST_F( ParticleTest, InterpolationZELSE16 ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext16.dat", &size);
+	double* vext = ReadArray("../test/data/vext16.dat", &size);
+	double* wext = ReadArray("../test/data/wext16.dat", &size);
+	double* text = ReadArray("../test/data/text16.dat", &size);
+	double* qext = ReadArray("../test/data/qext16.dat", &size);
+	double* Z = ReadArray("../test/data/Z16.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ16.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1016,19 +1038,9 @@ TEST_F( ParticleTest, InterpolationZELSE16 ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext16.dat", &size);
-	double* vext = ReadArray("../test/data/vext16.dat", &size);
-	double* wext = ReadArray("../test/data/wext16.dat", &size);
-	double* text = ReadArray("../test/data/text16.dat", &size);
-	double* qext = ReadArray("../test/data/qext16.dat", &size);
-	double* Z = ReadArray("../test/data/Z16.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ16.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -1041,8 +1053,18 @@ TEST_F( ParticleTest, InterpolationZELSE16 ) {
 }
 
 TEST_F( ParticleTest, InterpolationMulti ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext16-real.dat", &size);
+	double* vext = ReadArray("../test/data/vext16-real.dat", &size);
+	double* wext = ReadArray("../test/data/wext16-real.dat", &size);
+	double* text = ReadArray("../test/data/text16-real.dat", &size);
+	double* qext = ReadArray("../test/data/qext16-real.dat", &size);
+	double* Z = ReadArray("../test/data/Z16-real.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ16-real.dat", &size);
+
 	// Create GPU
-	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, &params );
+	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1063,19 +1085,9 @@ TEST_F( ParticleTest, InterpolationMulti ) {
 	};
 	ParticleAdd(gpu, 0, &input);
 
-	// Read Fields
-	unsigned int size = 0;
-	double* uext = ReadArray("../test/data/uext16-real.dat", &size);
-	double* vext = ReadArray("../test/data/vext16-real.dat", &size);
-	double* wext = ReadArray("../test/data/wext16-real.dat", &size);
-	double* text = ReadArray("../test/data/text16-real.dat", &size);
-	double* qext = ReadArray("../test/data/qext16-real.dat", &size);
-	double* Z = ReadArray("../test/data/Z16-real.dat", &size);
-	double* ZZ = ReadArray("../test/data/ZZ16-real.dat", &size);
-
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
 	ParticleDownload(gpu);
 
@@ -1100,13 +1112,6 @@ TEST_F( ParticleTest, InterpolationMulti ) {
 // ------------------------------------------------------------------
 
 TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
-	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
-
-	// Setup Variables
-	double xl = 0.251327, yl = 0.251327;
-	double dx = xl/6.0, dy = yl/6.0;
-
 	// Read Fields
 	unsigned int size = 0;
 	double* uext = ReadArray("../test/data/uext.dat", &size);
@@ -1117,6 +1122,13 @@ TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
 	double* Z = ReadArray("../test/data/Z.dat", &size);
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
+	// Create GPU
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
 	// Setup Particle
 	for( int i = 0; i < size; i++ ){
 		Particle p = { 0, 0, {0.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, Z[i]}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
@@ -1125,7 +1137,7 @@ TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
 
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleCalculateStatistics(gpu, dx, dy);
 
 	// Compare Results
@@ -1138,13 +1150,6 @@ TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
 }
 
 TEST_F( ParticleTest, StatisticCountEveryOther ) {
-	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, &params );
-
-	// Setup Variables
-	double xl = 0.251327, yl = 0.251327;
-	double dx = xl/6.0, dy = yl/6.0;
-
 	// Read Fields
 	unsigned int size = 0;
 	double* uext = ReadArray("../test/data/uext.dat", &size);
@@ -1154,6 +1159,13 @@ TEST_F( ParticleTest, StatisticCountEveryOther ) {
 	double* qext = ReadArray("../test/data/qext.dat", &size);
 	double* Z = ReadArray("../test/data/Z.dat", &size);
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Create GPU
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
 
 	// Setup Particle
 	int j = 0;
@@ -1167,7 +1179,7 @@ TEST_F( ParticleTest, StatisticCountEveryOther ) {
 
 	// Update Particle
 	ParticleUpload(gpu);
-	ParticleFieldSet(gpu, uext, vext, wext, text, qext, Z, ZZ);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleCalculateStatistics(gpu, dx, dy);
 
 	// Compare Results
