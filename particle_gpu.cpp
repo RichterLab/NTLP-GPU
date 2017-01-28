@@ -566,6 +566,9 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
 
     gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
+    #ifdef BUILD_PERFORMANCE_PROFILE
+        cudaDeviceSynchronize();
+    #endif
 #else
     memcpy( gpu->hUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
     memcpy( gpu->hVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
