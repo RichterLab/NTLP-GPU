@@ -13,6 +13,12 @@ if (BUILD_VERIFY_NAN)
   add_definitions(-DBUILD_VERIFY_NAN)
 endif (BUILD_VERIFY_NAN)
 
+# Performance Profile
+option( BUILD_PERFORMANCE_PROFILE "Build code to test GPU performance" OFF)
+if (BUILD_PERFORMANCE_PROFILE)
+  add_definitions(-DBUILD_PERFORMANCE_PROFILE)
+endif (BUILD_PERFORMANCE_PROFILE)
+
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)

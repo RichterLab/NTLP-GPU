@@ -304,24 +304,49 @@ c
 !        call particle_generate(istage)
 !      end if
 #ifdef BUILD_CUDA
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        assembleStart = mpi_wtime()
+      end if
+#endif
       call assemble_gpu_data
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        assembleEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Assemble Step Time: ",
+     +      (assembleEnd-assembleStart),"s"
+      end if
+#endif
 
       if( myid .eq. gpu_master_rank ) then
+#ifdef BUILD_PERFORMANCE_PROFILE
+        gpuStart = mpi_wtime()
+#endif
         call gpuinterpolate(gpu,dx,dy)
         call gpustep(gpu, it, istage, dt)
         call gpunonperiodic(gpu)
         call gpuperiodic(gpu)
+        call gpudownload(gpu)
+#ifdef BUILD_PERFORMANCE_PROFILE
+        gpuEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "GPU Step Time: ",(gpuEnd - gpuStart),"s"
+#endif
       end if
 #endif
 
       if (ispray==1) then
-         !t_s = mpi_wtime()
+#ifdef BUILD_PERFORMANCE_PROFILE
+         t_s = mpi_wtime()
+#endif
          !call particle_update_cn(it,istage)
          call particle_update_rk3(it,istage)
 
-         !t_f = mpi_wtime()
-         !call mpi_barrier(mpi_comm_world,ierr)
-         !if (myid==5) write(*,*) 'time part: ',t_f-t_s
+#ifdef BUILD_PERFORMANCE_PROFILE
+         t_f = mpi_wtime()
+         if( myid == 0 ) then
+            write(*,'(a,f10.8,a)') "CPU Step Time: ",(t_f-t_s),"s"
+         end if
+#endif
       end if
       if(mnout .and. istage .eq. 1)  then
           if(l_debug) then
@@ -9621,6 +9646,10 @@ c
       integer :: buf_size(4),buf_dims(4)
       integer :: iproc,istatus(mpi_status_size),ierr
       real,allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
+#ifdef BUILD_PERFORMANCE_PROFILE
+      real :: recStart, recEnd
+      real :: haloStart,haloEnd,gpuRStart, gpuREnd, gpuTStart, gpuTEnd
+#endif
 
       !The fields to be assembeled on GPU proc: (2 periodic halos to the left, 3 to right, top/bottom in nz)
       real :: u_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
@@ -9642,8 +9671,10 @@ c
 
       !The GPU proc (assumed proc 0 here) receives, everyone else sends
       if (myid == gpu_master_rank) then
+#ifdef BUILD_PERFORMANCE_PROFILE
+          recStart = mpi_wtime()
+#endif
           do iproc=0,numprocs-1
-
              if (myid .ne. iproc) then
 
              !Figure out how much data is coming:
@@ -9723,6 +9754,12 @@ c
 
             end if
          end do
+#ifdef BUILD_PERFORMANCE_PROFILE
+              recEnd = mpi_wtime()
+              write(*,'(a,f10.8,a)') "Recieve Time: ",
+     +            (recEnd - recStart),"s"
+              haloStart = mpi_wtime()
+#endif
 
               !Finally fill the halos so that GPU doesn't have to conditionally search for periodicity
               u_full(-1:0,1:maxny,0:maxnz+1) =
@@ -9770,6 +9807,13 @@ c
               q_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) =
      +             q_full(-1:maxnx+3,1:3,0:maxnz+1)
 
+#ifdef BUILD_PERFORMANCE_PROFILE
+              haloEnd = mpi_wtime()
+              write(*,'(a,f10.8,a)') "Halo Time: ",
+     +            (haloEnd - haloStart),"s"
+            gpuRStart = mpi_wtime()
+#endif
+
             ! Resize arrays to pass to GPU
             asize = size(u_full,1)*size(u_full,2)*size(u_full,3)
             allocate(u_gpu(asize),v_gpu(asize))
@@ -9781,8 +9825,20 @@ c
             t_gpu = reshape(T_full, (/asize/))
             q_gpu = reshape(q_full, (/asize/))
 
+#ifdef BUILD_PERFORMANCE_PROFILE
+            gpuREnd = mpi_wtime()
+            write(*,'(a,f10.8,a)') "Reshape Time: ",
+     +            (gpuREnd - gpuRStart),"s"
+            gpuTStart = mpi_wtime()
+#endif
+
             !Now the "full" fields are complete and can be transferred to GPU
             call gpucopyfield(gpu,u_gpu,v_gpu,w_gpu,t_gpu,q_gpu,z,zz)
+#ifdef BUILD_PERFORMANCE_PROFILE
+            gpuTEnd = mpi_wtime()
+            write(*,'(a,f10.8,a)') "GPU Transfer Time: ",
+     +            (gpuTEnd - gpuTStart),"s"
+#endif
        else
           allocate(send_buf(nnx,iye-iys+1,ize-izs+1))
 
