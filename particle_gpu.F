@@ -33,7 +33,7 @@ module particle_c
             integer(c_int) :: count
         end function
 
-        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis,params) bind(c,name="NewGPU")
+        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis,z,zz,params) bind(c,name="NewGPU")
             use particle_struct, only: gpu_parameters
             use iso_c_binding, only: c_ptr, c_int, c_double
             integer(c_int), VALUE, intent(in)      :: count
@@ -44,10 +44,12 @@ module particle_c
             real(c_double), VALUE, intent(in)      :: yl
             real(c_double), VALUE, intent(in)      :: zl
             real(c_double), VALUE, intent(in)      :: vis
+            real(c_double), intent(in), dimension(*)    :: z
+            real(c_double), intent(in), dimension(*)    :: zz
             type(gpu_parameters)                   :: params
         end function
 
-        subroutine gpucopyfield(gpu,uext,vext,wext,text,qext,z,zz) bind(c,name="ParticleFieldSet")
+        subroutine gpucopyfield(gpu,uext,vext,wext,text,qext) bind(c,name="ParticleFieldSet")
             use iso_c_binding, only: c_ptr, c_double
             type(c_ptr), VALUE                          :: gpu
             real(c_double), intent(in), dimension(*)    :: uext
@@ -55,8 +57,6 @@ module particle_c
             real(c_double), intent(in), dimension(*)    :: wext
             real(c_double), intent(in), dimension(*)    :: text
             real(c_double), intent(in), dimension(*)    :: qext
-            real(c_double), intent(in), dimension(*)    :: z
-            real(c_double), intent(in), dimension(*)    :: zz
         end subroutine
 
         subroutine gpuwrite(gpu) bind(c,name="ParticleWrite")
@@ -154,7 +154,7 @@ contains
 
         subroutine initialize_gpu()
             use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap
-            use con_stats, only: z
+            use con_stats, only: z, zz
             use particles
             use particle_struct, only: gpu_parameters
 
@@ -184,7 +184,7 @@ contains
                 parameters%radius_mass = radius_mass
 
                 ! Create GPU Instance
-                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,parameters)
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,z,zz,parameters)
             end if
         end subroutine
 

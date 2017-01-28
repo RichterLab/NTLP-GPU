@@ -496,7 +496,7 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, const Parameters* params) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, double* z, double* zz, const Parameters* params) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
     SetParameters(retVal, params);
 
@@ -530,6 +530,12 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->GridDepth ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->GridDepth ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dPartCount, sizeof(double) * retVal->GridDepth ) );
+
+    gpuErrchk( cudaMemcpy( retVal->dZ, z, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice ) );
+    gpuErrchk( cudaMemcpy( retVal->dZZ, zz, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice ) );
+    #ifdef BUILD_PERFORMANCE_PROFILE
+        cudaDeviceSynchronize();
+    #endif
 #else
     retVal->hUext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
     retVal->hVext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
@@ -539,12 +545,15 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     retVal->hZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
     retVal->hZZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
+
+    memcpy( retVal->hZ, z, sizeof(double) * retVal->GridDepth );
+    memcpy( retVal->hZZ, zz, sizeof(double) * retVal->GridDepth );
 #endif
 
     return retVal;
 }
 
-extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext, double *z, double *zz ) {
+extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext ) {
 #ifdef BUILD_VERIFY_NAN
     std::cout << "Testing for NAN in field:" << std::endl;
     for( int i = 0; i < gpu->GridWidth * gpu->GridHeight * gpu->GridDepth; i++ ){
@@ -563,9 +572,6 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
     gpuErrchk( cudaMemcpy( gpu->dWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( gpu->dText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( gpu->dQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice ) );
-
-    gpuErrchk( cudaMemcpy( gpu->dZ, z, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
-    gpuErrchk( cudaMemcpy( gpu->dZZ, zz, sizeof(double) * gpu->GridDepth, cudaMemcpyHostToDevice ) );
     #ifdef BUILD_PERFORMANCE_PROFILE
         cudaDeviceSynchronize();
     #endif
@@ -575,9 +581,6 @@ extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *
     memcpy( gpu->hWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
     memcpy( gpu->hText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
     memcpy( gpu->hQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth );
-
-    memcpy( gpu->hZ, z, sizeof(double) * gpu->GridDepth );
-    memcpy( gpu->hZZ, zz, sizeof(double) * gpu->GridDepth );
 #endif
 }
 
@@ -742,8 +745,10 @@ GPU* ParticleRead(const char * path){
     unsigned int particles = 0;
     fread(&particles, sizeof(unsigned int), 1, data);
 
+    double z[1], zz[1];
+
     Parameters params;
-    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, &params );
+    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, &z[0], &zz[0], &params );
     for( int i = 0; i < retVal->pCount; i++ ){
         fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
     }

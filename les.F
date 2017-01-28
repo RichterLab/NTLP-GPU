@@ -9813,8 +9813,7 @@ c
 #endif
 
             !Now the "full" fields are complete and can be transferred to GPU
-            call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full,
-     +            z,zz)
+            call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full)
 #ifdef BUILD_PERFORMANCE_PROFILE
             gpuTEnd = mpi_wtime()
             write(*,'(a,f10.8,a)') "GPU Transfer Time: ",
