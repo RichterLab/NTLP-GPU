@@ -50,7 +50,7 @@ inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=t
 
 CONSTANT Parameters cParams;
 
-DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
+DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle* __restrict__ particles, int* __restrict__ neighbours){
     neighbours[0*6+2] = floor(particles[0].xp[0]/dx) + 1;
     neighbours[1*6+2] = floor(particles[0].xp[1]/dy) + 1;
 
@@ -67,7 +67,7 @@ DEVICE void GPUFindXYNeighbours(const double dx, const double dy, const Particle
     neighbours[1*6+5] = neighbours[1*6+4]+1;
 }
 
-GLOBAL void GGPUFindXYNeighbours(const double dx, const double dy, const Particle* particles, int *neighbours){
+GLOBAL void GGPUFindXYNeighbours(const double dx, const double dy, const Particle* __restrict__ particles, int* __restrict__ neighbours){
     GPUFindXYNeighbours(dx, dy, particles, neighbours);
 }
 
@@ -92,7 +92,7 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     return hResult;
 }
 
-GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double *z, const double *zz, const double *uext, const double *vext, const double *wext, const double *Text, const double *T2ext, const int pcount, Particle* particles){
+GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double* __restrict__ z, const double* __restrict__ zz, const double* __restrict__ uext, const double* __restrict__ vext, const double* __restrict__ wext, const double* __restrict__ Text, const double* __restrict__ T2ext, const int pcount, Particle* __restrict__ particles){
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -285,7 +285,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 #endif
 }
 
-GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* particles ) {
+GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* __restrict__ particles ) {
 	const double pi   = 4.0 * atan( 1.0 );
 	const double pi2  = 2.0 * pi;
 	const double m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
@@ -373,7 +373,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 #endif
 }
 
-GLOBAL void GPUUpdateNonperiodic( const double grid_width, const double delta_vis, const int pcount, Particle* particles ) {
+GLOBAL void GPUUpdateNonperiodic( const double grid_width, const double delta_vis, const int pcount, Particle* __restrict__ particles ) {
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -397,7 +397,7 @@ GLOBAL void GPUUpdateNonperiodic( const double grid_width, const double delta_vi
 #endif
 }
 
-GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height, const int pcount, Particle* particles ) {
+GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height, const int pcount, Particle* __restrict__ particles ) {
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -422,7 +422,7 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 #endif
 }
 
-GLOBAL void GPUCalculateStatistics( const int nnz, const double *z, double *partcount_t, const int pcount, Particle* particles ) {
+GLOBAL void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, const int pcount, Particle* __restrict__ particles ) {
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= nnz ) return;
