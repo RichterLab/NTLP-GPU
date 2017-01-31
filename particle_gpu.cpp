@@ -684,7 +684,8 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 
 extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
-    GPUFieldInterpolate<<< (gpu->pCount / 32) + 1, 32, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
+    GPUFieldInterpolate<<< blocks, CUDA_BLOCK_THREADS, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
@@ -693,7 +694,8 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy 
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
 #ifdef BUILD_CUDA
-    GPUUpdateParticles<<< (gpu->pCount / 32) + 1, 32 >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
+    const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
+    GPUUpdateParticles<<< blocks, CUDA_BLOCK_THREADS >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUUpdateParticles(it, istage, dt, gpu->pCount, gpu->hParticles);
@@ -702,7 +704,8 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
 
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
 #ifdef BUILD_CUDA
-    GPUUpdateNonperiodic<<< (gpu->pCount / 32) + 1, 32 >>> (gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->dParticles);
+    const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
+    GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUUpdateNonperiodic(gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->hParticles);
@@ -711,7 +714,8 @@ extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
 
 extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 #ifdef BUILD_CUDA
-    GPUUpdatePeriodic<<< (gpu->pCount / 32) + 1, 32 >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
+    const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
+    GPUUpdatePeriodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
@@ -720,7 +724,8 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
-    GPUCalculateStatistics<<< (gpu->GridDepth / 32) + 1, 32 >>> ( gpu->GridDepth, gpu->dZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
+    const unsigned int blocks = std::ceil(gpu->GridDepth / (float)CUDA_BLOCK_THREADS);
+    GPUCalculateStatistics<<< blocks, CUDA_BLOCK_THREADS >>> ( gpu->GridDepth, gpu->dZ, gpu->dPartCount, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
 #else
