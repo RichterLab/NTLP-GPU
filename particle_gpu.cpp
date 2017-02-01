@@ -259,7 +259,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
     } else if (kwpts[2] == nnz-4) {
         first = 1;
         last = 5;
-        kuvpts[0] = 0;
+        kwpts[0] = 0;
     } else {
         first = 0;
         last = 6;
