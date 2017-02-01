@@ -25,6 +25,9 @@ if (BUILD_CUDA)
   find_package(CUDA REQUIRED)
   add_definitions(-DBUILD_CUDA)
 
+  set( BUILD_CUDA_BLOCK_THREADS "128" CACHE STRING "Threads per block for CUDA")
+  add_definitions(-DCUDA_BLOCK_THREADS=${BUILD_CUDA_BLOCK_THREADS})
+
   # cuda_add_executable( lescudas "particle_gpu.cu")
   # cuda_add_library( lescuda "particle_gpu.cu")
   set_source_files_properties( particle_gpu.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
