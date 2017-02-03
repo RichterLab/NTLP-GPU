@@ -1,5 +1,8 @@
 language: c
 sudo: false
+cache:
+  directories:
+    - $HOME/lcov-1.13
 env:
   global:
     # Intel Parallel Studio
@@ -10,7 +13,10 @@ before_install:
   - ./install-icc.sh --components "icc,ifort,mpi"
   - source ~/.bashrc
   - export I_MPI_F90=ifort
-  - wget -O - --no-check-certificate http://downloads.sourceforge.net/ltp/lcov-1.13.tar.gz | tar xz && DESTDIR=$HOME/lcov-1.13/ make install -C lcov-1.13
+  - |
+    if [ ! -f "$HOME/lcov-1.13/usr/local/bin/lcov" ]; then
+      wget -O - --no-check-certificate http://downloads.sourceforge.net/ltp/lcov-1.13.tar.gz | tar xz && DESTDIR=$HOME/lcov-1.13/ make install -C lcov-1.13
+    fi
 script:
   - mkdir build
   - cd build
