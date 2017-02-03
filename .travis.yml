@@ -2,6 +2,7 @@ language: c
 sudo: false
 cache:
   directories:
+    - /tmp/parallel-studio-install-data/travis/l_psxe_2016.3.067
     - $HOME/lcov-1.13
 env:
   global:
