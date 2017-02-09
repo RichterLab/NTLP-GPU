@@ -48,8 +48,8 @@ if (BUILD_FORTRAN)
   set( CMAKE_Fortran_COMPILER ${MPI_Fortran_COMPILER})
 
   # Setup Compile Flags
-  set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -i4 -r8")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -i4 -r8")
+  set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -i4 -r8 -assume byterecl")
+  set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -i4 -r8 -assume byterecl")
 
   # Handle ulimit issue for intel compiler
   option( BUILD_FORTRAN_RESTRICT_STACK "Restrict stack size for intel compiler" ON)
