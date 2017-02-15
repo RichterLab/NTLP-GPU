@@ -707,7 +707,7 @@ extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
     GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
-    GPUUpdateNonperiodic(gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->hParticles);
+    GPUUpdateNonperiodic(gpu->FieldWidth, gpu->pCount, gpu->hParticles);
 #endif
 }
 
