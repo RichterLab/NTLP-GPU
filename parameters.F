@@ -5,7 +5,7 @@
         integer :: ismlt,ifree,iradup,
      +   iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,method,
      +   idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,ispray,
-     +   icouple,iTcouple,iHcouple,ievap,ifields
+     +   icouple,iTcouple,iHcouple,ievap,ifields,ilin
 
         integer, parameter :: j_recl=4, k8=8
         integer, parameter :: nscl = 2, nvar = (4+nscl)

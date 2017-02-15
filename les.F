@@ -9619,7 +9619,7 @@ c
       namelist /flags/ ismlt,ifree,isfc,iradup,
      +         iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,
      +         method,idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,
-     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields
+     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields,ilin
 
 
       namelist /constants/ rhoa, nuf, Cpa, Pra, Sc,
