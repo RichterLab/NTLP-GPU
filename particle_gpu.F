@@ -33,7 +33,7 @@ module particle_c
             integer(c_int) :: count
         end function
 
-        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,vis,z,zz,params) bind(c,name="NewGPU")
+        type(c_ptr) function newgpu(count,h,w,d,xl,yl,zl,z,zz,params) bind(c,name="NewGPU")
             use particle_struct, only: gpu_parameters
             use iso_c_binding, only: c_ptr, c_int, c_double
             integer(c_int), VALUE, intent(in)      :: count
@@ -43,7 +43,6 @@ module particle_c
             real(c_double), VALUE, intent(in)      :: xl
             real(c_double), VALUE, intent(in)      :: yl
             real(c_double), VALUE, intent(in)      :: zl
-            real(c_double), VALUE, intent(in)      :: vis
             real(c_double), intent(in), dimension(*)    :: z
             real(c_double), intent(in), dimension(*)    :: zz
             type(gpu_parameters)                   :: params
@@ -181,10 +180,10 @@ contains
                 parameters%Ion = Ion
                 parameters%Os = Os
 
-                parameters%radius_mass = radius_mass
+                parameters%radius_mass = radius_init
 
                 ! Create GPU Instance
-                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,delta_vis,z,zz,parameters)
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,z,zz,parameters)
             end if
         end subroutine
 

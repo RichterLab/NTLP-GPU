@@ -234,13 +234,13 @@ TEST_F( ParticleTest, UpdateStageThree ){
 TEST_F( ParticleTest, NonPeriodicCenter ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
 		0, 0,
 		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
 
@@ -253,7 +253,7 @@ TEST_F( ParticleTest, NonPeriodicCenter ) {
 	Particle expected = {
 		0, 0,
 		{0.0, 0.0, 1.0}, {0.0, 0.0, 0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	CompareParticle(&gpu->hParticles[0], &expected);
 
@@ -266,13 +266,13 @@ TEST_F( ParticleTest, NonPeriodicCenter ) {
 TEST_F( ParticleTest, NonPeriodicAbove ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
 		0, 0,
 		{0.0, 0.0, 1.0}, {0.0, 0.0, 2.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
 
@@ -285,7 +285,7 @@ TEST_F( ParticleTest, NonPeriodicAbove ) {
 	Particle expected = {
 		0, 0,
 		{0.0, 0.0, -1.0}, {0.0, 0.0, -0.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	CompareParticle(&gpu->hParticles[0], &expected);
 
@@ -299,13 +299,13 @@ TEST_F( ParticleTest, NonPeriodicAbove ) {
 TEST_F( ParticleTest, NonPeriodicBelow ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, 0.25, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
 		0, 0,
 		{0.0, 0.0, -1.0}, {0.0, 0.0, -1.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	ParticleAdd(gpu, 0, &input);
 
@@ -318,7 +318,7 @@ TEST_F( ParticleTest, NonPeriodicBelow ) {
 	Particle expected = {
 		0, 0,
 		{0.0, 0.0, 1.0}, {0.0, 0.0, 1.5}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0},
-		0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0
+		0.0, 0.0, 0.0, 0.0, 0.25, 0.0, 0.0, 0.0
 	};
 	CompareParticle(&gpu->hParticles[0], &expected);
 
@@ -335,7 +335,7 @@ TEST_F( ParticleTest, NonPeriodicBelow ) {
 TEST_F( ParticleTest, PeriodicCenter ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -367,7 +367,7 @@ TEST_F( ParticleTest, PeriodicCenter ) {
 TEST_F( ParticleTest, PeriodicNegativeX ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -399,7 +399,7 @@ TEST_F( ParticleTest, PeriodicNegativeX ) {
 TEST_F( ParticleTest, PeriodicNegativeY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -432,7 +432,7 @@ TEST_F( ParticleTest, PeriodicNegativeY ) {
 TEST_F( ParticleTest, PeriodicNegativeXY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -464,7 +464,7 @@ TEST_F( ParticleTest, PeriodicNegativeXY ) {
 TEST_F( ParticleTest, PeriodicPositiveX ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -496,7 +496,7 @@ TEST_F( ParticleTest, PeriodicPositiveX ) {
 TEST_F( ParticleTest, PeriodicPositiveY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -529,7 +529,7 @@ TEST_F( ParticleTest, PeriodicPositiveY ) {
 TEST_F( ParticleTest, PeriodicPositiveXY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -562,7 +562,7 @@ TEST_F( ParticleTest, PeriodicPositiveXY ) {
 TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -595,7 +595,7 @@ TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 TEST_F( ParticleTest, PeriodicPositiveXNegativeY ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.5, 1.0, 0.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -664,7 +664,7 @@ TEST_F( ParticleTest, InterpolationZZEQZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -704,7 +704,7 @@ TEST_F( ParticleTest, InterpolationZEQ1 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -744,7 +744,7 @@ TEST_F( ParticleTest, InterpolationZLTZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -784,7 +784,7 @@ TEST_F( ParticleTest, InterpolationZEQ2 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -824,7 +824,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -864,7 +864,7 @@ TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -904,7 +904,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -944,7 +944,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -984,7 +984,7 @@ TEST_F( ParticleTest, InterpolationZELSE ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1024,7 +1024,7 @@ TEST_F( ParticleTest, InterpolationZELSE16 ) {
 	double* ZZ = ReadArray("../test/data/ZZ16.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1064,7 +1064,7 @@ TEST_F( ParticleTest, InterpolationMulti ) {
 	double* ZZ = ReadArray("../test/data/ZZ16-real.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1123,7 +1123,7 @@ TEST_F( ParticleTest, StatisticCountEvenDistribution ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
@@ -1161,7 +1161,7 @@ TEST_F( ParticleTest, StatisticCountEveryOther ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;

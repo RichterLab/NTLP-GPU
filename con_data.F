@@ -3,9 +3,9 @@ c     ----------------------------------------------------------------------
       use pars, only : nscl
       type con_d
       sequence
-      real ::  zo, vk, vkin, vk74, vk74in,
+      real ::  vk, vkin, vk74, vk74in,
      +     gcp, fcor_h, pi2,
-     +     batagk, batag, vgcont, ugcont,
+     +     batagk, batag,
      +     cdbtm, dtdzf(nscl), dtjump, ugal, divgls,
      +     z1, utausv, dx, dy, dz, dt,
      +     fnxy, dzdz, dsl, c23, dtgama, dtzeta, xkmax,
@@ -16,9 +16,9 @@ c     ----------------------------------------------------------------------
       end type con_d
       type(con_d), target :: c_c
       real, pointer ::
-     +     zo, vk, vkin, vk74, vk74in,
+     +     vk, vkin, vk74, vk74in,
      +     gcp, fcor_h, pi2,
-     +     batagk, batag, vgcont, ugcont,
+     +     batagk, batag,
      +     cdbtm, dtdzf(:), dtjump, ugal, divgls,
      +     z1, utausv, dx, dy, dz, dt,
      +     fnxy, dzdz, dsl, c23, dtgama, dtzeta, xkmax,
@@ -31,7 +31,6 @@ c     ----------------------------------------------------------------------
 c
 c     --------------- pointer associations for constant variables
 c
-      zo     => c_c%zo
       vk     => c_c%vk
       vkin   => c_c%vkin
       vk74   => c_c%vk74
@@ -41,8 +40,6 @@ c
       pi2    => c_c%pi2
       batagk => c_c%batagk
       batag  => c_c%batag
-      vgcont => c_c%vgcont
-      ugcont => c_c%ugcont
       cdbtm  => c_c%cdbtm
       dtdzf  => c_c%dtdzf
       dtjump => c_c%dtjump

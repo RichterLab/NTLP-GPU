@@ -5,16 +5,17 @@
         integer :: ismlt,ifree,iradup,
      +   iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,method,
      +   idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,ispray,
-     +   icouple,iTcouple,iHcouple,ievap
+     +   icouple,iTcouple,iHcouple,ievap,ifields
 
         integer, parameter :: j_recl=4, k8=8
         integer, parameter :: nscl = 2, nvar = (4+nscl)
-        integer, parameter :: maxnx=128,maxny=256,maxnz=128
+        integer, parameter :: maxnx=128,maxny=128,maxnz=128
         integer, parameter :: maxnz1=maxnz+1, maxnz2=maxnz+2,
      +   maxnx2=maxnx+2,maxny2=maxny+2
 
         real :: Uo, Ttop(nscl), Tbot(nscl),qstar(nscl),tsfcc(nscl)
-        real :: grav,t00,fcor,zi,zl,xl,yl,zw1
+        real :: grav,t00,fcor,zi,zl,xl,yl,zw1,dpdx
+        real :: ugcont,vgcont,zo
         integer :: isfc(nscl)
 
         integer :: nnx, nny, nnz, nxy, ncx, nnxp1, nnyp1, ncy,

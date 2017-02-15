@@ -392,7 +392,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 #endif
 }
 
-GLOBAL void GPUUpdateNonperiodic( const double grid_width, const double delta_vis, const int pcount, Particle* __restrict__ particles ) {
+GLOBAL void GPUUpdateNonperiodic( const double grid_width, const int pcount, Particle* __restrict__ particles ) {
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
     if ( idx >= pcount ) return;
@@ -400,8 +400,8 @@ GLOBAL void GPUUpdateNonperiodic( const double grid_width, const double delta_vi
     for( int idx = 0; idx < pcount; idx++){
 #endif
 
-    const double top = grid_width - delta_vis;
-    const double bot = 0.0 + delta_vis;
+    const double top = grid_width - particles[idx].radius;
+    const double bot = 0.0 + particles[idx].radius;
 
     if( particles[idx].xp[2] > top ){
         particles[idx].xp[2] = top - (particles[idx].xp[2]-top);
@@ -515,7 +515,7 @@ extern "C" double rand2(int idum, bool reset) {
       return MIN(AM*iy,RNMX);
 }
 
-extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, double* z, double* zz, const Parameters* params) {
+extern "C" GPU* NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, double* z, double* zz, const Parameters* params) {
     GPU* retVal = (GPU*) malloc( sizeof(GPU) );
     SetParameters(retVal, params);
 
@@ -527,7 +527,6 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->FieldWidth = fWidth;
     retVal->FieldHeight = fHeight;
     retVal->FieldDepth = fDepth;
-    retVal->FieldVis = fVis;
 
     // Grid Data
     retVal->GridWidth = width;
@@ -705,7 +704,7 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-    GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->dParticles);
+    GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUUpdateNonperiodic(gpu->FieldWidth, gpu->FieldVis, gpu->pCount, gpu->hParticles);
@@ -772,7 +771,7 @@ GPU* ParticleRead(const char * path){
     double z[1], zz[1];
 
     Parameters params;
-    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, 0.0, &z[0], &zz[0], &params );
+    GPU *retVal = NewGPU(particles, 0, 0, 0, 0.0, 0.0, 0.0, &z[0], &zz[0], &params );
     for( int i = 0; i < retVal->pCount; i++ ){
         fread(&retVal->hParticles[i], sizeof(Particle), 1, data);
     }

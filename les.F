@@ -108,8 +108,11 @@ c
          if(iocean .eq. 1) then
             call randoc
          else
-            !call get_fields
-            call random
+            if (ifields .eq. 1) then
+                  call get_fields
+            else
+                  call random
+            end if
          endif
          !Call dns_vis even when doing LES since vis_m needs to be initialized with something
          call dns_vis
@@ -1668,7 +1671,7 @@ c
          !Instead of geostrophic wind (which is a pressure gradient)
          !make u_geo and v_geo equal to my pressure gradient:
 
-         u_geo = 0.0
+         u_geo = -dpdx
          v_geo = 0.0
 
 c
@@ -2950,6 +2953,12 @@ c
          vy(ix,iy,izm1) = 0.0
          wx(ix,iy,izm1) = 0.0
          wy(ix,iy,izm1) = 0.0
+         wbc(ix,iy,2) = 0.0
+         ebc(ix,iy,2) = 0.0
+         ubc(ix,iy,2) = u(ix,iy,izm1)
+         vbc(ix,iy,2) = v(ix,iy,izm1)
+         pbc(ix,iy,2) = 0.0
+         pbc2(ix,iy,2)= 0.0
       enddo
       enddo
 
@@ -3010,6 +3019,12 @@ c
          vy(ix,iy,izp1) = 0.0
          wx(ix,iy,izp1) = 0.0
          wy(ix,iy,izp1) = 0.0
+         wbc(ix,iy,1) = 0.0
+         ebc(ix,iy,1) = 0.0
+         ubc(ix,iy,1) = u(ix,iy,izp1)
+         vbc(ix,iy,1) = v(ix,iy,izp1)
+         pbc(ix,iy,1) = 0.0
+         pbc2(ix,iy,1)= 0.0
       enddo
       enddo
 
@@ -5042,8 +5057,6 @@ c
 c        fcor    = 0.0
          fcor    = 1.39e-04
          fcor_h  = 0.0
-         ugcont  = 0.0
-         vgcont  = 0.0
 c        wtsfc(1)=0.00
 c        wtsfc(1)=4.96e-07
          wtsfc(1)=1.190476e-06
@@ -5115,10 +5128,6 @@ c
 c
          dtjump  = 0.0
          divgls  = 0.0
-         zo      = 0.1
-         ugcont  = 10.0
-         vgcont  = 0.0
-
 
 c
 c ---------- if stretched grid specify location of first point
@@ -7269,7 +7278,11 @@ c          stat(.,3) = Particle: <T' Q'>
           if (iscl == 1) then
           if (iTcouple ==1) then
             qfluc = partTsrc(i,j,iz)-Tpsrc(iz)
-            qflucp1 = partTsrc(i,j,izp1)-Tpsrc(izp1)
+            if (iz==nnz) then
+                  qflucp1 = 0.0
+            else
+                  qflucp1 = partTsrc(i,j,izp1)-Tpsrc(izp1)
+            end if
             stat(iz,3) = stat(iz,3) +
      +         weit*(qflucp1*Tflucp1) + weit1*(qfluc*Tfluc)
           endif
@@ -7279,16 +7292,24 @@ c          stat(.,3) = Particle: <T' Q'>
           if (iscl == 2) then
           if (iHcouple ==1) then
             qfluc = partHsrc(i,j,iz)-Hpsrc(iz)
-            qflucp1 = partHsrc(i,j,izp1)-Hpsrc(izp1)
+            if (iz==nnz) then
+                  qflucp1 = 0.0
+            else
+                  qflucp1 = partHsrc(i,j,izp1)-Hpsrc(izp1)
+            end if
             stat(iz,3) = stat(iz,3) +
      +         weit*(qflucp1*Tflucp1) + weit1*(qfluc*Tfluc)
           endif
           endif
 
           if (iscl .eq. 2 .and. iHcouple .eq. 1 ) then
-              qfluc = partTEsrc(i,j,iz)-TEpsrc(iz)
-              qflucp1 = partTEsrc(i,j,izp1)-TEpsrc(izp1)
-              Tv_part2(iz) = Tv_part2(iz) +
+            qfluc = partTEsrc(i,j,iz)-TEpsrc(iz)
+            if (iz==nnz) then
+                  qflucp1 = 0.0
+            else
+                  qflucp1 = partTEsrc(i,j,izp1)-TEpsrc(izp1)
+            end if
+            Tv_part2(iz) = Tv_part2(iz) +
      +          weit*(qflucp1*Tflucp1) + weit1*(qfluc*Tfluc)
 
          endif
@@ -9588,8 +9609,8 @@ c
      +                       itstr,it_his,it_viz,i_viz,itn
 
       namelist /grid_params/ ncpu_s, Uo, Ttop, Tbot,
-     +         qstar, tsfcc,
-     +         zi, zl, xl, yl, zw1
+     +         qstar, tsfcc, ugcont, vgcont,
+     +         zi, zl, xl, yl, zw1, dpdx
 
       namelist /path_names/ path_seed,path_part,path_res,
      +         path_sav,path_his,path_viz_xy,path_viz_xz,
@@ -9598,14 +9619,14 @@ c
       namelist /flags/ ismlt,ifree,isfc,iradup,
      +         iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,
      +         method,idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,
-     +         ispray,icouple,iTcouple,iHcouple,ievap
+     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields
 
 
       namelist /constants/ rhoa, nuf, Cpa, Pra, Sc,
      +         tnumpart,rhow,part_grav,
      +         Cpp,Mw,Ms,Ru,Gam,Ion,Os,Sal,
-     +         radius_init,radius_mass,delta_vis,
-     +         grav, t00,fcor,
+     +         radius_init,
+     +         grav, t00,fcor,zo,
      +         vp_init,Tp_init,qf_init
 
 

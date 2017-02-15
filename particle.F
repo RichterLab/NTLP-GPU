@@ -35,9 +35,9 @@
         real :: Rep_avg,part_grav
         real :: vp_init(3),Tp_init,qf_init
 
-        real :: radius_init,radius_mass,rhow,nuf
+        real :: radius_init,rhow,nuf
         real :: CpaCpp,Cpa,Cpp,Pra,Sc,Mw,Ru,rhoa
-        real :: m_s,Sal,Ms,delta_vis,Gam,Ion,Os
+        real :: m_s,Sal,Ms,Gam,Ion,Os
 
         !REMEMBER: IF ADDING ANYTHING, MUST UPDATE MPI DATATYPE!
         type :: particle
@@ -68,7 +68,7 @@
         call set_bounds
 
         pi   = 4.0*atan(1.0)
-        m_s = Sal/1000.0*4.0/3.0*pi*radius_mass**3*rhow
+        m_s = Sal/1000.0*4.0/3.0*pi*radius_init**3*rhow
 
         if (myid==0) write(*,*) 'Init Particle radius = ',radius_init
         if (myid==0) write(*,*) 'Particle Salinity = ',Sal
@@ -173,7 +173,7 @@
           do idx=1,numpart
             xp_init(1) = ran2(iseed)*(xmax-xmin) + xmin
             xp_init(2) = ran2(iseed)*(ymax-ymin) + ymin
-            xp_init(3) = ran2(iseed)*(zl-2.0*delta_vis) + delta_vis
+            xp_init(3) = ran2(iseed)*(zl-2.0*radius_init) + radius_init
             call particle_create(xp_init,vp_init,Tp_init,qf_init,
      +        myid*tnumpart+idx)
           end do
@@ -859,8 +859,8 @@
           !perfectly elastic collisions on top, bottom walls
           !i.e. location is reflected, w-velocity is negated
 
-          top = zl - delta_vis!part%radius
-          bot = 0.0 + delta_vis!part%radius
+          top = zl - part%radius
+          bot = 0.0 + part%radius
 
           if (part%xp(3) .GT. top) then
             part%xp(3) = top - (part%xp(3)-top)
@@ -1856,21 +1856,34 @@
        if (kwpts(3) == 0) then
           first = 3
           last = 4
+          kwpts(1) = 1
+          kwpts(2) = 1
        elseif (kwpts(3) .LT. 0) then
           first = 0
           last = 0
+          kwpts(1) = 1
+          kwpts(2) = 1
+          kwpts(3) = 1
        elseif (kwpts(3) == 1) then
           first = 2
           last = 5
+          kwpts(1) = 1
        elseif (kwpts(3) == nnz-1) then
           first = 3
           last = 4
+          kwpts(5) = nnz
+          kwpts(6) = nnz
        elseif (kwpts(3) .GE. nnz) then
           first = 0
           last = 0
+          kwpts(3) = nnz
+          kwpts(4) = nnz
+          kwpts(5) = nnz
+          kwpts(6) = nnz
        elseif (kwpts(3) == nnz-2) then
           first = 2
           last = 5
+          kwpts(6) = nnz
        else
           first = 1
           last = 6

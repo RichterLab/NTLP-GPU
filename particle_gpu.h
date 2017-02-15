@@ -35,7 +35,7 @@ struct GPU {
 	Particle *hParticles, *dParticles;
 
 	int GridHeight, GridWidth, GridDepth;
-	double FieldWidth, FieldHeight, FieldDepth, FieldVis;
+	double FieldWidth, FieldHeight, FieldDepth;
 	double *hUext, *hVext, *hWext, *hText, *hQext, *hZ, *hZZ;
 	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
 
@@ -44,7 +44,7 @@ struct GPU {
 };
 
 extern "C" double rand2(int idum, bool reset = false);
-extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth, const double fWidth, const double fHeight, const double fDepth, const double fVis, double* z, double* zz, const Parameters* params);
+extern "C" GPU* NewGPU(const int particles, const int height, const int width, const int depth, const double fWidth, const double fHeight, const double fDepth, double* z, double* zz, const Parameters* params);
 extern "C" void ParticleFieldSet( GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext );
 extern "C" void ParticleAdd( GPU *gpu, const int position, const Particle* input );
 extern "C" Particle ParticleGet( GPU *gpu, const int position );
