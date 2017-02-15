@@ -373,7 +373,6 @@ c
 c
 99000 continue
 #ifdef BUILD_CUDA_VERIFY
-      call calculate_statistics()
       call compare_particles()
 #endif
       te_mpi = mpi_wtime()
@@ -6616,6 +6615,7 @@ c
       use con_data
       use con_stats
       use particles
+      use particle_c
 c
 c ------- indices for indexing array stat(.,.)
 c         js = number of non-scalar stats
@@ -6805,6 +6805,9 @@ c
 c
 c ------ fill arrays for printout and constant file
 c
+#ifdef BUILD_CUDA
+      call calculate_statistics(stat)
+#endif
       do iz=1,nnz
 c
       ups(iz)    = stat(iz,1)*fnxy
