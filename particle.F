@@ -1935,7 +1935,6 @@
 
       subroutine uf_interp_lin
       use pars
-      use particles
       use fields
       use con_stats
       use con_data
