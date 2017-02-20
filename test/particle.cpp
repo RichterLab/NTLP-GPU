@@ -1207,7 +1207,7 @@ TEST_F( ParticleTest, StatisticVPSum ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
-	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, 0.0, Z, ZZ, &params );
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
 	double xl = 0.251327, yl = 0.251327;
