@@ -14,7 +14,7 @@ struct Particle {
 };
 
 struct Parameters {
-	int Evaporation;
+	int Evaporation, LinearInterpolation;
 
 	// Material Properties
 

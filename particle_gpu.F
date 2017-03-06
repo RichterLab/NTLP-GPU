@@ -10,7 +10,7 @@ module particle_struct
     end type gpu_particle
 
     type, bind(c) :: gpu_parameters
-        integer(c_int) :: Evaporation
+        integer(c_int) :: Evaporation, LinearInterpolation
 
         real(c_double) :: rhoa, nuf, Cpa, Pra, Sc
 
@@ -152,7 +152,7 @@ contains
         end subroutine
 
         subroutine initialize_gpu()
-            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap
+            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap,ilin
             use con_stats, only: z, zz
             use particles
             use particle_struct, only: gpu_parameters
@@ -162,6 +162,7 @@ contains
             if( myid .eq. gpu_master_rank ) then
                 ! Setup Parameters
                 parameters%Evaporation = ievap
+                parameters%LinearInterpolation = ilin
 
                 parameters%rhoa = rhoa
                 parameters%nuf = nuf

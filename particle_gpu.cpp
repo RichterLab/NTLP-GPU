@@ -94,6 +94,105 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
     return hResult;
 }
 
+GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double dx, const double dy, const int nnz, const double* __restrict__ z, const double* __restrict__ zz, const double* __restrict__ uext, const double* __restrict__ vext, const double* __restrict__ wext, const double* __restrict__ Text, const double* __restrict__ T2ext, const int pcount, Particle* __restrict__ particles) {
+#ifdef BUILD_CUDA
+    for (int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < pcount; idx += blockDim.x * gridDim.x) {
+#else
+    for( int idx = 0; idx < pcount; idx++){
+#endif
+
+// Setup shared memory for Z and ZZ
+#ifdef BUILD_CUDA
+    SHARED double shared[];
+
+    double *zShared = shared, *zzShared = &shared[nnz], *dzu = &shared[nnz*2], *dzw = &shared[nnz*3+1];
+    if( idx == 0 ){
+        for( int i = 0; i < nnz; i++ ){
+            zShared[i] = z[i];
+            zzShared[i] = zz[i];
+        }
+
+        for( int i = 1; i < nnz; i++ ){
+            dzu[i] = zzShared[i] - zzShared[i-1];
+            dzw[i] = zShared[i] - zShared[i-1];
+        }
+        dzu[0] = dzu[1];
+        dzw[0] = dzw[1];
+
+        dzu[nnz] = dzu[nnz-1];
+        dzw[nnz] = dzw[nnz-1];
+    }
+    __syncthreads();
+#else
+    const double *zShared = z;
+    const double *zzShared = zz;
+
+    double dzu[nnz], dzw[nnz];
+    for( int i = 1; i < nnz-1; i++ ){
+        dzw[i] = z[i] - z[i-1];
+        dzu[i] = zz[i] - zz[i-1];
+    }
+
+    dzw[0] = dzw[1];
+    dzu[0] = dzu[1];
+
+    dzw[nnz] = dzw[nnz-1];
+    dzu[nnz] = dzw[nnz-1];
+#endif
+
+    const int ipt = floor(particles[idx].xp[0]/dx) + 1;
+    const int jpt = floor(particles[idx].xp[1]/dy) + 1;
+
+    int kpt = 0;
+    for( ; kpt < nnz; kpt++ ){
+        if (zzShared[kpt] > particles[idx].xp[2]){
+            break;
+        }
+    }
+    kpt -= 1;
+
+    int kwpt = 0;
+    for( ; kwpt < nnz; kwpt++ ){
+        if (zShared[kwpt] > particles[idx].xp[2]) {
+            break;
+        }
+    }
+    kwpt -= 1;
+
+    particles[idx].uf[0] = 0.0;
+    particles[idx].uf[1] = 0.0;
+    particles[idx].uf[2] = 0.0;
+
+    particles[idx].Tf = 0.0;
+    particles[idx].qinf = 0.0;
+    for( int i = 0; i < 2; i++ ){
+        for( int j = 0; j < 2; j++ ){
+            for( int k = 0; k < 2; k++ ){
+                const int ix = i + ipt;
+                const int iy = i + jpt;
+                const int izuv = k + kpt;
+                const int izw = k + kwpt;
+
+                const double xv = dx * (i+ipt - 1);
+                const double yv = dy * (j+jpt - 1);
+
+                const double wtx = 1.0 - (abs(particles[idx].xp[0] - xv) / dx);
+                const double wty = 1.0 - (abs(particles[idx].xp[1] - yv) / dy);
+                const double wtz = 1.0 - (abs(particles[idx].xp[2] - zzShared[izuv]) / dzu[kpt+1]);
+                const double wtzw = 1.0 - (abs(particles[idx].xp[2] - zShared[izw]) / dzw[kwpt+1]);
+
+                particles[idx].uf[0] = particles[idx].uf[0] + uext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                particles[idx].uf[1] = particles[idx].uf[1] + vext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                particles[idx].uf[2] = particles[idx].uf[2] + wext[(ix+1)+(iy+1)*nx+izw*ny*nx] * wtx * wty * wtzw;
+                particles[idx].Tf = particles[idx].Tf + Text[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                particles[idx].qinf = particles[idx].qinf + T2ext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+            }
+        }
+    }
+
+    }
+}
+
 GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double* __restrict__ z, const double* __restrict__ zz, const double* __restrict__ uext, const double* __restrict__ vext, const double* __restrict__ wext, const double* __restrict__ Text, const double* __restrict__ T2ext, const int pcount, Particle* __restrict__ particles){
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -684,7 +783,11 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-    GPUFieldInterpolate<<< blocks, CUDA_BLOCK_THREADS, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    if( gpu->mParameters.LinearInterpolation == 1 ) {
+        GPUFieldInterpolateLinear<<< blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth*4)+4)*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    }else{
+        GPUFieldInterpolate<<< blocks, CUDA_BLOCK_THREADS, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+    }
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
