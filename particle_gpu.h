@@ -40,7 +40,8 @@ struct GPU {
 	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
 
 	// Statistics
-	double *hPartCount, *dPartCount;
+	double *hPartCount, *hVPSum, *hVPSumSQ;
+	double *dPartCount, *dVPSum, *dVPSumSQ;
 };
 
 extern "C" double rand2(int idum, bool reset = false);
@@ -63,6 +64,9 @@ extern "C" void ParticleWrite( GPU* gpu );
 extern "C" GPU* ParticleRead(const char *path);
 
 extern "C" void PrintFreeMemory();
+
+// Fortran Data Access
+extern "C" void ParticleFillStatistics(GPU* gpu, double* partCount, double* vSum, double* vSumSQ);
 
 // Helper Functions
 const std::vector<double> ReadDoubleArray(const std::string& path);

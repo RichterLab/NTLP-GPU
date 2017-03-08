@@ -124,6 +124,14 @@ module particle_c
             use iso_c_binding, only: c_ptr
             type(c_ptr), VALUE, intent(in)  :: gpu
         end subroutine
+
+        subroutine gpufillstatistics(gpu,partcount,vpsum,vpsumsq) bind(c,name="ParticleFillStatistics")
+            use iso_c_binding, only: c_ptr,c_double
+            type(c_ptr), VALUE, intent(in)  :: gpu
+            real(c_double), intent(inout), dimension(*) :: partcount
+            real(c_double), intent(inout), dimension(*) :: vpsum
+            real(c_double), intent(inout), dimension(*) :: vpsumsq
+        end subroutine
     end interface
 contains
         subroutine select_gpu_master()
@@ -250,16 +258,33 @@ contains
             end if
         end subroutine
 
-        subroutine calculate_statistics()
+        subroutine calculate_statistics(stat)
             use pars, only: nnz, nny, nnx, numprocs, myid, dzw
-            use con_data, only: dx, dy
+            use con_data, only: dx, dy, nscl
             use particles
             use particle_struct
 
             include 'mpif.h'
 
+            integer :: iz
+            real :: stat(1:nnz,34 + 5*nscl)
+            real, allocatable :: pCount(:), vSum(:), vSumSQ(:)
+
             if( myid .eq. gpu_master_rank ) then
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
+
+                allocate(pCount(nnz+2), vSum(nnz+2), vSumSQ(nnz+2))
+                call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
+
+                do iz=1,nnz
+                    stat(iz,11) = pCount(iz)
+                    stat(iz,12) = vSum(iz*3+1)
+                    stat(iz,13) = vSum(iz*3+2)
+                    stat(iz,14) = vSum(iz*3+3)
+                    stat(iz,15) = vSumSQ(iz*3+1)
+                    stat(iz,16) = vSumSQ(iz*3+2)
+                    stat(iz,17) = vSumSQ(iz*3+3)
+                end do
             end if
 
             ! Distribute Statistics to Processors

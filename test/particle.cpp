@@ -1194,3 +1194,42 @@ TEST_F( ParticleTest, StatisticCountEveryOther ) {
 	// Free Data
 	free(gpu);
 }
+
+TEST_F( ParticleTest, StatisticVPSum ) {
+	// Read Fields
+	unsigned int size = 0;
+	double* uext = ReadArray("../test/data/uext.dat", &size);
+	double* vext = ReadArray("../test/data/vext.dat", &size);
+	double* wext = ReadArray("../test/data/wext.dat", &size);
+	double* text = ReadArray("../test/data/text.dat", &size);
+	double* qext = ReadArray("../test/data/qext.dat", &size);
+	double* Z = ReadArray("../test/data/Z.dat", &size);
+	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
+
+	// Create GPU
+	GPU *gpu = NewGPU(8, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
+
+	// Setup Variables
+	double xl = 0.251327, yl = 0.251327;
+	double dx = xl/6.0, dy = yl/6.0;
+
+	// Setup Particle
+	for( int i = 0; i < size; i++ ){
+		Particle p = { 0, 0, {1.0, 0.0, 0.0}, {xl / 2.0, yl / 2.0, Z[i]}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, {0.0, 0.0, 0.0}, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0 };
+		ParticleAdd(gpu, i, &p);
+	}
+
+	// Update Particle
+	ParticleUpload(gpu);
+	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
+	ParticleCalculateStatistics(gpu, dx, dy);
+
+	// Compare Results
+	double expected[] = { 1.0, 0.0, 0.0 };
+	for( int i = 0; i < size; i++ ){
+		ASSERT_EQ(gpu->hVPSum[i*3+0], expected[0]);
+	}
+
+	// Free Data
+	free(gpu);
+}
