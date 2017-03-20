@@ -329,7 +329,6 @@ c
         call gpustep(gpu, it, istage, dt)
         call gpunonperiodic(gpu)
         call gpuperiodic(gpu)
-        call gpudownload(gpu)
 #ifdef BUILD_PERFORMANCE_PROFILE
         gpuEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "GPU Step Time: ",(gpuEnd - gpuStart),"s"

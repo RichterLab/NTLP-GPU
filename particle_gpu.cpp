@@ -851,6 +851,7 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     GPUUpdatePeriodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
+    cudaDeviceSynchronize();
 #else
     GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
 #endif
