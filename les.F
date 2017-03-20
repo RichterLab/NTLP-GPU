@@ -202,11 +202,28 @@ c
 c
 c ---------- compute derivatives of (u,v,w)
 c
-
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        flowStart = mpi_wtime()
+      end if
+#endif
       call exchange
-c
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        exchangeEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Exchange Step Time: ",
+     +      (exchangeEnd-flowStart),"s"
+      end if
+#endif
 
       call get_derv
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        dervEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Derivitive Step Time: ",
+     +      (dervEnd-exchangeEnd),"s"
+      end if
+#endif
 
 c
 c --------- new eddy viscosity, and bcs
@@ -224,6 +241,14 @@ c
             call lower_free(it)
          end if
       endif
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        lowerEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Lower Step Time: ",
+     +      (lowerEnd-dervEnd),"s"
+      end if
+#endif
+
       if(ise .eq. numprocs-1) then
          if (iDNS .eq. 1) then
             call upper_dns
@@ -231,12 +256,47 @@ c
             call upper
          end if
       endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        upperEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Upper Step Time: ",
+     +      (upperEnd-lowerEnd),"s"
+      end if
+#endif
+
       call bcast_pbc
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        pbcEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "PBC Step Time: ",
+     +      (pbcEnd-upperEnd),"s"
+      end if
+#endif
+
       call get_means(istage)
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        meansEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Means Step Time: ",
+     +      (meansEnd-pbcEnd),"s"
+      end if
+#endif
       if(ivis .eq. 1) then
          call iso(it)
          call surfvis(it)
       endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        ivisEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "IVis Step Time: ",
+     +      (ivisEnd-meansEnd),"s"
+      end if
+#endif
+
       if(istage .eq. 1)then
         call xy_stats(it)
         call tke_budget
@@ -246,6 +306,14 @@ c
         call extra_flux_terms
         call pbltop(itop)
       endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        xyEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "XYStats Step Time: ",
+     +      (xyEnd-meansEnd),"s"
+      end if
+#endif
 
 
 c
@@ -264,11 +332,26 @@ c
       if(msave .and. istage .eq. 1) then
          call save_p
       endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        saveEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Save Step Time: ",
+     +      (saveEnd-xyEnd),"s"
+      end if
+#endif
 c
 c --------- get rhs for all equations
 c
       !t_s = mpi_wtime()
       call comp1(istage,it)
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        comp1End = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Comp1 Step Time: ",
+     +      (comp1End-saveEnd),"s"
+      end if
+#endif
       !t_f = mpi_wtime()
       !write(*,*) 'proc, comp1: ',myid,t_f-t_s
       !call mpi_barrier(mpi_comm_world,ierr)
@@ -281,6 +364,13 @@ c --------- solve for pressure
 c
       !t_s = mpi_wtime()
       call comp_p
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        comppEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "CompP Step Time: ",
+     +      (comppEnd-comp1End),"s"
+      end if
+#endif
       !t_f = mpi_wtime()
       !write(*,*) 'proc, comp_p: ',myid,t_f-t_s
       !call mpi_barrier(mpi_comm_world,ierr)
@@ -290,6 +380,13 @@ c --------- add pressure gradient and dealias
 c
       !t_s = mpi_wtime()
       call comp2
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        comp2End = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Comp2 Step Time: ",
+     +      (comp2End-comppEnd),"s"
+      end if
+#endif
       !t_f = mpi_wtime()
       !!write(*,*) 'proc, comp2: ',myid,t_f-t_s
       !call mpi_barrier(mpi_comm_world,ierr)
@@ -297,6 +394,13 @@ c
       if(micut) then
          call dealias
       endif
+#ifdef BUILD_PERFORMANCE_PROFILE
+      if( myid .eq. gpu_master_rank ) then
+        flowEnd = mpi_wtime()
+        write(*,'(a,f10.8,a)') "Flow Step Time: ",
+     +      (flowEnd-flowStart),"s"
+      end if
+#endif
 
 c
 c -------- update particles
