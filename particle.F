@@ -470,43 +470,8 @@
           !t_f = mpi_wtime()
           !if (myid==5) write(*,*) 'time cpl: ', t_f - t_s
 
-
-          !Finally, now that coupling and statistics arrays are filled,
-          !Transpose them back to align with the velocities:
-          call ztox_trans(partsrc_t(0:nnz+1,iys:iye,mxs:mxe,1),
-     +                partsrc(1:nnx,iys:iye,izs-1:ize+1,1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(partsrc_t(0:nnz+1,iys:iye,mxs:mxe,2),
-     +                partsrc(1:nnx,iys:iye,izs-1:ize+1,2),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(partsrc_t(0:nnz+1,iys:iye,mxs:mxe,3),
-     +                partsrc(1:nnx,iys:iye,izs-1:ize+1,3),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(partTsrc_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                partTsrc(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(partHsrc_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                partHsrc(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          call ztox_trans(partTEsrc_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                partTEsrc(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-
           !Try only calling these when the history data is being written
           if(mtrans  .and. istage .eq. 3) then
-          call ztox_trans(upwp_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                upwp(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
           call ztox_trans(vpsum_t(0:nnz+1,iys:iye,mxs:mxe,1),
      +                vpsum(1:nnx,iys:iye,izs-1:ize+1,1),nnx,nnz,mxs,
      +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
@@ -533,58 +498,11 @@
      +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
      +                ncpu_s,numprocs)
 
-          call ztox_trans(Tpsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                Tpsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(Tpsqrsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                Tpsqrsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(Tfsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                Tfsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(qfsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                qfsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-          call ztox_trans(wpTpsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                wpTpsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
           call ztox_trans(partcount_t(0:nnz+1,iys:iye,mxs:mxe),
      +                partcount(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
      +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
      +                ncpu_s,numprocs)
-
-          call ztox_trans(radsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                radsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          call ztox_trans(rad2sum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                rad2sum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          call ztox_trans(mpsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                mpsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          call ztox_trans(mwsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                mwsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          call ztox_trans(qstarsum_t(0:nnz+1,iys:iye,mxs:mxe),
-     +                qstarsum(1:nnx,iys:iye,izs-1:ize+1),nnx,nnz,mxs,
-     +                mxe,mx_s,mx_e,iys,iye,izs,ize,iz_s,iz_e,myid,
-     +                ncpu_s,numprocs)
-
-          end if
+         end if
 
 
           !t_s = mpi_wtime
@@ -684,173 +602,8 @@
           !each part. lies in
           call particle_stats(ipt,jpt,kwpt)
 
-          !Add contribution to each of the 8 surrounding nodes:
-          do i=0,1
-          do j=0,1
-          do k=0,1
-
-          xv = dx*(i+ipt-1)
-          yv = dy*(j+jpt-1)
-          zv = zz(k+kpt)
-
-          dV = dx*dy*dzu(kpt+1)
-
-          wtx = (1.0 - abs(part%xp(1)-xv)/dx)
-          wty = (1.0 - abs(part%xp(2)-yv)/dy)
-          wtz = (1.0 - abs(part%xp(3)-zv)/dzu(kpt+1))
-          wtt = wtx*wty*wtz
-
-          rhop = (m_s+pi2*2.0/3.0*part%radius**3*rhow)/
-     +                           (pi2*2.0/3.0*part%radius**3)
-          partmass = rhop*2.0/3.0*pi2*(part%radius)**3
-          taup_i = 18.0*rhoa*nuf/rhop/(2.0*part%radius)**2
-
-          !write(*,'a6,3i') 'node:',ipt+i,jpt+j,kpt+k
-          !write(*,'a6,5e15.6') 'Vwt: ',dV,wtx,wty,wtz,wtt
-
-          ix = ipt+i
-    !      !Account for periodicity:
-    !      if (ix == nnx+1) ix = 1
-          iy = jpt+j
-          iz = kpt+k
-
-          if (ix .gt. mxe+1) write(*,*) 'proc',myid,'has ix = ',ix
-          if (ix .lt. mxs) write(*,*) 'proc',myid,'has ix = ',ix
-          if (iy .gt. iye+1) write(*,*) 'proc',myid,'has iy = ',iy
-          if (iy .lt. iys) write(*,*) 'proc',myid,'has iy = ',iy
-          if (iz .gt. nnz+1) write(*,*) 'proc',myid,'has iz = ',iz
-          if (iz .lt. 0) write(*,*) 'proc',myid,'has iz = ',iz
-
-          !Recall to subtract minus g (add g) since momentum is
-          !extracted form fluid only through drag term - NOT the
-          !gravity term as well
-          if (icouple == 1) then
-          !drag momentum coupling
-          partsrc_t(iz,iy,ix,1:3) =
-     +     partsrc_t(iz,iy,ix,1:3) +
-     +     partmass/rhoa*(part%vrhs(1:3)+g(1:3))*wtt/dV
-
-          !vapor momentum coupling
-          partsrc_t(iz,iy,ix,1:3) =
-     +     partsrc_t(iz,iy,ix,1:3) +
-     +     rhow/rhoa*pi2*2*part%radius**2*
-     +     part%radrhs*part%vp(1:3)*wtt/dV
-          endif
-
-          if (iTcouple == 1) then
-          partTsrc_t(iz,iy,ix) =
-     +     partTsrc_t(iz,iy,ix) +
-     +      (part%Tprhs_s*6.0*rhow/rhop/CpaCpp/taup_i*
-     +        (pi2/2.0)*part%radius*nuf)*wtt/dV
-          endif
-
-          if (iHcouple == 1) then
-          partHsrc_t(iz,iy,ix) =     !Brian 8/5/14
-     +     partHsrc_t(iz,iy,ix) +  !minus comes later
-     +      rhow/rhoa*pi2*2*part%radius**2*part%radrhs*wtt/dV
-
-
-
-    !      http://eesc.columbia.edu/courses/ees/climate/SI_Units.pdf
-    !      or http://catalog.conveyorspneumatic.com/Asset/FLS%20Specific%20Heat%20Capacities%20of%20Gases.pdf
-          Cvv = 1463.0 !J/degkg
-          Cpv = 1952.0 !from E. Toolbox -> 1864.0 !J/degkg
-          !Cva = 717.0 !J/degkg
-          !lref = (25.0 - 0.02274*20.0)*10.0**5
-          partTEsrc_t(iz,iy,ix) =
-     +     partTEsrc_t(iz,iy,ix) +  !minus comes later
-     +         rhow/rhoa*pi2*2*part%radius**2*
-     +                  part%radrhs*Cpv/Cpa*part%Tp*wtt/dV -
-     +         rhow/rhoa*pi2*2*part%radius**2*
-     +                  part%radrhs*Cpv/Cpa*part%Tf*wtt/dV
-
-          endif
-
-        !write(*,'a5,3i,3e15.6') 'bsrc:',ix,iy,iz,partsrc(ix,iy,iz,1:3)
-
-          end do
-          end do
-          end do
-
           part => part%next
           end do
-
-          !Now, partsrc and partTsrc have halos on each processor -
-          !give these to the rightful owner:
-          crbuf_s=0.0;ctbuf_s=0.0
-          clbuf_r=0.0;cbbuf_r=0.0
-
-          !First send top:
-          !get send buffer ready:
-          ctbuf_s(1:nnz+2,1:iye-iys+2,1:3)=partsrc_t(0:nnz+1,
-     +                                iys:iye+1,mxe+1,1:3)
-          ctbuf_s(1:nnz+2,1:iye-iys+2,4)=partTsrc_t(0:nnz+1,
-     +                                iys:iye+1,mxe+1)
-
-          ctbuf_s(1:nnz+2,1:iye-iys+2,5)=partHsrc_t(0:nnz+1,
-     +                                iys:iye+1,mxe+1)
-
-          ctbuf_s(1:nnz+2,1:iye-iys+2,6)=partTEsrc_t(0:nnz+1,
-     +                                iys:iye+1,mxe+1)
-
-          ncount = 6*(nnz+2)*(iye-iys+2)
-          call mpi_sendrecv(ctbuf_s,ncount,mpi_real8,tproc,1,
-     +     cbbuf_r,ncount,mpi_real8,bproc,1,mpi_comm_world,istatus,ierr)
-
-          !Now just add the contents of the receive buffer into the
-          !entire iys column of this proc:
-
-          partsrc_t(0:nnz+1,iys:iye+1,mxs,1:3) =
-     +      partsrc_t(0:nnz+1,iys:iye+1,mxs,1:3) +
-     +        cbbuf_r(1:nnz+2,1:iye-iys+2,1:3)
-
-          partTsrc_t(0:nnz+1,iys:iye+1,mxs) =
-     +      partTsrc_t(0:nnz+1,iys:iye+1,mxs) +
-     +        cbbuf_r(1:nnz+2,1:iye-iys+2,4)
-
-          partHsrc_t(0:nnz+1,iys:iye+1,mxs) =
-     +      partHsrc_t(0:nnz+1,iys:iye+1,mxs) +
-     +        cbbuf_r(1:nnz+2,1:iye-iys+2,5)
-
-
-          partTEsrc_t(0:nnz+1,iys:iye+1,mxs) =
-     +      partTEsrc_t(0:nnz+1,iys:iye+1,mxs) +
-     +        cbbuf_r(1:nnz+2,1:iye-iys+2,6)
-
-          !Now get the right send buffer ready:
-          crbuf_s(1:nnz+2,1:mxe-mxs+1,1:3)=
-     +        partsrc_t(0:nnz+1,iye+1,mxs:mxe,1:3)
-
-          crbuf_s(1:nnz+2,1:mxe-mxs+1,4)=
-     +        partTsrc_t(0:nnz+1,iye+1,mxs:mxe)
-
-          crbuf_s(1:nnz+2,1:mxe-mxs+1,5)=
-     +        partHsrc_t(0:nnz+1,iye+1,mxs:mxe)
-
-          crbuf_s(1:nnz+2,1:mxe-mxs+1,6)=
-     +        partTEsrc_t(0:nnz+1,iye+1,mxs:mxe)
-
-          !Now send to right:
-          ncount = 6*(nnz+2)*(mxe-mxs+1)
-          call mpi_sendrecv(crbuf_s,ncount,mpi_real8,rproc,2,
-     +     clbuf_r,ncount,mpi_real8,lproc,2,mpi_comm_world,istatus,ierr)
-
-          !And again add the contents to the top/bottom rows of partsrc:
-          partsrc_t(0:nnz+1,iys,mxs:mxe,1:3) =
-     +           partsrc_t(0:nnz+1,iys,mxs:mxe,1:3) +
-     +                clbuf_r(1:nnz+2,1:mxe-mxs+1,1:3)
-
-          partTsrc_t(0:nnz+1,iys,mxs:mxe) =
-     +           partTsrc_t(0:nnz+1,iys,mxs:mxe) +
-     +                 clbuf_r(1:nnz+2,1:mxe-mxs+1,4)
-
-          partHsrc_t(0:nnz+1,iys,mxs:mxe) =
-     +           partHsrc_t(0:nnz+1,iys,mxs:mxe) +
-     +                 clbuf_r(1:nnz+2,1:mxe-mxs+1,5)
-
-          partTEsrc_t(0:nnz+1,iys,mxs:mxe) =
-     +           partTEsrc_t(0:nnz+1,iys,mxs:mxe) +
-     +                 clbuf_r(1:nnz+2,1:mxe-mxs+1,6)
       end subroutine particle_coupling_update
 
       subroutine particle_bcs_nonperiodic
