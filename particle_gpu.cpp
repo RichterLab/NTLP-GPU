@@ -855,13 +855,13 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->GridDepth / (float)CUDA_BLOCK_THREADS);
-    GPUCalculateStatistics<<< blocks, CUDA_BLOCK_THREADS >>> ( gpu->GridDepth - 2, gpu->dZ, gpu->dPartCount, gpu->dVPSum, gpu->dVPSumSQ, gpu->pCount, gpu->dParticles);
+    GPUCalculateStatistics<<< blocks, CUDA_BLOCK_THREADS >>> ( gpu->GridDepth, gpu->dZ, gpu->dPartCount, gpu->dVPSum, gpu->dVPSumSQ, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
     gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
     gpuErrchk( cudaMemcpy(gpu->hVPSum, gpu->dVPSum, sizeof(double) * gpu->GridDepth * 3, cudaMemcpyDeviceToHost) );
     gpuErrchk( cudaMemcpy(gpu->hVPSumSQ, gpu->dVPSumSQ, sizeof(double) * gpu->GridDepth * 3, cudaMemcpyDeviceToHost) );
 #else
-    GPUCalculateStatistics( gpu->GridDepth - 2, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
+    GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
 #endif
 }
 
