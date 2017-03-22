@@ -28,6 +28,8 @@ if (BUILD_CUDA)
   set( BUILD_CUDA_BLOCK_THREADS "128" CACHE STRING "Threads per block for CUDA")
   add_definitions(-DCUDA_BLOCK_THREADS=${BUILD_CUDA_BLOCK_THREADS})
 
+  set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
+
   # cuda_add_executable( lescudas "particle_gpu.cu")
   # cuda_add_library( lescuda "particle_gpu.cu")
   set_source_files_properties( particle_gpu.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
@@ -39,6 +41,8 @@ if (BUILD_CUDA)
   endif(BUILD_CUDA_VERIFY)
 
   # target_link_libraries (lesmpi.a lescuda)
+else(BUILD_CUDA)
+  set_source_files_properties( "particle_gpu.cpp" COMPILE_FLAGS "-std=c++11")
 endif(BUILD_CUDA)
 
 option( BUILD_FORTRAN "Build Fortran code" ON)
