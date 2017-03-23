@@ -542,47 +542,42 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 
 GLOBAL void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, double* __restrict__ vpsum_t, double* __restrict__ vpsqrsum_t, const int pcount, Particle* __restrict__ particles ) {
 #ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= nnz ) return;
+    for (int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < nnz; idx += blockDim.x * gridDim.x) {
 #else
     for( int idx = 0; idx < nnz; idx++){
 #endif
+        partcount_t[idx] = 0.0;
 
-    partcount_t[idx] = 0.0;
+        vpsum_t[idx*3+0] = 0.0;
+        vpsum_t[idx*3+1] = 0.0;
+        vpsum_t[idx*3+2] = 0.0;
 
-    vpsum_t[idx*3+0] = 0.0;
-    vpsum_t[idx*3+1] = 0.0;
-    vpsum_t[idx*3+2] = 0.0;
+        vpsqrsum_t[idx*3+0] = 0.0;
+        vpsqrsum_t[idx*3+1] = 0.0;
+        vpsqrsum_t[idx*3+2] = 0.0;
 
-    vpsqrsum_t[idx*3+0] = 0.0;
-    vpsqrsum_t[idx*3+1] = 0.0;
-    vpsqrsum_t[idx*3+2] = 0.0;
+        for( int i = 0; i < pcount; i++ ){
+            int kpt = 0;
+            for( ; kpt < nnz; kpt++ ){
+                if (z[kpt] > particles[i].xp[2]){
+                    break;
+                }
+            }
+            kpt -= 1;
 
-    for( int i = 0; i < pcount; i++ ){
-        int kpt = 0;
-        for( ; kpt < nnz; kpt++ ){
-            if (z[kpt] > particles[i].xp[2]){
-                break;
+            if( kpt == idx ) {
+                partcount_t[idx] += 1.0;
+
+                vpsum_t[idx*3+0] += particles[i].vp[0];
+                vpsum_t[idx*3+1] += particles[i].vp[1];
+                vpsum_t[idx*3+2] += particles[i].vp[2];
+
+                vpsqrsum_t[idx*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
+                vpsqrsum_t[idx*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
+                vpsqrsum_t[idx*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
             }
         }
-        kpt -= 1;
-
-        if( kpt == idx ) {
-            partcount_t[idx] += 1.0;
-
-            vpsum_t[idx*3+0] += particles[i].vp[0];
-            vpsum_t[idx*3+1] += particles[i].vp[1];
-            vpsum_t[idx*3+2] += particles[i].vp[2];
-
-            vpsqrsum_t[idx*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
-            vpsqrsum_t[idx*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
-            vpsqrsum_t[idx*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
-        }
     }
-
-#ifndef BUILD_CUDA
-    }
-#endif
 }
 
 extern "C" double rand2(int idum, bool reset) {
