@@ -342,7 +342,9 @@ c
          t_s = mpi_wtime()
 #endif
          !call particle_update_cn(it,istage)
+#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          call particle_update_rk3(it,istage)
+#endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
          t_f = mpi_wtime()
