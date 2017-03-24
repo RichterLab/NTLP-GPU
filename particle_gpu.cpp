@@ -621,7 +621,11 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     // Particle Data
     retVal->pCount = particles;
+#ifdef BUILD_CUDA
+    gpuErrchk( cudaMallocHost((void**)&retVal->hParticles, sizeof(Particle) * particles ) );
+#else
     retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
+#endif
 
     // Field Data
     retVal->FieldWidth = fWidth;
