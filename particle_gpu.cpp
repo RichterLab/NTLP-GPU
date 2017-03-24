@@ -541,16 +541,16 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 }
 
 void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, double* __restrict__ vpsum_t, double* __restrict__ vpsqrsum_t, const int pcount, Particle* __restrict__ particles ) {
-    for( int idx = 0; idx < nnz; idx++){
-        for( int i = 0; i < pcount; i++ ){
-            int kpt = 0;
-            for( ; kpt < nnz; kpt++ ){
-                if (z[kpt] > particles[i].xp[2]){
-                    break;
-                }
+    for( int i = 0; i < pcount; i++ ){
+        int kpt = 0;
+        for( ; kpt < nnz; kpt++ ){
+            if (z[kpt] > particles[i].xp[2]){
+                break;
             }
-            kpt -= 1;
+        }
+        kpt -= 1;
 
+        for( int idx = 0; idx < nnz; idx++){
             if( kpt == idx ) {
                 partcount_t[idx] += 1.0;
 
