@@ -540,24 +540,7 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 #endif
 }
 
-GLOBAL void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, double* __restrict__ vpsum_t, double* __restrict__ vpsqrsum_t, const int pcount, Particle* __restrict__ particles ) {
-#ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= nnz ) return;
-#else
-    for( int idx = 0; idx < nnz; idx++){
-#endif
-
-    partcount_t[idx] = 0.0;
-
-    vpsum_t[idx*3+0] = 0.0;
-    vpsum_t[idx*3+1] = 0.0;
-    vpsum_t[idx*3+2] = 0.0;
-
-    vpsqrsum_t[idx*3+0] = 0.0;
-    vpsqrsum_t[idx*3+1] = 0.0;
-    vpsqrsum_t[idx*3+2] = 0.0;
-
+void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, double* __restrict__ vpsum_t, double* __restrict__ vpsqrsum_t, const int pcount, Particle* __restrict__ particles ) {
     for( int i = 0; i < pcount; i++ ){
         int kpt = 0;
         for( ; kpt < nnz; kpt++ ){
@@ -567,22 +550,20 @@ GLOBAL void GPUCalculateStatistics( const int nnz, const double* __restrict__ z,
         }
         kpt -= 1;
 
-        if( kpt == idx ) {
-            partcount_t[idx] += 1.0;
+        for( int idx = 0; idx < nnz; idx++){
+            if( kpt == idx ) {
+                partcount_t[idx] += 1.0;
 
-            vpsum_t[idx*3+0] += particles[i].vp[0];
-            vpsum_t[idx*3+1] += particles[i].vp[1];
-            vpsum_t[idx*3+2] += particles[i].vp[2];
+                vpsum_t[idx*3+0] += particles[i].vp[0];
+                vpsum_t[idx*3+1] += particles[i].vp[1];
+                vpsum_t[idx*3+2] += particles[i].vp[2];
 
-            vpsqrsum_t[idx*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
-            vpsqrsum_t[idx*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
-            vpsqrsum_t[idx*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
+                vpsqrsum_t[idx*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
+                vpsqrsum_t[idx*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
+                vpsqrsum_t[idx*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
+            }
         }
     }
-
-#ifndef BUILD_CUDA
-    }
-#endif
 }
 
 extern "C" double rand2(int idum, bool reset) {
@@ -640,7 +621,11 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     // Particle Data
     retVal->pCount = particles;
+#ifdef BUILD_CUDA
+    gpuErrchk( cudaMallocHost((void**)&retVal->hParticles, sizeof(Particle) * particles ) );
+#else
     retVal->hParticles = (Particle*) malloc( sizeof(Particle) * particles );
+#endif
 
     // Field Data
     retVal->FieldWidth = fWidth;
@@ -687,13 +672,13 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
     retVal->hWext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
     retVal->hText = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
     retVal->hQext = (double*) malloc( sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth );
+#endif
 
     retVal->hZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
     retVal->hZZ = (double*) malloc( sizeof(double) * retVal->GridDepth );
 
     memcpy( retVal->hZ, z, sizeof(double) * retVal->GridDepth );
     memcpy( retVal->hZZ, zz, sizeof(double) * retVal->GridDepth );
-#endif
 
     return retVal;
 }
@@ -853,16 +838,15 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 }
 
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
+    memset(gpu->hPartCount, 0.0, sizeof(double) * gpu->GridDepth );
+    memset(gpu->hVPSum, 0.0, sizeof(double) * gpu->GridDepth * 3);
+    memset(gpu->hVPSumSQ, 0.0, sizeof(double) * gpu->GridDepth * 3);
+
 #ifdef BUILD_CUDA
-    const unsigned int blocks = std::ceil(gpu->GridDepth / (float)CUDA_BLOCK_THREADS);
-    GPUCalculateStatistics<<< blocks, CUDA_BLOCK_THREADS >>> ( gpu->GridDepth, gpu->dZ, gpu->dPartCount, gpu->dVPSum, gpu->dVPSumSQ, gpu->pCount, gpu->dParticles);
-    gpuErrchk( cudaPeekAtLastError() );
-    gpuErrchk( cudaMemcpy(gpu->hPartCount, gpu->dPartCount, sizeof(double) * gpu->GridDepth, cudaMemcpyDeviceToHost) );
-    gpuErrchk( cudaMemcpy(gpu->hVPSum, gpu->dVPSum, sizeof(double) * gpu->GridDepth * 3, cudaMemcpyDeviceToHost) );
-    gpuErrchk( cudaMemcpy(gpu->hVPSumSQ, gpu->dVPSumSQ, sizeof(double) * gpu->GridDepth * 3, cudaMemcpyDeviceToHost) );
-#else
-    GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
+    ParticleDownloadHost(gpu);
 #endif
+
+    GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
 }
 
 
