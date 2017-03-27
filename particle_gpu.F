@@ -273,7 +273,11 @@ contains
             integer :: succeeded, failures
 #endif
 #ifdef BUILD_PERFORMANCE_PROFILE
-            real :: tStart, tEnd
+            real :: rate
+            integer(8) :: cr,tStart,tEnd
+
+            call system_clock(count_rate=cr)
+            rate = REAL(cr)
 #endif
 
             dim = nnz + 2
@@ -282,7 +286,7 @@ contains
 
             if( myid .eq. gpu_master_rank ) then
 #ifdef BUILD_PERFORMANCE_PROFILE
-                tStart = mpi_wtime()
+                call system_clock(tStart)
 #endif
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
@@ -366,10 +370,8 @@ contains
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
-                tEnd = mpi_wtime()
-                if( myid == 0 ) then
-                    write(*,'(a,f20.8,a)') "Statistics Time: ",(tEnd-tStart),"s"
-                end if
+                call system_clock(tEnd)
+                write(*,'(a,f20.8,a)') "Statistics Time: ",(tEnd-tStart)/rate,"s"
 #endif
             end if
         end subroutine
