@@ -203,12 +203,14 @@ c
 c ---------- compute derivatives of (u,v,w)
 c
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         flowStart = mpi_wtime()
       end if
 #endif
       call exchange
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         exchangeEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Exchange Step Time: ",
@@ -218,6 +220,7 @@ c
 
       call get_derv
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         dervEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Derivitive Step Time: ",
@@ -242,6 +245,7 @@ c
          end if
       endif
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         lowerEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Lower Step Time: ",
@@ -258,6 +262,7 @@ c
       endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         upperEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Upper Step Time: ",
@@ -268,6 +273,7 @@ c
       call bcast_pbc
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         pbcEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "PBC Step Time: ",
@@ -278,6 +284,7 @@ c
       call get_means(istage)
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         meansEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Means Step Time: ",
@@ -290,6 +297,7 @@ c
       endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         ivisEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "IVis Step Time: ",
@@ -308,10 +316,11 @@ c
       endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         xyEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "XYStats Step Time: ",
-     +      (xyEnd-meansEnd),"s"
+     +      (xyEnd-ivisEnd),"s"
       end if
 #endif
 
@@ -334,6 +343,7 @@ c
       endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         saveEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Save Step Time: ",
@@ -346,6 +356,7 @@ c
       !t_s = mpi_wtime()
       call comp1(istage,it)
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         comp1End = mpi_wtime()
         write(*,'(a,f10.8,a)') "Comp1 Step Time: ",
@@ -365,6 +376,7 @@ c
       !t_s = mpi_wtime()
       call comp_p
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         comppEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "CompP Step Time: ",
@@ -381,6 +393,7 @@ c
       !t_s = mpi_wtime()
       call comp2
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         comp2End = mpi_wtime()
         write(*,'(a,f10.8,a)') "Comp2 Step Time: ",
@@ -395,6 +408,8 @@ c
          call dealias
       endif
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         flowEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Flow Step Time: ",
@@ -412,12 +427,14 @@ c
 !      end if
 #ifdef BUILD_CUDA
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         assembleStart = mpi_wtime()
       end if
 #endif
       call assemble_gpu_data
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
       if( myid .eq. gpu_master_rank ) then
         assembleEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "Assemble Step Time: ",
@@ -427,6 +444,7 @@ c
 
       if( myid .eq. gpu_master_rank ) then
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
         gpuStart = mpi_wtime()
 #endif
         call gpuinterpolate(gpu,dx,dy)
@@ -434,6 +452,7 @@ c
         call gpunonperiodic(gpu)
         call gpuperiodic(gpu)
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
         gpuEnd = mpi_wtime()
         write(*,'(a,f10.8,a)') "GPU Step Time: ",(gpuEnd - gpuStart),"s"
 #endif
@@ -442,6 +461,7 @@ c
 
       if (ispray==1) then
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
          t_s = mpi_wtime()
 #endif
          !call particle_update_cn(it,istage)
@@ -450,6 +470,7 @@ c
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
          t_f = mpi_wtime()
          if( myid == 0 ) then
             write(*,'(a,f10.8,a)') "CPU Step Time: ",(t_f-t_s),"s"
@@ -9806,6 +9827,7 @@ c
       !The GPU proc (assumed proc 0 here) receives, everyone else sends
       if (myid == gpu_master_rank) then
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
           recStart = mpi_wtime()
 #endif
           do iproc=0,numprocs-1
@@ -9889,6 +9911,7 @@ c
             end if
          end do
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
               recEnd = mpi_wtime()
               write(*,'(a,f10.8,a)') "Recieve Time: ",
      +            (recEnd - recStart),"s"
@@ -9942,18 +9965,21 @@ c
      +             q_full(-1:maxnx+3,1:3,0:maxnz+1)
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
               haloEnd = mpi_wtime()
               write(*,'(a,f10.8,a)') "Halo Time: ",
      +            (haloEnd - haloStart),"s"
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
             gpuTStart = mpi_wtime()
 #endif
 
             !Now the "full" fields are complete and can be transferred to GPU
             call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full)
 #ifdef BUILD_PERFORMANCE_PROFILE
+      call mpi_barrier(mpi_comm_world,ierr)
             gpuTEnd = mpi_wtime()
             write(*,'(a,f10.8,a)') "GPU Transfer Time: ",
      +            (gpuTEnd - gpuTStart),"s"
