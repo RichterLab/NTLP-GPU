@@ -238,7 +238,7 @@ c
          call surfvis(it)
       endif
       if(istage .eq. 1)then
-        call xy_stats
+        call xy_stats(it)
         call tke_budget
         do iscl=1,nscl
         call Tvar_budget(iscl)
@@ -6608,7 +6608,7 @@ c     endif
 c
       return
       end
-      subroutine xy_stats
+      subroutine xy_stats(it)
 c
 c ------------ get statistics
 c
@@ -6625,6 +6625,7 @@ c         ns = number of scalar stats
 c
       parameter(js = 34, ns = 5, nstat = js + ns*nscl)   !Brian 7/30/14  js=25->26
       real stat(1:nnz,nstat)
+      integer :: it
 c
 c -------- stat(.,1) = u*u = ups
 c          stat(.,2) = v*v = vps
@@ -6808,7 +6809,16 @@ c
 c ------ fill arrays for printout and constant file
 c
 #ifdef BUILD_CUDA
-      call calculate_statistics(stat)
+      if(ihst .lt. 0) then
+         mhis = .false.
+      else
+         mhis = (mod(it,ihst).eq.0 .and. it .ge. it_his)
+      endif
+
+      if( mhis ) then
+            write(*,*) "GPU Statistics"
+            call calculate_statistics(stat)
+      end if
 #endif
       do iz=1,nnz
 c
