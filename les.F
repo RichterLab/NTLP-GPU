@@ -6816,7 +6816,6 @@ c
       endif
 
       if( mhis ) then
-            write(*,*) "GPU Statistics"
             call calculate_statistics(stat)
       end if
 #endif
