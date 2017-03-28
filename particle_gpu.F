@@ -396,6 +396,8 @@ contains
             call mpi_gatherv(pCurrent, numpart, particletype, pTotal, pCounts, pDispls, particletype, gpu_master_rank, mpi_comm_world, ierr)
 
             if (myid .eq. gpu_master_rank) then
+                failures = 0
+
                 call gpudownload(gpu)
                 do i = 1,tnumpart
                     gPart = gpuget(gpu, i-1)
