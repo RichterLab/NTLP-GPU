@@ -266,9 +266,9 @@ contains
 
             include 'mpif.h'
 
-            integer :: iz
+            integer :: iz, istatus, ierr
             real :: stat(1:nnz,34 + 5*nscl)
-            real, allocatable :: pCount(:), vSum(:), vSumSQ(:)
+            real(8), allocatable :: pCount(:), vSum(:), vSumSQ(:)
 
             if( myid .eq. gpu_master_rank ) then
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
@@ -276,6 +276,21 @@ contains
                 allocate(pCount(nnz+2), vSum(nnz+2), vSumSQ(nnz+2))
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
 
+                if( myid .ne. 0 ) then
+                    call mpi_send(pCount,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(vSum,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(vSumSQ,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
+                end if
+            else
+                if( myid .eq. 0 ) then
+                    allocate(pCount(nnz+2), vSum(nnz+2), vSumSQ(nnz+2))
+                    call mpi_recv(pCount,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    call mpi_recv(vSum,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    call mpi_recv(vSumSQ,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                end if
+            end if
+
+            if( myid .eq. 0 ) then
                 do iz=1,nnz
                     stat(iz,11) = pCount(iz)
                     stat(iz,12) = vSum(iz*3+1)
@@ -286,8 +301,6 @@ contains
                     stat(iz,17) = vSumSQ(iz*3+3)
                 end do
             end if
-
-            ! Distribute Statistics to Processors
         end subroutine
 
         subroutine setup_particles()
