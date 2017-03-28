@@ -374,16 +374,17 @@ c
       go to 9000
 c
 99000 continue
-#ifdef BUILD_CUDA_VERIFY
-      call compare_particles()
-#endif
       te_mpi = mpi_wtime()
       write(6,9997) (te_mpi - ts_mpi)
  9997 format(' Job Execution Time = ',e15.6)
 c
  9998 continue
+
+#ifdef BUILD_CUDA_VERIFY
+      call compare_particles()
+#endif
       call mpi_finalize(ierr)
-c
+
       stop
       end
       subroutine get_max

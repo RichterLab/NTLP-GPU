@@ -366,7 +366,7 @@ contains
 
             include 'mpif.h'
 
-            integer :: ierr, i, j, k, iCurrent
+            integer :: ierr, i, j, k, iCurrent, succeeded, failures
             integer, allocatable :: pCounts(:), pDispls(:)
             type(particle), allocatable :: pCurrent(:), pTotal(:)
             type(gpu_particle) :: gPart
@@ -405,74 +405,111 @@ contains
 
                     do k = 1,tnumpart
                         if (pTotal(k)%pidx .eq. gPart%pidx) then
-                            write(*,*) "Particle:", i, "Processor:", pTotal(k)%procidx, "ID:", pTotal(k)%pidx
+                            succeeded = 1
 
                             do j = 1,3
                                 if( dabs(pTotal(k)%vp(j)-gPart%vp(j)) .gt. 1e-5 ) then
-                                    write(*,9002) "vp", j, pTotal(k)%vp(j), gPart%vp(j)
+                                    succeeded = 0
                                 end if
                             end do
 
                             do j = 1,3
                                 if( dabs(pTotal(k)%xp(j)-gPart%xp(j)) .gt. 1e-5 ) then
-                                    write(*,9002) "xp", j, pTotal(k)%xp(j), gPart%xp(j)
+                                    succeeded = 0
                                 end if
                             end do
 
                             do j = 1,3
                                 if( dabs(pTotal(k)%uf(j) - gPart%uf(j)) .gt. 1e-5 ) then
-                                    write(*,9002) "uf", j, pTotal(k)%uf(j), gPart%uf(j)
+                                    succeeded = 0
                                 end if
                             end do
 
                             do j = 1,3
                                 if( dabs(pTotal(k)%xrhs(j)-gPart%xrhs(j)) .gt. 1e-5) then
-                                    write(*,9002) "xrhs", j, pTotal(k)%xrhs(j), gPart%xrhs(j)
+                                    succeeded = 0
                                 end if
                             end do
 
                             do j = 1,3
                                 if(dabs(pTotal(k)%vrhs(j)-gPart%vrhs(j)) .gt. 1e-5) then
-                                    write(*,9002) "vrhs", j, pTotal(k)%vrhs(j), gPart%vrhs(j)
+                                    succeeded = 0
                                 end if
                             end do
 
                             if( dabs(pTotal(k)%Tp - gPart%Tp) .gt. 1e-5 ) then
-                                write(*,9001) "Tp", pTotal(k)%Tp, gPart%Tp
+                                succeeded = 0
                             end if
 
                             if(dabs(pTotal(k)%Tprhs_s-gPart%Tprhs_s) .gt. 1e-5) then
-                                write(*,9001) "Tprhs_s", pTotal(k)%Tprhs_s, gPart%Tprhs_s
+                                succeeded = 0
                             end if
 
                             if( dabs(pTotal(k)%Tprhs_L-gPart%Tprhs_L) .gt. 1e-5) then
-                                write(*,9001) "Tprhs_L", pTotal(k)%Tprhs_L, gPart%Tprhs_L
+                                succeeded = 0
                             end if
 
                             if( dabs(pTotal(k)%Tf - gPart%Tf) .gt. 1e-5 ) then
-                                write(*,9001) "Tf", pTotal(k)%Tf, gPart%Tf
+                                succeeded = 0
                             end if
 
                             if(dabs(pTotal(k)%radius - gPart%radius) .gt. 1e-5) then
-                                write(*,9001) "radius", pTotal(k)%radius, gPart%radius
+                                succeeded = 0
                             end if
 
                             if(dabs(pTotal(k)%radrhs-gPart%radrhs) .gt. 1e-5) then
-                                write(*,9001) "radrhs", pTotal(k)%radrhs, gPart%radrhs
+                                succeeded = 0
                             end if
 
                             if(dabs(pTotal(k)%qinf-gPart%qinf) .gt. 1e-5) then
-                                write(*,9001) "qinf", pTotal(k)%qinf, gPart%qinf
+                                succeeded = 0
                             end if
 
                             if(dabs(pTotal(k)%qstar-gPart%qstar) .gt. 1e-5) then
-                                write(*,9001) "qstar", pTotal(k)%qstar, gPart%qstar
+                                succeeded = 0
                             end if
 
-                            write(*,*) ""
+                            if( succeeded == 0 ) then
+                                failures = failures + 1
+
+                                write(*,*) "Particle:", i, "Processor:", pTotal(k)%procidx, "ID:", pTotal(k)%pidx
+
+                                do j = 1,3
+                                    write(*,9002) "vp", j, pTotal(k)%vp(j), gPart%vp(j)
+                                end do
+
+                                do j = 1,3
+                                    write(*,9002) "xp", j, pTotal(k)%xp(j), gPart%xp(j)
+                                end do
+
+                                do j = 1,3
+                                    write(*,9002) "uf", j, pTotal(k)%uf(j), gPart%uf(j)
+                                end do
+
+                                do j = 1,3
+                                    write(*,9002) "xrhs", j, pTotal(k)%xrhs(j), gPart%xrhs(j)
+                                end do
+
+                                do j = 1,3
+                                    write(*,9002) "vrhs", j, pTotal(k)%vrhs(j), gPart%vrhs(j)
+                                end do
+
+                                write(*,9001) "Tp", pTotal(k)%Tp, gPart%Tp
+                                write(*,9001) "Tprhs_s", pTotal(k)%Tprhs_s, gPart%Tprhs_s
+                                write(*,9001) "Tprhs_L", pTotal(k)%Tprhs_L, gPart%Tprhs_L
+                                write(*,9001) "Tf", pTotal(k)%Tf, gPart%Tf
+                                write(*,9001) "radius", pTotal(k)%radius, gPart%radius
+                                write(*,9001) "radrhs", pTotal(k)%radrhs, gPart%radrhs
+                                write(*,9001) "qinf", pTotal(k)%qinf, gPart%qinf
+                                write(*,9001) "qstar", pTotal(k)%qstar, gPart%qstar
+
+                                write(*,*) ""
+                            end if
                         end if
                     end do
                 end do
+
+                write(*,*) "Total Failures: ", failures
             end if
         end subroutine
 end module
