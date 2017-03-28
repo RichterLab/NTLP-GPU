@@ -916,8 +916,14 @@ void PrintFreeMemory(){
 void ParticleFillStatistics(GPU* gpu, double* partCount, double* vSum, double* vSumSQ){
     for( size_t i = 0; i < gpu->GridDepth; i++ ){
         partCount[i] = gpu->hPartCount[i];
-        vSum[i] = gpu->hVPSum[i];
-        vSumSQ[i] = gpu->hVPSumSQ[i];
+
+        vSum[i+0] = gpu->hVPSum[i+0];
+        vSum[i+1] = gpu->hVPSum[i+1];
+        vSum[i+2] = gpu->hVPSum[i+2];
+
+        vSumSQ[i+0] = gpu->hVPSumSQ[i+0];
+        vSumSQ[i+1] = gpu->hVPSumSQ[i+1];
+        vSumSQ[i+2] = gpu->hVPSumSQ[i+2];
     }
 }
 

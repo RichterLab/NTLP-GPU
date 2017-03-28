@@ -266,27 +266,30 @@ contains
 
             include 'mpif.h'
 
-            integer :: iz, istatus, ierr
+            integer :: iz, istatus, ierr, dim, tdim
             real :: stat(1:nnz,34 + 5*nscl)
             real(8), allocatable :: pCount(:), vSum(:), vSumSQ(:)
 
             if( myid .eq. gpu_master_rank ) then
+                dim = nnz + 2
+                tdim = dim * 3
+
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
 
-                allocate(pCount(nnz+2), vSum(nnz+2), vSumSQ(nnz+2))
+                allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
 
                 if( myid .ne. 0 ) then
-                    call mpi_send(pCount,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
-                    call mpi_send(vSum,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
-                    call mpi_send(vSumSQ,nnz+2,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(pCount,dim,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(vSum,tdim,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(vSumSQ,tdim,mpi_real8,0,1,mpi_comm_world,ierr)
                 end if
             else
                 if( myid .eq. 0 ) then
-                    allocate(pCount(nnz+2), vSum(nnz+2), vSumSQ(nnz+2))
-                    call mpi_recv(pCount,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
-                    call mpi_recv(vSum,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
-                    call mpi_recv(vSumSQ,nnz+2,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
+                    call mpi_recv(pCount,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    call mpi_recv(vSum,tdim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    call mpi_recv(vSumSQ,tdim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                 end if
             end if
 
