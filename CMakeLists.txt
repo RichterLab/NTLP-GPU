@@ -30,8 +30,6 @@ if (BUILD_CUDA)
 
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
 
-  # cuda_add_executable( lescudas "particle_gpu.cu")
-  # cuda_add_library( lescuda "particle_gpu.cu")
   set_source_files_properties( particle_gpu.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
   CUDA_COMPILE(PARTICLE_O "particle_gpu.cpp")
 
@@ -39,8 +37,6 @@ if (BUILD_CUDA)
   if(BUILD_CUDA_VERIFY)
     add_definitions(-DBUILD_CUDA_VERIFY)
   endif(BUILD_CUDA_VERIFY)
-
-  # target_link_libraries (lesmpi.a lescuda)
 else(BUILD_CUDA)
   set_source_files_properties( "particle_gpu.cpp" COMPILE_FLAGS "-std=c++11")
 endif(BUILD_CUDA)
