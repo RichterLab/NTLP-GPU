@@ -294,12 +294,12 @@ contains
             if( myid .eq. 0 ) then
                 do iz=1,nnz
                     stat(iz,11) = pCount(iz)
-                    stat(iz,12) = vSum(iz*3+1)
-                    stat(iz,13) = vSum(iz*3+2)
-                    stat(iz,14) = vSum(iz*3+3)
-                    stat(iz,15) = vSumSQ(iz*3+1)
-                    stat(iz,16) = vSumSQ(iz*3+2)
-                    stat(iz,17) = vSumSQ(iz*3+3)
+                    stat(iz,12) = vSum((iz-1)*3+1)
+                    stat(iz,13) = vSum((iz-1)*3+2)
+                    stat(iz,14) = vSum((iz-1)*3+3)
+                    stat(iz,15) = vSumSQ((iz-1)*3+1)
+                    stat(iz,16) = vSumSQ((iz-1)*3+2)
+                    stat(iz,17) = vSumSQ((iz-1)*3+3)
                 end do
             end if
         end subroutine
