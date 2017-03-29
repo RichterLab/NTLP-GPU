@@ -15,28 +15,23 @@ endif (BUILD_VERIFY_NAN)
 
 # Performance Profile
 option( BUILD_PERFORMANCE_PROFILE "Build code to test GPU performance" OFF)
-if (BUILD_PERFORMANCE_PROFILE)
-  add_definitions(-DBUILD_PERFORMANCE_PROFILE)
-endif (BUILD_PERFORMANCE_PROFILE)
 
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)
   find_package(CUDA REQUIRED)
-  add_definitions(-DBUILD_CUDA)
 
   set( BUILD_CUDA_BLOCK_THREADS "128" CACHE STRING "Threads per block for CUDA")
-  add_definitions(-DCUDA_BLOCK_THREADS=${BUILD_CUDA_BLOCK_THREADS})
+  set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DBUILD_CUDA -DCUDA_BLOCK_THREADS=${BUILD_CUDA_BLOCK_THREADS}" )
+
+  if(BUILD_PERFORMANCE_PROFILE)
+    set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DBUILD_PERFORMANCE_PROFILE" )
+  endif(BUILD_PERFORMANCE_PROFILE)
 
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
 
   set_source_files_properties( particle_gpu.cpp PROPERTIES CUDA_SOURCE_PROPERTY_FORMAT OBJ )
   CUDA_COMPILE(PARTICLE_O "particle_gpu.cpp")
-
-  option( BUILD_CUDA_VERIFY "Build CUDA verification code" OFF)
-  if(BUILD_CUDA_VERIFY)
-    add_definitions(-DBUILD_CUDA_VERIFY)
-  endif(BUILD_CUDA_VERIFY)
 else(BUILD_CUDA)
   set_source_files_properties( "particle_gpu.cpp" COMPILE_FLAGS "-std=c++11")
 endif(BUILD_CUDA)
@@ -80,10 +75,21 @@ if (BUILD_FORTRAN)
   target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
   set_target_properties( lesmpi.a PROPERTIES LINKER_LANGUAGE Fortran)
 
-  if( NOT BUILD_CUDA )
+  if (BUILD_PERFORMANCE_PROFILE)
+    target_compile_definitions(lesmpi.a PRIVATE -DBUILD_PERFORMANCE_PROFILE)
+  endif (BUILD_PERFORMANCE_PROFILE)
+
+  if( BUILD_CUDA )
+    target_compile_definitions(lesmpi.a PRIVATE -DBUILD_CUDA)
+
+    option( BUILD_CUDA_VERIFY "Build CUDA verification code" OFF)
+    if( BUILD_CUDA_VERIFY )
+      target_compile_definitions(lesmpi.a PRIVATE -DBUILD_CUDA_VERIFY)
+    endif( BUILD_CUDA_VERIFY )
+  else( BUILD_CUDA )
     add_library(particle_gpu STATIC "particle_gpu.cpp")
     target_link_libraries (lesmpi.a particle_gpu)
-  endif( NOT BUILD_CUDA )
+  endif( BUILD_CUDA )
 
   install ( TARGETS lesmpi.a RUNTIME DESTINATION "bin")
 endif (BUILD_FORTRAN)
