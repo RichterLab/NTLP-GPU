@@ -270,13 +270,12 @@ contains
             real :: stat(1:nnz,34 + 5*nscl)
             real(8), allocatable :: pCount(:), vSum(:), vSumSQ(:)
 
+            dim = nnz + 2
+            tdim = dim * 3
+            allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
+
             if( myid .eq. gpu_master_rank ) then
-                dim = nnz + 2
-                tdim = dim * 3
-
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
-
-                allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
 
                 if( myid .ne. 0 ) then
@@ -286,7 +285,6 @@ contains
                 end if
             else
                 if( myid .eq. 0 ) then
-                    allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
                     call mpi_recv(pCount,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                     call mpi_recv(vSum,tdim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                     call mpi_recv(vSumSQ,tdim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
