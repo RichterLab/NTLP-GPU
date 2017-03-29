@@ -18,7 +18,7 @@
 #define DEVICE __device__
 #define GLOBAL __global__
 #define CONSTANT __constant__
-#define SHARED extern __shared__
+#define SHARED __shared__
 #else
 #define DEVICE
 #define GLOBAL
@@ -103,7 +103,7 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 
 // Setup shared memory for Z and ZZ
 #ifdef BUILD_CUDA
-    SHARED double shared[];
+    extern SHARED double shared[];
 
     double *zShared = shared, *zzShared = &shared[nnz], *dzu = &shared[nnz*2], *dzw = &shared[nnz*3+1];
     if( idx == 0 ){
@@ -140,33 +140,27 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
     dzu[nnz] = dzw[nnz-1];
 #endif
 
-    const int ipt = floor(particles[idx].xp[0]/dx) + 1;
-    const int jpt = floor(particles[idx].xp[1]/dy) + 1;
+    const double xPos = particles[idx].xp[0];
+    const double yPos = particles[idx].xp[1];
+    const double zPos = particles[idx].xp[2];
 
-    int kpt = 0;
-    for( ; kpt < nnz; kpt++ ){
-        if (zzShared[kpt] > particles[idx].xp[2]){
-            break;
-        }
+    const int ipt = floor(xPos/dx) + 1;
+    const int jpt = floor(yPos/dy) + 1;
+
+    int kpt = 0, kwpt = 0;
+    for( int j = 0; j < nnz; j++ ){
+        if( zzShared[j] < zPos ) kpt = j;
+        if( zShared[j] < zPos ) kwpt = j;
     }
-    kpt -= 1;
 
-    int kwpt = 0;
-    for( ; kwpt < nnz; kwpt++ ){
-        if (zShared[kwpt] > particles[idx].xp[2]) {
-            break;
-        }
-    }
-    kwpt -= 1;
+    double xUF = 0.0, yUF = 0.0, zUF = 0.0;
+    double Tf = 0.0, qinf = 0.0;
 
-    particles[idx].uf[0] = 0.0;
-    particles[idx].uf[1] = 0.0;
-    particles[idx].uf[2] = 0.0;
-
-    particles[idx].Tf = 0.0;
-    particles[idx].qinf = 0.0;
+    #pragma unroll
     for( int i = 0; i < 2; i++ ){
+        #pragma unroll
         for( int j = 0; j < 2; j++ ){
+            #pragma unroll
             for( int k = 0; k < 2; k++ ){
                 const int ix = i + ipt;
                 const int iy = i + jpt;
@@ -176,19 +170,25 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
                 const double xv = dx * (i+ipt - 1);
                 const double yv = dy * (j+jpt - 1);
 
-                const double wtx = 1.0 - (abs(particles[idx].xp[0] - xv) / dx);
-                const double wty = 1.0 - (abs(particles[idx].xp[1] - yv) / dy);
-                const double wtz = 1.0 - (abs(particles[idx].xp[2] - zzShared[izuv]) / dzu[kpt+1]);
-                const double wtzw = 1.0 - (abs(particles[idx].xp[2] - zShared[izw]) / dzw[kwpt+1]);
+                const double wtx = 1.0 - (abs(xPos - xv) / dx);
+                const double wty = 1.0 - (abs(yPos - yv) / dy);
+                const double wtz = 1.0 - (abs(zPos - zzShared[izuv]) / dzu[kpt+1]);
+                const double wtzw = 1.0 - (abs(zPos - zShared[izw]) / dzw[kwpt+1]);
 
-                particles[idx].uf[0] = particles[idx].uf[0] + uext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
-                particles[idx].uf[1] = particles[idx].uf[1] + vext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
-                particles[idx].uf[2] = particles[idx].uf[2] + wext[(ix+1)+(iy+1)*nx+izw*ny*nx] * wtx * wty * wtzw;
-                particles[idx].Tf = particles[idx].Tf + Text[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
-                particles[idx].qinf = particles[idx].qinf + T2ext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                xUF += uext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                yUF += vext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                zUF += wext[(ix+1)+(iy+1)*nx+izw*ny*nx] * wtx * wty * wtzw;
+                Tf += Text[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
+                qinf += T2ext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
             }
         }
     }
+
+    particles[idx].uf[0] = xUF;
+    particles[idx].uf[1] = yUF;
+    particles[idx].uf[2] = zUF;
+    particles[idx].Tf = Tf;
+    particles[idx].qinf = qinf;
 
     }
 }
@@ -202,7 +202,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 #endif
 
 #ifdef BUILD_CUDA
-    SHARED double shared[];
+    extern SHARED double shared[];
 
     // Shared memory for Z and ZZ
     double *zShared = shared, *zzShared = &shared[nnz];
@@ -403,16 +403,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 #endif
 }
 
-GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, const int pcount, Particle* __restrict__ particles ) {
-	const double pi   = 4.0 * atan( 1.0 );
-	const double pi2  = 2.0 * pi;
-	const double m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
-
-    const double CpaCpp = cParams.Cpa/cParams.Cpp;
-
-    const double zetas[3] = {0.0, -17.0/60.0, -5.0/12.0};
-    const double gama[3]  = {8.0/15.0, 5.0/12.0, 3.0/4.0};
-    const double g[3] = {0.0, 0.0, cParams.part_grav};
+GLOBAL void GPUUpdateParticles( const int it, const int istage, const double dt, const int pcount, Particle* __restrict__ particles ) {
 
 #ifdef BUILD_CUDA
     int idx = blockIdx.x * blockDim.x + threadIdx.x;
@@ -421,7 +412,46 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     for( int idx = 0; idx < pcount; idx++){
 #endif
 
-    const int istage = stage - 1;
+#ifdef BUILD_CUDA
+    SHARED double pi, pi2, m_s, CpaCpp, Lv, pPra, pSc, zetas[3], gama[3], g[3], dtZ, dtG;
+
+    if( idx == 0 ){
+        pi   = 4.0 * atan( 1.0 );
+        pi2  = 2.0 * pi;
+        m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
+
+        CpaCpp = cParams.Cpa/cParams.Cpp;
+
+        zetas[0] = 0.0; zetas[1] = -17.0/60.0; zetas[2] = -5.0/12.0;
+        gama[0] = 8.0/15.0; gama[1] = 5.0/12.0; gama[2] = 3.0/4.0;
+        g[0] = 0.0; g[1] = 0.0; g[2] = cParams.part_grav;
+        Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
+
+        pPra = pow( cParams.Pra, 1.0 / 3.0 );
+        pSc = pow( cParams.Sc, 1.0 / 3.0 );
+
+        dtZ = dt * zetas[istage];
+        dtG = dt * gama[istage];
+    }
+    __syncthreads();
+#else
+    const double pi   = 4.0 * atan( 1.0 );
+	const double pi2  = 2.0 * pi;
+	const double m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
+
+    const double CpaCpp = cParams.Cpa/cParams.Cpp;
+
+    const double zetas[3] = {0.0, -17.0/60.0, -5.0/12.0};
+    const double gama[3]  = {8.0/15.0, 5.0/12.0, 3.0/4.0};
+    const double g[3] = {0.0, 0.0, cParams.part_grav};
+    const double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
+    const double pPra = pow( cParams.Pra, 1.0 / 3.0 );
+    const double pSc = pow( cParams.Sc, 1.0 / 3.0 );
+
+    const double dtZ = dt * zetas[istage];
+    const double dtG = dt * gama[istage];
+#endif
+
     if( it == 1 ) {
         for( int j = 0; j < 3; j++ ) {
             particles[idx].vp[j] = particles[idx].uf[j];
@@ -440,12 +470,11 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
     double taup_i = 18.0 * cParams.rhoa * cParams.nuf / rhop / ( (2.0 * particles[idx].radius) * (2.0 * particles[idx].radius) );
 
     double corrfac = 1.0 + 0.15 * pow( Rep, 0.687 );
-    double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Pra, 1.0 / 3.0 );
-    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pow( cParams.Sc, 1.0 / 3.0 );
+    double Nup = 2.0 + 0.6 * pow( Rep, 0.5 ) * pPra;
+    double Shp = 2.0 + 0.6 * pow( Rep, 0.5 ) * pSc;
 
     double TfC = particles[idx].Tf - 273.15;
     double einf = 610.94 * exp( 17.6257 * TfC / ( TfC + 243.04 ) );
-    double Lv = ( 25.0 - 0.02274 * 26.0 ) * 100000;
     double Eff_C = 2.0 * cParams.Mw * cParams.Gam / ( cParams.Ru * cParams.rhow * particles[idx].radius * particles[idx].Tp );
     double Eff_S = cParams.Ion * cParams.Os * m_s * cParams.Mw / cParams.Ms / ( Volp * rhop - m_s );
     double estar = einf * exp( cParams.Mw * Lv / cParams.Ru * ( 1.0 / particles[idx].Tf - 1.0 / particles[idx].Tp ) + Eff_C - Eff_S );
@@ -453,13 +482,13 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
 
     double xtmp[3], vtmp[3];
     for( int j = 0; j < 3; j++ ) {
-        xtmp[j] = particles[idx].xp[j] + dt * zetas[istage] * particles[idx].xrhs[j];
-        vtmp[j] = particles[idx].vp[j] + dt * zetas[istage] * particles[idx].vrhs[j];
+        xtmp[j] = particles[idx].xp[j] + dtZ * particles[idx].xrhs[j];
+        vtmp[j] = particles[idx].vp[j] + dtZ * particles[idx].vrhs[j];
     }
 
-    double Tptmp = particles[idx].Tp + dt * zetas[istage] * particles[idx].Tprhs_s;
-    Tptmp = Tptmp + dt * zetas[istage] * particles[idx].Tprhs_L;
-    double radiustmp = particles[idx].radius + dt * zetas[istage] * particles[idx].radrhs;
+    double Tptmp = particles[idx].Tp + dtZ * particles[idx].Tprhs_s;
+    Tptmp += dtZ * particles[idx].Tprhs_L;
+    double radiustmp = particles[idx].radius + dtZ * particles[idx].radrhs;
 
     for( int j = 0; j < 3; j++ ) {
         particles[idx].xrhs[j] = particles[idx].vp[j];
@@ -469,22 +498,17 @@ GLOBAL void GPUUpdateParticles( const int it, const int stage, const double dt, 
         particles[idx].vrhs[j] = corrfac * taup_i * (particles[idx].uf[j] - particles[idx].vp[j]) - g[j];
     }
 
-    if( cParams.Evaporation == 1 ) {
-        particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar );
-    } else {
-        particles[idx].radrhs = 0.0;
-    }
-
+    particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * ( particles[idx].qinf - particles[idx].qstar ) * cParams.Evaporation;
     particles[idx].Tprhs_s = -Nup / 3.0 / cParams.Pra * CpaCpp * rhop / cParams.rhow * taup_i * ( particles[idx].Tp - particles[idx].Tf );
     particles[idx].Tprhs_L = 3.0 * Lv / cParams.Cpp / particles[idx].radius * particles[idx].radrhs;
 
     for( int j = 0; j < 3; j++ ) {
-        particles[idx].xp[j] = xtmp[j] + dt * gama[istage] * particles[idx].xrhs[j];
-        particles[idx].vp[j] = vtmp[j] + dt * gama[istage] * particles[idx].vrhs[j];
+        particles[idx].xp[j] = xtmp[j] + dtG * particles[idx].xrhs[j];
+        particles[idx].vp[j] = vtmp[j] + dtG * particles[idx].vrhs[j];
     }
-    particles[idx].Tp = Tptmp + dt * gama[istage] * particles[idx].Tprhs_s;
-    particles[idx].Tp = particles[idx].Tp + dt * gama[istage] * particles[idx].Tprhs_L;
-    particles[idx].radius = radiustmp + dt * gama[istage] * particles[idx].radrhs;
+    particles[idx].Tp = Tptmp + dtG * particles[idx].Tprhs_s;
+    particles[idx].Tp += + dtG * particles[idx].Tprhs_L;
+    particles[idx].radius = radiustmp + dtG * particles[idx].radrhs;
 
 #ifndef BUILD_CUDA
     }
@@ -499,14 +523,17 @@ GLOBAL void GPUUpdateNonperiodic( const double grid_width, const int pcount, Par
     for( int idx = 0; idx < pcount; idx++){
 #endif
 
-    const double top = grid_width - particles[idx].radius;
-    const double bot = 0.0 + particles[idx].radius;
+    const double radius = particles[idx].radius;
+    const double zPos = particles[idx].xp[2];
 
-    if( particles[idx].xp[2] > top ){
-        particles[idx].xp[2] = top - (particles[idx].xp[2]-top);
+    const double top = grid_width - radius;
+    const double bot = 0.0 + radius;
+
+    if( zPos > top ){
+        particles[idx].xp[2] = top - (zPos-top);
         particles[idx].vp[2] = -particles[idx].vp[2];
-    }else if( particles[idx].xp[2] < bot ){
-        particles[idx].xp[2] = bot + (bot-particles[idx].xp[2]);
+    }else if( zPos < bot ){
+        particles[idx].xp[2] = bot + (bot-zPos);
         particles[idx].vp[2] = -particles[idx].vp[2];
     }
 
@@ -522,17 +549,19 @@ GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height
 #else
     for( int idx = 0; idx < pcount; idx++){
 #endif
+    const double xPos = particles[idx].xp[0];
+    const double yPos = particles[idx].xp[1];
 
-    if( particles[idx].xp[0] > grid_width ){
-        particles[idx].xp[0] = particles[idx].xp[0] - grid_width;
-    }else if( particles[idx].xp[0] < 0.0 ){
-        particles[idx].xp[0] = grid_width + particles[idx].xp[0];
+    if( xPos > grid_width ){
+        particles[idx].xp[0] -= grid_width;
+    }else if( xPos < 0.0 ){
+        particles[idx].xp[0] = grid_width + xPos;
     }
 
-    if( particles[idx].xp[1] > grid_height ){
-        particles[idx].xp[1] = particles[idx].xp[1] - grid_height;
-    }else if( particles[idx].xp[1] < 0.0 ){
-        particles[idx].xp[1] = grid_height + particles[idx].xp[1];
+    if( yPos > grid_height ){
+        particles[idx].xp[1] -= grid_height;
+    }else if( yPos < 0.0 ){
+        particles[idx].xp[1] = grid_height + yPos;
     }
 
 #ifndef BUILD_CUDA
@@ -797,7 +826,7 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy 
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     if( gpu->mParameters.LinearInterpolation == 1 ) {
-        GPUFieldInterpolateLinear<<< blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth*4)+4)*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+        GPUFieldInterpolateLinear<<< blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth*4)+2)*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     }else{
         GPUFieldInterpolate<<< blocks, CUDA_BLOCK_THREADS, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     }
@@ -810,7 +839,7 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-    GPUUpdateParticles<<< blocks, CUDA_BLOCK_THREADS >>> (it, istage, dt, gpu->pCount, gpu->dParticles);
+    GPUUpdateParticles<<< blocks, CUDA_BLOCK_THREADS >>> (it, istage - 1, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
     GPUUpdateParticles(it, istage, dt, gpu->pCount, gpu->hParticles);
