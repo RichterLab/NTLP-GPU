@@ -269,6 +269,9 @@ contains
             integer :: iz, istatus, ierr, dim, tdim
             real :: stat(1:nnz,34 + 5*nscl)
             real(8), allocatable :: pCount(:), vSum(:), vSumSQ(:)
+#ifdef BUILD_CUDA_VERIFY
+            integer :: succeeded, failures
+#endif
 
             dim = nnz + 2
             tdim = dim * 3
@@ -292,7 +295,58 @@ contains
             end if
 
             if( myid .eq. 0 ) then
+#ifdef BUILD_CUDA_VERIFY
+                failures = 0
+9001            format(a20, 3x, 'expected:', T35, f20.16, T60, 'actual:', 1x, f20.16, T90, 'diff:', 1x, f20.16)
+
+                write(*,*) "Z Verify:"
+#endif
+
                 do iz=1,nnz
+#ifdef BUILD_CUDA_VERIFY
+                    succeeded = 1
+                    if( dabs(stat(iz,11))-dabs(pCount(iz)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+
+                    if( dabs(stat(iz,12))-dabs(vSum((iz-1)*3+1)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+                    if( dabs(stat(iz,13))-dabs(vSum((iz-1)*3+2)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+                    if( dabs(stat(iz,14))-dabs(vSum((iz-1)*3+2)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+
+                    if( dabs(stat(iz,15))-dabs(vSumSQ((iz-1)*3+1)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+                    if( dabs(stat(iz,16))-dabs(vSumSQ((iz-1)*3+2)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+                    if( dabs(stat(iz,17))-dabs(vSumSQ((iz-1)*3+3)) .gt. 1e-9 ) then
+                        succeeded = 0
+                    end if
+
+                    if( succeeded == 0 ) then
+                        failures = failures + 1
+
+                        write(*,*) "Z:", iz
+
+                        write(*,9001) "Particle Count", stat(iz,11), pCount(iz), stat(iz,11) - pCount(iz)
+
+                        write(*,9001) "Velociy Sum (x):", stat(iz,12), vSum((iz-1)*3+1), stat(iz,12) - vSum((iz-1)*3+1)
+                        write(*,9001) "Velociy Sum (y):", stat(iz,13), vSum((iz-1)*3+2), stat(iz,13) - vSum((iz-1)*3+2)
+                        write(*,9001) "Velociy Sum (z):", stat(iz,14), vSum((iz-1)*3+3), stat(iz,14) - vSum((iz-1)*3+3)
+
+                        write(*,9001) "Velociy Squared (x):", stat(iz,15), vSumSQ((iz-1)*3+1), stat(iz,15) - vSumSQ((iz-1)*3+1)
+                        write(*,9001) "Velociy Squared (y):", stat(iz,16), vSumSQ((iz-1)*3+2), stat(iz,16) - vSumSQ((iz-1)*3+2)
+                        write(*,9001) "Velociy Squared (z):", stat(iz,17), vSumSQ((iz-1)*3+3), stat(iz,17) - vSumSQ((iz-1)*3+3)
+
+                        write(*,*) ""
+                    end if
+#endif
                     stat(iz,11) = pCount(iz)
                     stat(iz,12) = vSum((iz-1)*3+1)
                     stat(iz,13) = vSum((iz-1)*3+2)
@@ -301,6 +355,9 @@ contains
                     stat(iz,16) = vSumSQ((iz-1)*3+2)
                     stat(iz,17) = vSumSQ((iz-1)*3+3)
                 end do
+#ifdef BUILD_CUDA_VERIFY
+                write(*,*) "Total Failures: ", failures
+#endif
             end if
         end subroutine
 
