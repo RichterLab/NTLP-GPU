@@ -106,7 +106,7 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
     extern SHARED double shared[];
 
     double *zShared = shared, *zzShared = &shared[nnz], *dzu = &shared[nnz*2], *dzw = &shared[nnz*3+1];
-    if( idx == 0 ){
+    if( threadIdx.x == 0 ){
         for( int i = 0; i < nnz; i++ ){
             zShared[i] = z[i];
             zzShared[i] = zz[i];
@@ -206,7 +206,7 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
 
     // Shared memory for Z and ZZ
     double *zShared = shared, *zzShared = &shared[nnz];
-    if( idx == 0 ){
+    if( threadIdx.x == 0 ){
         for( int i = 0; i < nnz; i++ ){
             zShared[i] = z[i];
             zzShared[i] = zz[i];
@@ -415,7 +415,7 @@ GLOBAL void GPUUpdateParticles( const int it, const int istage, const double dt,
 #ifdef BUILD_CUDA
     SHARED double pi, pi2, m_s, CpaCpp, Lv, pPra, pSc, zetas[3], gama[3], g[3], dtZ, dtG;
 
-    if( idx == 0 ){
+    if( threadIdx.x == 0 ){
         pi   = 4.0 * atan( 1.0 );
         pi2  = 2.0 * pi;
         m_s = cParams.Sal / 1000.0 * 4.0 / 3.0 * pi * pow(cParams.radius_mass, 3) * cParams.rhow;
