@@ -579,19 +579,15 @@ void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double
         }
         kpt -= 1;
 
-        for( int idx = 0; idx < nnz; idx++){
-            if( kpt == idx ) {
-                partcount_t[idx] += 1.0;
+        partcount_t[kpt] += 1.0;
 
-                vpsum_t[idx*3+0] += particles[i].vp[0];
-                vpsum_t[idx*3+1] += particles[i].vp[1];
-                vpsum_t[idx*3+2] += particles[i].vp[2];
+        vpsum_t[kpt*3+0] += particles[i].vp[0];
+        vpsum_t[kpt*3+1] += particles[i].vp[1];
+        vpsum_t[kpt*3+2] += particles[i].vp[2];
 
-                vpsqrsum_t[idx*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
-                vpsqrsum_t[idx*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
-                vpsqrsum_t[idx*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
-            }
-        }
+        vpsqrsum_t[kpt*3+0] += (particles[i].vp[0] * particles[i].vp[0]);
+        vpsqrsum_t[kpt*3+1] += (particles[i].vp[1] * particles[i].vp[1]);
+        vpsqrsum_t[kpt*3+2] += (particles[i].vp[2] * particles[i].vp[2]);
     }
 }
 
