@@ -192,7 +192,7 @@ contains
                 parameters%radius_mass = radius_init
 
                 ! Create GPU Instance
-                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+1,xl,yl,zl,z,zz,parameters)
+                gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,z,zz,parameters)
             end if
         end subroutine
 
