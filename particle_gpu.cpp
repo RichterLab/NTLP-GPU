@@ -105,16 +105,11 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 #ifdef BUILD_CUDA
     extern SHARED double shared[];
 
-    double *zShared = shared, *zzShared = &shared[nnz], *dzu = &shared[nnz*2], *dzw = &shared[nnz*3+1];
+    double *dzu = shared, *dzw = &shared[nnz+1];
     if( threadIdx.x == 0 ){
-        for( int i = 0; i < nnz; i++ ){
-            zShared[i] = z[i];
-            zzShared[i] = zz[i];
-        }
-
         for( int i = 1; i < nnz; i++ ){
-            dzu[i] = zzShared[i] - zzShared[i-1];
-            dzw[i] = zShared[i] - zShared[i-1];
+            dzu[i] = zz[i] - zz[i-1];
+            dzw[i] = z[i] - z[i-1];
         }
         dzu[0] = dzu[1];
         dzw[0] = dzw[1];
@@ -149,8 +144,8 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 
     int kpt = 0, kwpt = 0;
     for( int j = 0; j < nnz; j++ ){
-        if( zzShared[j] < zPos ) kpt = j;
-        if( zShared[j] < zPos ) kwpt = j;
+        if( zz[j] < zPos ) kpt = j;
+        if( z[j] < zPos ) kwpt = j;
     }
 
     double xUF = 0.0, yUF = 0.0, zUF = 0.0;
@@ -172,8 +167,8 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 
                 const double wtx = 1.0 - (abs(xPos - xv) / dx);
                 const double wty = 1.0 - (abs(yPos - yv) / dy);
-                const double wtz = 1.0 - (abs(zPos - zzShared[izuv]) / dzu[kpt+1]);
-                const double wtzw = 1.0 - (abs(zPos - zShared[izw]) / dzw[kwpt+1]);
+                const double wtz = 1.0 - (abs(zPos - zz[izuv]) / dzu[kpt+1]);
+                const double wtzw = 1.0 - (abs(zPos - z[izw]) / dzw[kwpt+1]);
 
                 xUF += uext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
                 yUF += vext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
@@ -822,7 +817,7 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy 
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     if( gpu->mParameters.LinearInterpolation == 1 ) {
-        GPUFieldInterpolateLinear<<< blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth*4)+2)*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+        GPUFieldInterpolateLinear<<< blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth*2)+2)*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     }else{
         GPUFieldInterpolate<<< blocks, CUDA_BLOCK_THREADS, gpu->GridDepth*2*sizeof(double) >>> ( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
     }
