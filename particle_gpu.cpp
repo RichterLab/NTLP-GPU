@@ -845,10 +845,10 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-    GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->pCount, gpu->dParticles);
+    GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldDepth, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
-    GPUUpdateNonperiodic(gpu->FieldWidth, gpu->pCount, gpu->hParticles);
+    GPUUpdateNonperiodic(gpu->FieldDepth, gpu->pCount, gpu->hParticles);
 #endif
 }
 

@@ -234,7 +234,7 @@ TEST_F( ParticleTest, UpdateStageThree ){
 TEST_F( ParticleTest, NonPeriodicCenter ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.0, 0.0, 1.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -266,7 +266,7 @@ TEST_F( ParticleTest, NonPeriodicCenter ) {
 TEST_F( ParticleTest, NonPeriodicAbove ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.0, 0.0, 1.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
@@ -299,7 +299,7 @@ TEST_F( ParticleTest, NonPeriodicAbove ) {
 TEST_F( ParticleTest, NonPeriodicBelow ) {
 	// Create GPU
 	double z[1], zz[1];
-	GPU *gpu = NewGPU(1, 0, 0, 0, 1.0, 0.0, 0.0, &z[0], &zz[0], &params );
+	GPU *gpu = NewGPU(1, 0, 0, 0, 0.0, 0.0, 1.0, &z[0], &zz[0], &params );
 
 	// Setup Particle
 	Particle input = {
