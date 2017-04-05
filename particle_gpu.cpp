@@ -675,9 +675,6 @@ extern "C" GPU* NewGPU(const int particles, const int width, const int height, c
 
     gpuErrchk( cudaMalloc( (void **)&retVal->dZ, sizeof(double) * retVal->GridDepth ) );
     gpuErrchk( cudaMalloc( (void **)&retVal->dZZ, sizeof(double) * retVal->GridDepth ) );
-    gpuErrchk( cudaMalloc( (void **)&retVal->dPartCount, sizeof(double) * retVal->GridDepth ) );
-    gpuErrchk( cudaMalloc( (void **)&retVal->dVPSum, sizeof(double) * retVal->GridDepth * 3 ) );
-    gpuErrchk( cudaMalloc( (void **)&retVal->dVPSumSQ, sizeof(double) * retVal->GridDepth * 3 ) );
 
     gpuErrchk( cudaMemcpy( retVal->dZ, z, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice ) );
     gpuErrchk( cudaMemcpy( retVal->dZZ, zz, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice ) );

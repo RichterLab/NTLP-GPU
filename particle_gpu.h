@@ -41,7 +41,6 @@ struct GPU {
 
 	// Statistics
 	double *hPartCount, *hVPSum, *hVPSumSQ;
-	double *dPartCount, *dVPSum, *dVPSumSQ;
 };
 
 extern "C" double rand2(int idum, bool reset = false);
