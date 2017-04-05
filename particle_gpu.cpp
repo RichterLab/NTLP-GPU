@@ -871,18 +871,10 @@ extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const do
     GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
 }
 
-
-extern "C" void ParticleDownloadHost( GPU *gpu ) {
+extern "C" Particle* ParticleDownloadHost( GPU *gpu ) {
 #ifdef BUILD_CUDA
     gpuErrchk( cudaMemcpy(gpu->hParticles, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
 #endif
-}
-
-extern "C" Particle* ParticleDownload( GPU *gpu ) {
-#ifdef BUILD_CUDA
-    gpuErrchk( cudaMemcpy(gpu->hParticles, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
-#endif
-    return gpu->hParticles;
 }
 
 void ParticleWrite( GPU* gpu ){

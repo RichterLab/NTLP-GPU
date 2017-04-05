@@ -58,7 +58,6 @@ extern "C" void ParticleUpdateNonPeriodic( GPU *gpu );
 extern "C" void ParticleUpdatePeriodic( GPU *gpu );
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy );
 extern "C" void ParticleDownloadHost( GPU *gpu );
-extern "C" Particle* ParticleDownload( GPU* gpu );
 
 extern "C" void ParticleWrite( GPU* gpu );
 extern "C" GPU* ParticleRead(const char *path);
