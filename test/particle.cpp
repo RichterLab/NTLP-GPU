@@ -12,50 +12,6 @@ TEST( ParticleCUDA, Random ) {
     ASSERT_DOUBLE_EQ(rand2(1080), 0.20099518545185716);
 }
 
-TEST( ParticleCUDA, ParticleInit ) {
-	GPU *gpu = (GPU*) malloc( sizeof(GPU) );
-	ParticleGenerate(gpu, 2, 10, 1080, 300.0, 0.0, 0.251327, 0.0, 0.1256635, 4e-2, 1.63e-4, 4.0e-5, 1e-2);
-
-	std::vector<Particle> expected = ReadParticles( "../test/data/particle_init.dat" );
-	ASSERT_EQ( expected.size(), 10 );
-
-	Particle *result = ParticleDownload(gpu);
-	for( int i = 0; i < 10; i++ ) {
-		for( int k = 0; k < 10; k++ ){
-			if(expected[i].pidx != result[k].pidx) continue;
-			if(expected[i].procidx != result[k].procidx) continue;
-
-			ASSERT_FLOAT_EQ( expected[i].pidx, result[k].pidx ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].procidx, result[k].procidx ) << "I: " << i;
-
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vp[j], result[k].vp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xp[j], result[k].xp[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].uf[j], result[k].uf[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].xrhs[j], result[k].xrhs[j] ) << "I: " << i << " J: " << j;
-			}
-			for( int j = 0; j < 3; j++ ) {
-				ASSERT_FLOAT_EQ( expected[i].vrhs[j], result[k].vrhs[j] ) << "I: " << i << " J: " << j;
-			}
-
-			ASSERT_FLOAT_EQ( expected[i].Tp, result[k].Tp ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_s, result[k].Tprhs_s ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tprhs_L, result[k].Tprhs_L ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].Tf, result[k].Tf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radius, result[k].radius ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].radrhs, result[k].radrhs ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qinf, result[k].qinf ) << "I: " << i;
-			ASSERT_FLOAT_EQ( expected[i].qstar, result[k].qstar ) << "I: " << i;
-		}
-	}
-}
-
 void CompareParticle(Particle* actual, Particle* expected){
 	ASSERT_EQ(actual->pidx, expected->pidx);
 	ASSERT_EQ(actual->procidx, expected->procidx);
@@ -125,7 +81,7 @@ TEST_F( ParticleTest, UpdateFirstIteration ){
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleStep(gpu, 1, 1, 4.134832649154196e-4);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/UpdateFirstIterationExpected.dat");
@@ -152,7 +108,7 @@ TEST_F( ParticleTest, UpdateOtherIteration ){
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleStep(gpu, 2, 1, 4.134832649154196e-4);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/UpdateOtherIterationExpected.dat");
@@ -179,7 +135,7 @@ TEST_F( ParticleTest, UpdateStageTwo ){
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleStep(gpu, 1, 2, 4.134832649154196e-4);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/UpdateStageTwoExpected.dat");
@@ -206,7 +162,7 @@ TEST_F( ParticleTest, UpdateStageThree ){
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleStep(gpu, 1, 3, 4.134832649154196e-4);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/UpdateStageThreeExpected.dat");
@@ -247,7 +203,7 @@ TEST_F( ParticleTest, NonPeriodicCenter ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdateNonPeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -279,7 +235,7 @@ TEST_F( ParticleTest, NonPeriodicAbove ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdateNonPeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -312,7 +268,7 @@ TEST_F( ParticleTest, NonPeriodicBelow ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdateNonPeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -348,7 +304,7 @@ TEST_F( ParticleTest, PeriodicCenter ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -380,7 +336,7 @@ TEST_F( ParticleTest, PeriodicNegativeX ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -412,7 +368,7 @@ TEST_F( ParticleTest, PeriodicNegativeY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -445,7 +401,7 @@ TEST_F( ParticleTest, PeriodicNegativeXY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -477,7 +433,7 @@ TEST_F( ParticleTest, PeriodicPositiveX ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -509,7 +465,7 @@ TEST_F( ParticleTest, PeriodicPositiveY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -542,7 +498,7 @@ TEST_F( ParticleTest, PeriodicPositiveXY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -575,7 +531,7 @@ TEST_F( ParticleTest, PeriodicNegativeXPositiveY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -608,7 +564,7 @@ TEST_F( ParticleTest, PeriodicPositiveXNegativeY ) {
 	// Update Particle
 	ParticleUpload(gpu);
 	ParticleUpdatePeriodic(gpu);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	Particle expected = {
@@ -683,7 +639,7 @@ TEST_F( ParticleTest, InterpolationZZEQZ ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZZEQZ.dat");
@@ -724,7 +680,7 @@ TEST_F( ParticleTest, InterpolationZEQ1 ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQ1.dat");
@@ -765,7 +721,7 @@ TEST_F( ParticleTest, InterpolationZLTZ ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZLTZ.dat");
@@ -806,7 +762,7 @@ TEST_F( ParticleTest, InterpolationZEQ2 ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQ2.dat");
@@ -847,7 +803,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZ.dat");
@@ -888,7 +844,7 @@ TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZGTNNZ.dat");
@@ -929,7 +885,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM1.dat");
@@ -970,7 +926,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZEQNNZM2.dat");
@@ -1011,7 +967,7 @@ TEST_F( ParticleTest, InterpolationZELSE ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZELSE.dat");
@@ -1052,7 +1008,7 @@ TEST_F( ParticleTest, InterpolationZELSE16 ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationZELSE16.dat");
@@ -1100,7 +1056,7 @@ TEST_F( ParticleTest, InterpolationMulti ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationMulti.dat");
@@ -1148,7 +1104,7 @@ TEST_F( ParticleTest, InterpolationSecond ) {
 	ParticleUpload(gpu);
 	ParticleFieldSet(gpu, uext, vext, wext, text, qext);
 	ParticleInterpolate(gpu, dx, dy);
-	ParticleDownload(gpu);
+	ParticleDownloadHost(gpu);
 
 	// Compare Results
 	GPU *expected = ParticleRead("../test/data/InterpolationSecondExpected.dat");
