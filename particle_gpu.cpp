@@ -865,13 +865,13 @@ extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const do
     memset(gpu->hVPSumSQ, 0.0, sizeof(double) * gpu->GridDepth * 3);
 
 #ifdef BUILD_CUDA
-    ParticleDownloadHost(gpu);
+    ParticleDownload(gpu);
 #endif
 
     GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
 }
 
-extern "C" Particle* ParticleDownloadHost( GPU *gpu ) {
+extern "C" void ParticleDownload( GPU *gpu ) {
 #ifdef BUILD_CUDA
     gpuErrchk( cudaMemcpy(gpu->hParticles, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost) );
 #endif

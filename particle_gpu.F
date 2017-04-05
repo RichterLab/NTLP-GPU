@@ -120,7 +120,7 @@ module particle_c
             real(c_double), intent(inout), dimension(*) :: dzw
         end subroutine
 
-        subroutine gpudownload(gpu) bind(c,name="ParticleDownloadHost")
+        subroutine gpudownload(gpu) bind(c,name="ParticleDownload")
             use iso_c_binding, only: c_ptr
             type(c_ptr), VALUE, intent(in)  :: gpu
         end subroutine
