@@ -49,13 +49,13 @@ module particle_c
         end function
 
         subroutine gpucopyfield(gpu,uext,vext,wext,text,qext) bind(c,name="ParticleFieldSet")
-            use iso_c_binding, only: c_ptr, c_double
+            use iso_c_binding, only: c_ptr, c_float
             type(c_ptr), VALUE                          :: gpu
-            real(c_double), intent(in), dimension(*)    :: uext
-            real(c_double), intent(in), dimension(*)    :: vext
-            real(c_double), intent(in), dimension(*)    :: wext
-            real(c_double), intent(in), dimension(*)    :: text
-            real(c_double), intent(in), dimension(*)    :: qext
+            real(c_float), intent(in), dimension(*)    :: uext
+            real(c_float), intent(in), dimension(*)    :: vext
+            real(c_float), intent(in), dimension(*)    :: wext
+            real(c_float), intent(in), dimension(*)    :: text
+            real(c_float), intent(in), dimension(*)    :: qext
         end subroutine
 
         subroutine gpuwrite(gpu) bind(c,name="ParticleWrite")
@@ -283,14 +283,14 @@ contains
             integer :: istart,iend,kstart,kend
             integer :: buf_size(4),buf_dims(4)
             integer :: iproc,istatus(mpi_status_size),ierr
-            real,allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
+            real(4),allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
 
             !The fields to be assembeled on GPU proc: (2 periodic halos to the left, 3 to right, top/bottom in nz)
-            real :: u_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
-            real :: v_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
-            real :: w_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
-            real :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
-            real :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real(4) :: u_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real(4) :: v_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real(4) :: w_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real(4) :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real(4) :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
 
             type(Profiler) :: tTransfer, tHalo, tUpload
 
@@ -319,35 +319,35 @@ contains
 
                         !u-velocity
                         !receive the buffer:
-                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+                        call mpi_recv(receive_buf,receive_size,mpi_real4,iproc,1,mpi_comm_world,istatus,ierr)
 
                         !Now put into full field
                         u_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
 
                         !v-velocity
                         !receive the buffer:
-                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+                        call mpi_recv(receive_buf,receive_size,mpi_real4,iproc,1,mpi_comm_world,istatus,ierr)
 
                         !Now put into full field
                         v_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
 
                         !w-velocity
                         !receive the buffer:
-                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+                        call mpi_recv(receive_buf,receive_size,mpi_real4,iproc,1,mpi_comm_world,istatus,ierr)
 
                         !Now put into full field
                         w_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
 
                         !temperature
                         !receive the buffer:
-                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+                        call mpi_recv(receive_buf,receive_size,mpi_real4,iproc,1,mpi_comm_world,istatus,ierr)
 
                         !Now put into full field
                         T_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
 
                         !humidity
                         !receive the buffer:
-                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+                        call mpi_recv(receive_buf,receive_size,mpi_real4,iproc,1,mpi_comm_world,istatus,ierr)
 
                         !Now put into full field
                         q_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
@@ -409,23 +409,23 @@ contains
 
                 !u-velocity
                 send_buf = u(1:nnx,iys:iye,izs:ize)
-                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+                call mpi_send(send_buf,send_size,mpi_real4,gpu_master_rank,1,mpi_comm_world,ierr)
 
                 !v-velocity
                 send_buf = v(1:nnx,iys:iye,izs:ize)
-                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+                call mpi_send(send_buf,send_size,mpi_real4,gpu_master_rank,1,mpi_comm_world,ierr)
 
                 !w-velocity
                 send_buf = w(1:nnx,iys:iye,izs:ize)
-                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+                call mpi_send(send_buf,send_size,mpi_real4,gpu_master_rank,1,mpi_comm_world,ierr)
 
                 !temperature
                 send_buf = t(1:nnx,iys:iye,1,izs:ize)
-                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+                call mpi_send(send_buf,send_size,mpi_real4,gpu_master_rank,1,mpi_comm_world,ierr)
 
                 !humidity
                 send_buf = t(1:nnx,iys:iye,2,izs:ize)
-                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+                call mpi_send(send_buf,send_size,mpi_real4,gpu_master_rank,1,mpi_comm_world,ierr)
 
                 deallocate(send_buf)
             end if
