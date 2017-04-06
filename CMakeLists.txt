@@ -47,24 +47,33 @@ if (BUILD_FORTRAN)
   find_package(MPI REQUIRED)
   set( CMAKE_Fortran_COMPILER ${MPI_Fortran_COMPILER})
 
+  # Find Compiler
+  execute_process(COMMAND mpif90 -show OUTPUT_VARIABLE MPI_COMPILE_LINE)
+  string(REGEX MATCH "^([\\/a-zA-Z]+)\ " FORTRAN_COMPILER_PATH "${MPI_COMPILE_LINE}")
+  get_filename_component(FORTRAN_COMPILER ${FORTRAN_COMPILER_PATH} NAME)
+
   # Setup Compile Flags
-  set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -i4 -r8 -assume byterecl")
-  set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -i4 -r8 -assume byterecl")
+  if (FORTRAN_COMPILER MATCHES "ifort")
+    set (CMAKE_Fortran_FLAGS "-i4 -r8 -assume byterecl")
+    set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-free")
 
-  # Handle ulimit issue for intel compiler
-  option( BUILD_FORTRAN_RESTRICT_STACK "Restrict stack size for intel compiler" ON)
-  if (BUILD_FORTRAN_RESTRICT_STACK)
-    set( BUILD_FORTRAN_RESTRICT_STACK_MAX "256" CACHE STRING "Maximum stack size in kilobytes")
+    # Handle ulimit issue for intel compiler
+    option( BUILD_FORTRAN_RESTRICT_STACK "Restrict stack size for intel compiler" ON)
+    if (BUILD_FORTRAN_RESTRICT_STACK)
+      set( BUILD_FORTRAN_RESTRICT_STACK_MAX "256" CACHE STRING "Maximum stack size in kilobytes")
 
-    set (CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -heap-arrays ${BUILD_FORTRAN_RESTRICT_STACK_MAX}")
-    set (CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -heap-arrays ${BUILD_FORTRAN_RESTRICT_STACK_MAX}")
-  endif (BUILD_FORTRAN_RESTRICT_STACK)
+      set (CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -heap-arrays ${BUILD_FORTRAN_RESTRICT_STACK_MAX}")
+    endif (BUILD_FORTRAN_RESTRICT_STACK)
+  elseif (FORTRAN_COMPILER MATCHES "gfortran")
+    set (CMAKE_Fortran_FLAGS "-fdefault-real-8 -fdefault-double-8")
+    set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-ffree-form -ffree-line-length-none")
+  else (FORTRAN_COMPILER MATCHES "ifort")
+    message ("MPI Compile Line: " ${MPI_COMPILE_LINE})
+    message( FATAL_ERROR "Unknown fortran compiler")
+  endif (FORTRAN_COMPILER MATCHES "ifort")
 
   # Build Library
   add_library (fft STATIC "fft.f")
-
-  # Set source parameters
-  set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-free")
 
   # Build Executable
   add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
