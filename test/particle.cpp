@@ -664,6 +664,7 @@ TEST_F( ParticleTest, InterpolationZZEQZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -704,6 +705,7 @@ TEST_F( ParticleTest, InterpolationZEQ1 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -744,6 +746,7 @@ TEST_F( ParticleTest, InterpolationZLTZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -784,6 +787,7 @@ TEST_F( ParticleTest, InterpolationZEQ2 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -824,6 +828,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -864,6 +869,7 @@ TEST_F( ParticleTest, InterpolationZGTNNZ ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -904,6 +910,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM1 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -944,6 +951,7 @@ TEST_F( ParticleTest, InterpolationZEQNNZM2 ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -984,6 +992,7 @@ TEST_F( ParticleTest, InterpolationZELSE ) {
 	double* ZZ = ReadArray("../test/data/ZZ.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 11, 11, 8, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -1024,6 +1033,7 @@ TEST_F( ParticleTest, InterpolationZELSE16 ) {
 	double* ZZ = ReadArray("../test/data/ZZ16.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(1, 21, 21, 18, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
@@ -1064,6 +1074,7 @@ TEST_F( ParticleTest, InterpolationMulti ) {
 	double* ZZ = ReadArray("../test/data/ZZ16-real.dat", &size);
 
 	// Create GPU
+	params.LinearInterpolation = 0;
 	GPU *gpu = NewGPU(2, 21, 21, 18, 0.5, 1.0, 0.0, Z, ZZ, &params );
 
 	// Setup Variables
