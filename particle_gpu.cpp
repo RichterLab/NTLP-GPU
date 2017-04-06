@@ -833,7 +833,7 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
     GPUUpdateParticles<<< blocks, CUDA_BLOCK_THREADS >>> (it, istage - 1, dt, gpu->pCount, gpu->dParticles);
     gpuErrchk( cudaPeekAtLastError() );
 #else
-    GPUUpdateParticles(it, istage, dt, gpu->pCount, gpu->hParticles);
+    GPUUpdateParticles(it, istage - 1, dt, gpu->pCount, gpu->hParticles);
 #endif
 }
 
