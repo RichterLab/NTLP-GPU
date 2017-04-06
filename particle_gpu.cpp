@@ -1,12 +1,12 @@
 #include "particle_gpu.h"
 #include "stdio.h"
 #include "assert.h"
+#include <cmath>
 #include <iomanip>
 #include <fstream>
 #include <iostream>
 
 #ifndef BUILD_CUDA
-#include "math.h"
 #include "string.h"
 #include "stdlib.h"
 #endif
@@ -122,17 +122,16 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
     const double *zShared = z;
     const double *zzShared = zz;
 
-    double dzu[nnz], dzw[nnz];
-    for( int i = 1; i < nnz-1; i++ ){
-        dzw[i] = z[i] - z[i-1];
+    double dzu[nnz+1], dzw[nnz+1];
+    for( int i = 1; i < nnz; i++ ){
         dzu[i] = zz[i] - zz[i-1];
+        dzw[i] = z[i] - z[i-1];
     }
-
-    dzw[0] = dzw[1];
     dzu[0] = dzu[1];
+    dzw[0] = dzw[1];
 
+    dzu[nnz] = dzu[nnz-1];
     dzw[nnz] = dzw[nnz-1];
-    dzu[nnz] = dzw[nnz-1];
 #endif
 
     const double xPos = particles[idx].xp[0];
@@ -165,11 +164,10 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
                 const double xv = dx * (i+ipt - 1);
                 const double yv = dy * (j+jpt - 1);
 
-                const double wtx = 1.0 - (abs(xPos - xv) / dx);
-                const double wty = 1.0 - (abs(yPos - yv) / dy);
-                const double wtz = 1.0 - (abs(zPos - zz[izuv]) / dzu[kpt+1]);
-                const double wtzw = 1.0 - (abs(zPos - z[izw]) / dzw[kwpt+1]);
-
+                const double wtx = 1.0 - (std::abs(xPos - xv) / dx);
+                const double wty = 1.0 - (std::abs(yPos - yv) / dy);
+                const double wtz = 1.0 - (std::abs(zPos - zz[izuv]) / dzu[kpt+1]);
+                const double wtzw = 1.0 - (std::abs(zPos - z[izw]) / dzw[kwpt+1]);
                 xUF += uext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
                 yUF += vext[(ix+1)+(iy+1)*nx+izuv*ny*nx] * wtx * wty * wtz;
                 zUF += wext[(ix+1)+(iy+1)*nx+izw*ny*nx] * wtx * wty * wtzw;
