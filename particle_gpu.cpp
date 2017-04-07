@@ -96,11 +96,13 @@ int* ParticleFindXYNeighbours(const double dx, const double dy, const Particle* 
 }
 
 GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double dx, const double dy, const int nnz, const double* __restrict__ z, const double* __restrict__ zz, const double* __restrict__ uext, const double* __restrict__ vext, const double* __restrict__ wext, const double* __restrict__ Text, const double* __restrict__ T2ext, const int pcount, Particle* __restrict__ particles) {
+    int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
-    for (int idx = blockIdx.x * blockDim.x + threadIdx.x; idx < pcount; idx += blockDim.x * gridDim.x) {
-#else
-    for( int idx = 0; idx < pcount; idx++){
+    index_start = blockIdx.x * blockDim.x + threadIdx.x;
+    index_stride = blockDim.x * gridDim.x;
 #endif
+
+    for( int idx = index_start; idx < pcount; idx += index_stride ){
 
 // Setup shared memory for Z and ZZ
 #ifdef BUILD_CUDA
@@ -188,12 +190,13 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 }
 
 GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, const double dy, const int nnz, const double* __restrict__ z, const double* __restrict__ zz, const double* __restrict__ uext, const double* __restrict__ vext, const double* __restrict__ wext, const double* __restrict__ Text, const double* __restrict__ T2ext, const int pcount, Particle* __restrict__ particles){
+    int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= pcount ) return;
-#else
-    for( int idx = 0; idx < pcount; idx++){
+    index_start = blockIdx.x * blockDim.x + threadIdx.x;
+    index_stride = blockDim.x * gridDim.x;
 #endif
+
+    for( int idx = index_start; idx < pcount; idx += index_stride ){
 
 #ifdef BUILD_CUDA
     extern SHARED double shared[];
@@ -392,19 +395,17 @@ GLOBAL void GPUFieldInterpolate( const int nx, const int ny, const double dx, co
         }
     }
 
-#ifndef BUILD_CUDA
     }
-#endif
 }
 
 GLOBAL void GPUUpdateParticles( const int it, const int istage, const double dt, const int pcount, Particle* __restrict__ particles ) {
-
+    int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= pcount ) return;
-#else
-    for( int idx = 0; idx < pcount; idx++){
+    index_start = blockIdx.x * blockDim.x + threadIdx.x;
+    index_stride = blockDim.x * gridDim.x;
 #endif
+
+    for( int idx = index_start; idx < pcount; idx += index_stride ){
 
 #ifdef BUILD_CUDA
     SHARED double pi, pi2, m_s, CpaCpp, Lv, pPra, pSc, zetas[3], gama[3], g[3], dtZ, dtG;
@@ -504,63 +505,56 @@ GLOBAL void GPUUpdateParticles( const int it, const int istage, const double dt,
     particles[idx].Tp += + dtG * particles[idx].Tprhs_L;
     particles[idx].radius = radiustmp + dtG * particles[idx].radrhs;
 
-#ifndef BUILD_CUDA
     }
-#endif
 }
 
 GLOBAL void GPUUpdateNonperiodic( const double grid_width, const int pcount, Particle* __restrict__ particles ) {
+    int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= pcount ) return;
-#else
-    for( int idx = 0; idx < pcount; idx++){
+    index_start = blockIdx.x * blockDim.x + threadIdx.x;
+    index_stride = blockDim.x * gridDim.x;
 #endif
 
-    const double radius = particles[idx].radius;
-    const double zPos = particles[idx].xp[2];
+    for( int idx = index_start; idx < pcount; idx += index_stride ){
+        const double radius = particles[idx].radius;
+        const double zPos = particles[idx].xp[2];
 
-    const double top = grid_width - radius;
-    const double bot = 0.0 + radius;
+        const double top = grid_width - radius;
+        const double bot = 0.0 + radius;
 
-    if( zPos > top ){
-        particles[idx].xp[2] = top - (zPos-top);
-        particles[idx].vp[2] = -particles[idx].vp[2];
-    }else if( zPos < bot ){
-        particles[idx].xp[2] = bot + (bot-zPos);
-        particles[idx].vp[2] = -particles[idx].vp[2];
+        if( zPos > top ){
+            particles[idx].xp[2] = top - (zPos-top);
+            particles[idx].vp[2] = -particles[idx].vp[2];
+        }else if( zPos < bot ){
+            particles[idx].xp[2] = bot + (bot-zPos);
+            particles[idx].vp[2] = -particles[idx].vp[2];
+        }
     }
-
-#ifndef BUILD_CUDA
-    }
-#endif
 }
 
 GLOBAL void GPUUpdatePeriodic( const double grid_width, const double grid_height, const int pcount, Particle* __restrict__ particles ) {
+    int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
-    int idx = blockIdx.x * blockDim.x + threadIdx.x;
-    if ( idx >= pcount ) return;
-#else
-    for( int idx = 0; idx < pcount; idx++){
+    index_start = blockIdx.x * blockDim.x + threadIdx.x;
+    index_stride = blockDim.x * gridDim.x;
 #endif
-    const double xPos = particles[idx].xp[0];
-    const double yPos = particles[idx].xp[1];
 
-    if( xPos > grid_width ){
-        particles[idx].xp[0] -= grid_width;
-    }else if( xPos < 0.0 ){
-        particles[idx].xp[0] = grid_width + xPos;
-    }
+    for( int idx = index_start; idx < pcount; idx += index_stride ){
+        const double xPos = particles[idx].xp[0];
+        const double yPos = particles[idx].xp[1];
 
-    if( yPos > grid_height ){
-        particles[idx].xp[1] -= grid_height;
-    }else if( yPos < 0.0 ){
-        particles[idx].xp[1] = grid_height + yPos;
-    }
+        if( xPos > grid_width ){
+            particles[idx].xp[0] -= grid_width;
+        }else if( xPos < 0.0 ){
+            particles[idx].xp[0] = grid_width + xPos;
+        }
 
-#ifndef BUILD_CUDA
+        if( yPos > grid_height ){
+            particles[idx].xp[1] -= grid_height;
+        }else if( yPos < 0.0 ){
+            particles[idx].xp[1] = grid_height + yPos;
+        }
     }
-#endif
 }
 
 void GPUCalculateStatistics( const int nnz, const double* __restrict__ z, double* __restrict__ partcount_t, double* __restrict__ vpsum_t, double* __restrict__ vpsqrsum_t, const int pcount, Particle* __restrict__ particles ) {
