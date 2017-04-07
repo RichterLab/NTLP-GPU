@@ -272,12 +272,22 @@ contains
 #ifdef BUILD_CUDA_VERIFY
             integer :: succeeded, failures
 #endif
+#ifdef BUILD_PERFORMANCE_PROFILE
+            real :: rate
+            integer(8) :: cr,tStart,tEnd
+
+            call system_clock(count_rate=cr)
+            rate = REAL(cr)
+#endif
 
             dim = nnz + 2
             tdim = dim * 3
             allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
 
             if( myid .eq. gpu_master_rank ) then
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(tStart)
+#endif
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
 
@@ -357,6 +367,11 @@ contains
                 end do
 #ifdef BUILD_CUDA_VERIFY
                 write(*,*) "Total Failures: ", failures
+#endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(tEnd)
+                write(*,'(a,f20.8,a)') "Statistics Time: ",(tEnd-tStart)/rate,"s"
 #endif
             end if
         end subroutine

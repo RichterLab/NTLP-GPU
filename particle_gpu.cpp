@@ -4,6 +4,7 @@
 #include <cmath>
 #include <iomanip>
 #include <fstream>
+#include <chrono>
 #include <iostream>
 
 #ifndef BUILD_CUDA
@@ -809,6 +810,10 @@ extern "C" void ParticleGenerate(GPU* gpu, const int processors, const int parti
 }
 
 extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy ) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+     auto start = std::chrono::steady_clock::now();
+#endif
+
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     if( gpu->mParameters.LinearInterpolation == 1 ) {
@@ -824,9 +829,21 @@ extern "C" void ParticleInterpolate( GPU *gpu, const double dx, const double dy 
         GPUFieldInterpolate( gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
     }
 #endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+    #ifdef BUILD_CUDA
+        cudaDeviceSynchronize();
+    #endif
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "GPU Interpolate: " << std::chrono::duration <double> (end-start).count() << "s" << std::endl;
+#endif
 }
 
 extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const double dt ) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+     auto start = std::chrono::steady_clock::now();
+#endif
+
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     GPUUpdateParticles<<< blocks, CUDA_BLOCK_THREADS >>> (it, istage - 1, dt, gpu->pCount, gpu->dParticles);
@@ -834,9 +851,21 @@ extern "C" void ParticleStep( GPU *gpu, const int it, const int istage, const do
 #else
     GPUUpdateParticles(it, istage - 1, dt, gpu->pCount, gpu->hParticles);
 #endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+    #ifdef BUILD_CUDA
+        cudaDeviceSynchronize();
+    #endif
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "GPU Step: " << std::chrono::duration <double> (end-start).count() << "s" << std::endl;
+#endif
 }
 
 extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+     auto start = std::chrono::steady_clock::now();
+#endif
+
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     GPUUpdateNonperiodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldDepth, gpu->pCount, gpu->dParticles);
@@ -844,9 +873,21 @@ extern "C" void ParticleUpdateNonPeriodic( GPU *gpu ) {
 #else
     GPUUpdateNonperiodic(gpu->FieldDepth, gpu->pCount, gpu->hParticles);
 #endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+    #ifdef BUILD_CUDA
+        cudaDeviceSynchronize();
+    #endif
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "GPU NonPeriodic: " << std::chrono::duration <double> (end-start).count() << "s" << std::endl;
+#endif
 }
 
 extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+     auto start = std::chrono::steady_clock::now();
+#endif
+
 #ifdef BUILD_CUDA
     const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
     GPUUpdatePeriodic<<< blocks, CUDA_BLOCK_THREADS >>> (gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
@@ -854,9 +895,20 @@ extern "C" void ParticleUpdatePeriodic( GPU *gpu ) {
 #else
     GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
 #endif
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+    #ifdef BUILD_CUDA
+        cudaDeviceSynchronize();
+    #endif
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "GPU Periodic: " << std::chrono::duration <double> (end-start).count() << "s" << std::endl;
+#endif
 }
 
 extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const double dy ) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+     auto start = std::chrono::steady_clock::now();
+#endif
     memset(gpu->hPartCount, 0.0, sizeof(double) * gpu->GridDepth );
     memset(gpu->hVPSum, 0.0, sizeof(double) * gpu->GridDepth * 3);
     memset(gpu->hVPSumSQ, 0.0, sizeof(double) * gpu->GridDepth * 3);
@@ -864,8 +916,15 @@ extern "C" void ParticleCalculateStatistics( GPU *gpu, const double dx, const do
 #ifdef BUILD_CUDA
     ParticleDownload(gpu);
 #endif
-
     GPUCalculateStatistics( gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+    #ifdef BUILD_CUDA
+        cudaDeviceSynchronize();
+    #endif
+    auto end = std::chrono::steady_clock::now();
+    std::cout << "GPU Statistics: " << std::chrono::duration <double> (end-start).count() << "s" << std::endl;
+#endif
 }
 
 extern "C" void ParticleDownload( GPU *gpu ) {

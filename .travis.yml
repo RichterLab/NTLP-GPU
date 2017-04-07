@@ -5,21 +5,30 @@ cache:
     - $HOME/lcov-1.13
 addons:
   apt:
+    sources:
+      - ubuntu-toolchain-r-test
     packages:
-    - gfortran
-    - libopenmpi-dev
+      - g++-6
+      - gcc-6
+      - gfortran-6
+      - libopenmpi-dev
 before_install:
   - |
     if [ ! -f "$HOME/lcov-1.13/usr/local/bin/lcov" ]; then
       wget -O - --no-check-certificate http://downloads.sourceforge.net/ltp/lcov-1.13.tar.gz | tar xz && DESTDIR=$HOME/lcov-1.13/ make install -C lcov-1.13
     fi
 script:
+  - mkdir -p latest-gcc-symlinks
+  - ln -s /usr/bin/g++-6 latest-gcc-symlinks/g++
+  - ln -s /usr/bin/gcc-6 latest-gcc-symlinks/gcc
+  - ln -s /usr/bin/gfortran-6 latest-gcc-symlinks/gfortran
+  - export PATH=$PWD/latest-gcc-symlinks:$PATH
   - mkdir build
   - cd build
-  - cmake -DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_TEST_COVERAGE=ON ..
+  - CXX="g++-6" CC="gcc-6" FC="gfortran-6" cmake ..-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_TEST_COVERAGE=ON ..
   - make
   - ./les-test
 after_success:
-  - $HOME/lcov-1.13/usr/local/bin/lcov -compat-libtool --directory . --capture --output-file coverage.info
-  - $HOME/lcov-1.13/usr/local/bin/lcov --remove coverage.info '*/test/google/*' --output-file coverage.info
-  - bash <(curl -s https://codecov.io/bash) -X gcov -X coveragepy -X xcode
+  - $HOME/lcov-1.13/usr/local/bin/lcov --gcov-tool gcov-6 -compat-libtool --directory . --capture --output-file coverage.info
+  - $HOME/lcov-1.13/usr/local/bin/lcov --gcov-tool gcov-6 --remove coverage.info '*/test/google/*' --output-file coverage.info
+  - bash <(curl -s https://codecov.io/bash) -X gcov-6 -X coveragepy -X xcode
