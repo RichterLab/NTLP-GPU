@@ -21,6 +21,9 @@ option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)
   find_package(CUDA REQUIRED)
 
+  # Setup CUDA Compilation for Maximum compatability
+  set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -gencode arch=compute_20,code=compute_20 -gencode arch=compute_30,code=compute_30 -gencode arch=compute_35,code=compute_35 -gencode arch=compute_50,code=compute_50")
+
   set( BUILD_CUDA_BLOCK_THREADS "128" CACHE STRING "Threads per block for CUDA")
   set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DBUILD_CUDA -DCUDA_BLOCK_THREADS=${BUILD_CUDA_BLOCK_THREADS}" )
 
