@@ -12,15 +12,17 @@
 #include "stdlib.h"
 #endif
 
-#define DEVICE
-#define GLOBAL
-#define SHARED
-#define CONSTANT
+
 
 #define MAX(x, y) (((x) > (y)) ? (x) : (y))
 #define MIN(x, y) (((x) < (y)) ? (x) : (y))
 
-#ifdef BUILD_CUDA
+#ifndef BUILD_CUDA
+    #define DEVICE
+    #define GLOBAL
+    #define SHARED
+    #define CONSTANT
+#else
     #define DEVICE __device__
     #define GLOBAL __global__
     #define CONSTANT __constant__
