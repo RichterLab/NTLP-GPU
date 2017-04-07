@@ -12,44 +12,38 @@
 #include "stdlib.h"
 #endif
 
-#define MAX(x, y) (((x) > (y)) ? (x) : (y))
-#define MIN(x, y) (((x) < (y)) ? (x) : (y))
-
-#ifdef BUILD_CUDA
-#define DEVICE __device__
-#define GLOBAL __global__
-#define CONSTANT __constant__
-#define SHARED __shared__
-#else
 #define DEVICE
 #define GLOBAL
 #define SHARED
 #define CONSTANT
+
+#define MAX(x, y) (((x) > (y)) ? (x) : (y))
+#define MIN(x, y) (((x) < (y)) ? (x) : (y))
+
+#ifdef BUILD_CUDA
+    #define DEVICE __device__
+    #define GLOBAL __global__
+    #define CONSTANT __constant__
+    #define SHARED __shared__
+
+    #define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
+    inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true) {
+        if (code != cudaSuccess) {
+            fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
+            if (abort) exit(code);
+        }
+    }
 #endif
 
 extern "C" int gpudevices(){
+    int nDevices = 1;
 #ifdef BUILD_CUDA
-    int nDevices;
     if( cudaGetDeviceCount(&nDevices) == cudaErrorInsufficientDriver ){
         return 0;
     }
-
+#endif
     return nDevices;
-#else
-    return 1;
-#endif
 }
-
-#ifdef BUILD_CUDA
-#define gpuErrchk(ans) { gpuAssert((ans), __FILE__, __LINE__); }
-inline void gpuAssert(cudaError_t code, const char *file, int line, bool abort=true)
-{
-   if (code != cudaSuccess) {
-      fprintf(stderr,"GPUassert: %s %s %d\n", cudaGetErrorString(code), file, line);
-      if (abort) exit(code);
-   }
-}
-#endif
 
 CONSTANT Parameters cParams;
 
