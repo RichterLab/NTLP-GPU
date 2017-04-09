@@ -258,6 +258,183 @@ contains
             end if
         end subroutine
 
+        subroutine assemble_gpu_data
+            use pars
+            use fields
+            use con_stats, only: z, zz
+            implicit none
+            include 'mpif.h'
+
+            integer :: i, j, k
+            integer :: receive_size,send_size
+            integer :: istart,iend,kstart,kend
+            integer :: buf_size(4),buf_dims(4)
+            integer :: iproc,istatus(mpi_status_size),ierr
+            real,allocatable :: receive_buf(:,:,:),send_buf(:,:,:)
+
+            !The fields to be assembeled on GPU proc: (2 periodic halos to the left, 3 to right, top/bottom in nz)
+            real :: u_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real :: v_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real :: w_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+            real :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+            real :: rate
+            integer(8) :: cr,cm,rStart,rEnd,hEnd,tEnd
+
+            call system_clock(count_rate=cr)
+            rate = REAL(cr)
+#endif
+
+            !NOTE: THE Z HALOS (0 and nz+1) WILL BE ZERO, BUT THIS SHOULDN'T MATTER SINCE THEY DON'T GET USED
+            u_full = 0.0
+            v_full = 0.0
+            w_full = 0.0
+            T_full = 0.0
+            q_full = 0.0
+
+            !The GPU proc (assumed proc 0 here) receives, everyone else sends
+            if (myid == gpu_master_rank) then
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(rStart)
+#endif
+                do iproc=0,numprocs-1
+                    if (myid .ne. iproc) then
+                        !Figure out how much data is coming:
+                        call mpi_recv(buf_size,4,mpi_integer,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Allocate the receive buffer;
+                        buf_dims(1) = nnx
+                        buf_dims(2) = buf_size(2)-buf_size(1) + 1
+                        buf_dims(3) = buf_size(4)-buf_size(3) + 1
+
+                        allocate(receive_buf(buf_dims(1),buf_dims(2),buf_dims(3)))
+                        receive_size = buf_dims(1)*buf_dims(2)*buf_dims(3)
+
+                        !u-velocity
+                        !receive the buffer:
+                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Now put into full field
+                        u_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
+
+                        !v-velocity
+                        !receive the buffer:
+                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Now put into full field
+                        v_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
+
+                        !w-velocity
+                        !receive the buffer:
+                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Now put into full field
+                        w_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
+
+                        !temperature
+                        !receive the buffer:
+                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Now put into full field
+                        T_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
+
+                        !humidity
+                        !receive the buffer:
+                        call mpi_recv(receive_buf,receive_size,mpi_real8,iproc,1,mpi_comm_world,istatus,ierr)
+
+                        !Now put into full field
+                        q_full(1:nnx,buf_size(1):buf_size(2),buf_size(3):buf_size(4)) = receive_buf(1:buf_dims(1),1:buf_dims(2),1:buf_dims(3))
+
+                        deallocate(receive_buf)
+                    else !the GPU proc simply puts its portion into full
+                        u_full(1:nnx,iys:iye,izs:ize) = u(1:nnx,iys:iye,izs:ize)
+                        v_full(1:nnx,iys:iye,izs:ize) = v(1:nnx,iys:iye,izs:ize)
+                        w_full(1:nnx,iys:iye,izs:ize) = w(1:nnx,iys:iye,izs:ize)
+                        T_full(1:nnx,iys:iye,izs:ize) = t(1:nnx,iys:iye,1,izs:ize)
+                        q_full(1:nnx,iys:iye,izs:ize) = t(1:nnx,iys:iye,2,izs:ize)
+                    end if
+                end do
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(rEnd)
+                write(*,'(a,f10.8,a)') "Recieve Time: ",(rEnd - rStart)/rate,"s"
+#endif
+
+                !Finally fill the halos so that GPU doesn't have to conditionally search for periodicity
+                u_full(-1:0,1:maxny,0:maxnz+1) = u_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+                u_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = u_full(1:3,1:maxny,0:maxnz+1)
+                u_full(-1:maxnx+3,-1:0,0:maxnz+1) = u_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+                u_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = u_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+                v_full(-1:0,1:maxny,0:maxnz+1) = v_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+                v_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = v_full(1:3,1:maxny,0:maxnz+1)
+                v_full(-1:maxnx+3,-1:0,0:maxnz+1) = v_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+                v_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = v_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+                w_full(-1:0,1:maxny,0:maxnz+1) = w_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+                w_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = w_full(1:3,1:maxny,0:maxnz+1)
+                w_full(-1:maxnx+3,-1:0,0:maxnz+1) = w_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+                w_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = w_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+                T_full(-1:0,1:maxny,0:maxnz+1) = T_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+                T_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = T_full(1:3,1:maxny,0:maxnz+1)
+                T_full(-1:maxnx+3,-1:0,0:maxnz+1) = T_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+                T_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = T_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+                q_full(-1:0,1:maxny,0:maxnz+1) = q_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
+                q_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = q_full(1:3,1:maxny,0:maxnz+1)
+                q_full(-1:maxnx+3,-1:0,0:maxnz+1) = q_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
+                q_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = q_full(-1:maxnx+3,1:3,0:maxnz+1)
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(hEnd)
+                write(*,'(a,f10.8,a)') "Halo Time: ",(hEnd - rEnd)/rate,"s"
+#endif
+                !Now the "full" fields are complete and can be transferred to GPU
+                call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full)
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(tEnd)
+                write(*,'(a,f10.8,a)') "GPU Transfer Time: ",(tEnd - hEnd)/rate,"s"
+#endif
+            else
+                allocate(send_buf(nnx,iye-iys+1,ize-izs+1))
+
+                !First need to send the size of my buffer:
+                buf_size(1) = iys
+                buf_size(2) = iye
+                buf_size(3) = izs
+                buf_size(4) = ize
+                call mpi_send(buf_size,4,mpi_integer,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                send_size = nnx*(iye-iys+1)*(ize-izs+1)
+
+                !u-velocity
+                send_buf = u(1:nnx,iys:iye,izs:ize)
+                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                !v-velocity
+                send_buf = v(1:nnx,iys:iye,izs:ize)
+                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                !w-velocity
+                send_buf = w(1:nnx,iys:iye,izs:ize)
+                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                !temperature
+                send_buf = t(1:nnx,iys:iye,1,izs:ize)
+                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                !humidity
+                send_buf = t(1:nnx,iys:iye,2,izs:ize)
+                call mpi_send(send_buf,send_size,mpi_real8,gpu_master_rank,1,mpi_comm_world,ierr)
+
+                deallocate(send_buf)
+            end if
+        end subroutine assemble_gpu_data
+
         subroutine calculate_statistics(stat)
             use pars, only: nnz, nny, nnx, numprocs, myid, dzw
             use con_data, only: dx, dy, nscl
