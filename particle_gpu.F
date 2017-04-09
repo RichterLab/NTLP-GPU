@@ -435,6 +435,52 @@ contains
             end if
         end subroutine assemble_gpu_data
 
+        subroutine gpu_particle_step(it, istage)
+            use pars, only: myid
+            use con_data, only: dx, dy, dt
+
+            include 'mpif.h'
+
+            integer :: ierr, it, istage
+#ifdef BUILD_PERFORMANCE_PROFILE
+            real :: rate
+            integer*8 :: cr,aStart,aEnd,gpuStart,gpuEnd
+
+            call system_clock(count_rate=cr)
+            rate = REAL(cr)
+#endif
+
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+            call mpi_barrier(mpi_comm_world,ierr)
+            if( myid .eq. gpu_master_rank ) then
+                call system_clock(aStart)
+            end if
+#endif
+            call assemble_gpu_data
+#ifdef BUILD_PERFORMANCE_PROFILE
+            call mpi_barrier(mpi_comm_world,ierr)
+            if( myid .eq. gpu_master_rank ) then
+                call system_clock(aEnd)
+                write(*,'(a,f10.8,a)') "Assemble Step Time: ", (aEnd-aStart)/rate,"s"
+            end if
+#endif
+
+            if( myid .eq. gpu_master_rank ) then
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(gpuStart)
+#endif
+                call gpuinterpolate(gpu,dx,dy)
+                call gpustep(gpu, it, istage, dt)
+                call gpunonperiodic(gpu)
+                call gpuperiodic(gpu)
+#ifdef BUILD_PERFORMANCE_PROFILE
+                call system_clock(gpuEnd)
+                write(*,'(a,f10.8,a)') "GPU Step Time: ",(gpuEnd - gpuStart)/rate,"s"
+#endif
+            end if
+        end subroutine
+
         subroutine calculate_statistics(stat)
             use pars, only: nnz, nny, nnx, numprocs, myid, dzw
             use con_data, only: dx, dy, nscl

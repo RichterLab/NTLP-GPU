@@ -63,8 +63,7 @@ c            test if on root process
 c
       REAL :: rate
       INTEGER(8) :: cr,cm,fStart,fEnd,eEnd,dEnd,lEnd,uEnd,pbEnd,mEnd
-      INTEGER(8) :: ivEnd,sEnd,xyEnd,c1End,cpEnd,c2End,aStart,aEnd
-      INTEGER(8) :: gpuStart,gpuEnd,cpuStart,cpuEnd
+      INTEGER(8) :: ivEnd,sEnd,xyEnd,c1End,cpEnd,c2End,cpuStart,cpuEnd
 
       call mpi_init(ierr)
       call mpi_comm_rank(mpi_comm_world,myid,ierr)
@@ -429,48 +428,14 @@ c
 c
 c -------- update particles
 c
-!      Comment this out for the channel case - no generation needed
-!      Just randomly initiating particles and having reflective boundaries
-!      if ( (ispray==1) .AND. (iss == 0)) then
-!        call particle_generate(istage)
-!      end if
-#ifdef BUILD_CUDA
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(aStart)
-      end if
-#endif
-      call assemble_gpu_data
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(aEnd)
-        write(*,'(a,f10.8,a)') "Assemble Step Time: ",
-     +      (aEnd-aStart)/rate,"s"
-      end if
-#endif
-
-      if( myid .eq. gpu_master_rank ) then
-#ifdef BUILD_PERFORMANCE_PROFILE
-        call system_clock(gpuStart)
-#endif
-        call gpuinterpolate(gpu,dx,dy)
-        call gpustep(gpu, it, istage, dt)
-        call gpunonperiodic(gpu)
-        call gpuperiodic(gpu)
-#ifdef BUILD_PERFORMANCE_PROFILE
-        call system_clock(gpuEnd)
-        write(*,'(a,f10.8,a)') "GPU Step Time: ",
-     +      (gpuEnd - gpuStart)/rate,"s"
-#endif
-      end if
-#endif
-
       if (ispray==1) then
+#ifdef BUILD_CUDA
+         call gpu_particle_step(it, istage)
+#endif
+
 #ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-        call system_clock(cpuStart)
+         call mpi_barrier(mpi_comm_world,ierr)
+         call system_clock(cpuStart)
 #endif
          !call particle_update_cn(it,istage)
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
