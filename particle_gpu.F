@@ -261,6 +261,7 @@ contains
         subroutine assemble_gpu_data
             use pars
             use fields
+            use class_Profiler
             use con_stats, only: z, zz
             implicit none
             include 'mpif.h'
@@ -279,13 +280,7 @@ contains
             real :: T_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
             real :: q_full(-1:maxnx+3,-1:maxny+3,0:maxnz+1)
 
-#ifdef BUILD_PERFORMANCE_PROFILE
-            real :: rate
-            integer(8) :: cr,cm,rStart,rEnd,hEnd,tEnd
-
-            call system_clock(count_rate=cr)
-            rate = REAL(cr)
-#endif
+            type(Profiler) :: tTransfer, tHalo, tUpload
 
             !NOTE: THE Z HALOS (0 and nz+1) WILL BE ZERO, BUT THIS SHOULDN'T MATTER SINCE THEY DON'T GET USED
             u_full = 0.0
@@ -296,9 +291,7 @@ contains
 
             !The GPU proc (assumed proc 0 here) receives, everyone else sends
             if (myid == gpu_master_rank) then
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(rStart)
-#endif
+                call tTransfer%start(gpu_master_rank, .false.)
                 do iproc=0,numprocs-1
                     if (myid .ne. iproc) then
                         !Figure out how much data is coming:
@@ -356,13 +349,10 @@ contains
                         q_full(1:nnx,iys:iye,izs:ize) = t(1:nnx,iys:iye,2,izs:ize)
                     end if
                 end do
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(rEnd)
-                write(*,'(a,f10.8,a)') "Recieve Time: ",(rEnd - rStart)/rate,"s"
-#endif
+                call tTransfer%finish(gpu_master_rank, "Recieve Time: ", .false.)
 
                 !Finally fill the halos so that GPU doesn't have to conditionally search for periodicity
+                call tHalo%start(gpu_master_rank, .false.)
                 u_full(-1:0,1:maxny,0:maxnz+1) = u_full(maxnx-1:maxnx,1:maxny,0:maxnz+1)
                 u_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = u_full(1:3,1:maxny,0:maxnz+1)
                 u_full(-1:maxnx+3,-1:0,0:maxnz+1) = u_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
@@ -387,18 +377,12 @@ contains
                 q_full(maxnx+1:maxnx+3,1:maxny,0:maxnz+1) = q_full(1:3,1:maxny,0:maxnz+1)
                 q_full(-1:maxnx+3,-1:0,0:maxnz+1) = q_full(-1:maxnx+3,maxny-1:maxny,0:maxnz+1)
                 q_full(-1:maxnx+3,maxny+1:maxny+3,0:maxnz+1) = q_full(-1:maxnx+3,1:3,0:maxnz+1)
+                call tHalo%finish(gpu_master_rank, "Halo Time: ", .false.)
 
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(hEnd)
-                write(*,'(a,f10.8,a)') "Halo Time: ",(hEnd - rEnd)/rate,"s"
-#endif
                 !Now the "full" fields are complete and can be transferred to GPU
+                call tUpload%start(gpu_master_rank, .false.)
                 call gpucopyfield(gpu,u_full,v_full,w_full,T_full,q_full)
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(tEnd)
-                write(*,'(a,f10.8,a)') "GPU Transfer Time: ",(tEnd - hEnd)/rate,"s"
-#endif
+                call tUpload%finish(gpu_master_rank, "GPU Transfer Time: ", .false.)
             else
                 allocate(send_buf(nnx,iye-iys+1,ize-izs+1))
 
@@ -436,49 +420,27 @@ contains
         end subroutine assemble_gpu_data
 
         subroutine gpu_particle_step(it, istage)
+            use class_Profiler
             use pars, only: myid
             use con_data, only: dx, dy, dt
 
             include 'mpif.h'
 
             integer :: ierr, it, istage
-#ifdef BUILD_PERFORMANCE_PROFILE
-            real :: rate
-            integer*8 :: cr,aStart,aEnd,gpuStart,gpuEnd
+            type(Profiler) :: tAssemble, tStep
 
-            call system_clock(count_rate=cr)
-            rate = REAL(cr)
-#endif
-
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-            call mpi_barrier(mpi_comm_world,ierr)
-            if( myid .eq. gpu_master_rank ) then
-                call system_clock(aStart)
-            end if
-#endif
+            call tAssemble%start(gpu_master_rank)
             call assemble_gpu_data
-#ifdef BUILD_PERFORMANCE_PROFILE
-            call mpi_barrier(mpi_comm_world,ierr)
-            if( myid .eq. gpu_master_rank ) then
-                call system_clock(aEnd)
-                write(*,'(a,f10.8,a)') "Assemble Step Time: ", (aEnd-aStart)/rate,"s"
-            end if
-#endif
+            call tAssemble%finish(gpu_master_rank, "Assemble Step Time: ")
 
+            call tStep%start(gpu_master_rank)
             if( myid .eq. gpu_master_rank ) then
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(gpuStart)
-#endif
                 call gpuinterpolate(gpu,dx,dy)
                 call gpustep(gpu, it, istage, dt)
                 call gpunonperiodic(gpu)
                 call gpuperiodic(gpu)
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(gpuEnd)
-                write(*,'(a,f10.8,a)') "GPU Step Time: ",(gpuEnd - gpuStart)/rate,"s"
-#endif
             end if
+            call tStep%finish(gpu_master_rank, "GPU Step Time: ")
         end subroutine
 
         subroutine calculate_statistics(stat)
@@ -486,6 +448,7 @@ contains
             use con_data, only: dx, dy, nscl
             use particles
             use particle_struct
+            use class_Profiler
 
             include 'mpif.h'
 
@@ -495,22 +458,15 @@ contains
 #ifdef BUILD_CUDA_VERIFY
             integer :: succeeded, failures
 #endif
-#ifdef BUILD_PERFORMANCE_PROFILE
-            real :: rate
-            integer(8) :: cr,tStart,tEnd
 
-            call system_clock(count_rate=cr)
-            rate = REAL(cr)
-#endif
+            type(Profiler) :: timer
 
             dim = nnz + 2
             tdim = dim * 3
             allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
 
+            call timer%start(gpu_master_rank)
             if( myid .eq. gpu_master_rank ) then
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(tStart)
-#endif
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
                 call gpufillstatistics(gpu, pCount, vSum, vSumSQ)
 
@@ -591,12 +547,8 @@ contains
 #ifdef BUILD_CUDA_VERIFY
                 write(*,*) "Total Failures: ", failures
 #endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-                call system_clock(tEnd)
-                write(*,'(a,f20.8,a)') "Statistics Time: ",(tEnd-tStart)/rate,"s"
-#endif
             end if
+            call timer%finish(gpu_master_rank, "Statistics Time: ")
         end subroutine
 
         subroutine setup_particles()

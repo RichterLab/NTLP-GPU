@@ -54,6 +54,7 @@ if (BUILD_FORTRAN)
   if (FORTRAN_COMPILER MATCHES "ifort")
     set (CMAKE_Fortran_FLAGS "-i4 -r8 -assume byterecl")
     set_source_files_properties( "particle_gpu.F" COMPILE_FLAGS "-free")
+    set_source_files_properties( "profiler.F" COMPILE_FLAGS "-free")
 
     # Handle ulimit issue for intel compiler
     option( BUILD_FORTRAN_RESTRICT_STACK "Restrict stack size for intel compiler" ON)
@@ -74,12 +75,12 @@ if (BUILD_FORTRAN)
   add_library (fft STATIC "fft.f")
 
   # Build Executable
-  add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "particle_gpu.F" ${PARTICLE_O})
+  add_executable (lesmpi.a "les.F" "parameters.F" "fields.F" "fftwk.F" "con_data.F" "con_stats.F" "particle.F" "profiler.F" "particle_gpu.F" ${PARTICLE_O})
   target_link_libraries (lesmpi.a fft ${CUDA_LIBRARIES})
   set_target_properties( lesmpi.a PROPERTIES LINKER_LANGUAGE Fortran)
 
   if (BUILD_PERFORMANCE_PROFILE)
-    target_compile_definitions(lesmpi.a PRIVATE -DBUILD_PERFORMANCE_PROFILE)
+    set_property(SOURCE profiler.F APPEND_STRING PROPERTY COMPILE_FLAGS " -DBUILD_PERFORMANCE_PROFILE")
   endif (BUILD_PERFORMANCE_PROFILE)
 
   if( BUILD_CUDA )

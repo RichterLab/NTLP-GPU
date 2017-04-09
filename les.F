@@ -6,6 +6,7 @@ c
       use con_data
       use con_stats
       use particle_c
+      use class_Profiler
       include 'mpif.h'
 c
 c ------------- definition of internal flags
@@ -61,18 +62,17 @@ c
 c ---------- initialize MPI, get myid, numprocs,
 c            test if on root process
 c
-      REAL :: rate
-      INTEGER(8) :: cr,cm,fStart,fEnd,eEnd,dEnd,lEnd,uEnd,pbEnd,mEnd
-      INTEGER(8) :: ivEnd,sEnd,xyEnd,c1End,cpEnd,c2End,cpuStart,cpuEnd
+
+      type(Profiler) :: tExchange, tDerivative, tLower, tUpper, tPBC
+      type(Profiler) :: tMeans, tVis, tXY, tSave, tComp1, tCompP, tComp2
+      type(Profiler) :: tFlow, tCPU
 
       call mpi_init(ierr)
       call mpi_comm_rank(mpi_comm_world,myid,ierr)
       call mpi_comm_size(mpi_comm_world,numprocs,ierr)
 
       ! First initialize the system_clock
-      call system_clock(count_rate=cr)
-      call system_clock(count_max=cm)
-      rate = REAL(cr)
+      call profiler_initialize()
 c
       i_root = 0
       l_root = .false.
@@ -208,38 +208,24 @@ c
 c
       dtzeta = dt*zetas(istage)
       dtgama = dt*gama(istage)
+
+      call tFlow%start(gpu_master_rank)
 c
 c ---------- compute derivatives of (u,v,w)
 c
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(fStart)
-      end if
-#endif
-      call exchange
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(eEnd)
-        write(*,'(a,f10.8,a)') "Exchange Step Time: ",
-     +      (eEnd - fStart)/rate,"s"
-      end if
-#endif
 
+      call tExchange%start(gpu_master_rank)
+      call exchange
+      call tExchange%finish(gpu_master_rank, "Exchange Step Time: ")
+
+      call tDerivative%start(gpu_master_rank)
       call get_derv
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(dEnd)
-        write(*,'(a,f10.8,a)') "Derivitive Step Time: ",
-     +      (dEnd - eEnd)/rate,"s"
-      end if
-#endif
+      call tDerivative%finish(gpu_master_rank, "Derivitive Step Time: ")
 
 c
 c --------- new eddy viscosity, and bcs
 c
+      call tLower%start(gpu_master_rank)
       if(iss .eq. 0 .and. ifree .eq. 0) then
          if (iDNS .eq. 1) then
             call lower_dns(it)
@@ -253,15 +239,9 @@ c
             call lower_free(it)
          end if
       endif
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(lEnd)
-        write(*,'(a,f10.8,a)') "Lower Step Time: ",
-     +      (lEnd - dEnd)/rate,"s"
-      end if
-#endif
+      call tLower%finish(gpu_master_rank, "Lower Step Time: ")
 
+      call tUpper%start(gpu_master_rank)
       if(ise .eq. numprocs-1) then
          if (iDNS .eq. 1) then
             call upper_dns
@@ -269,74 +249,41 @@ c
             call upper
          end if
       endif
+      call tUpper%finish(gpu_master_rank, "Upper Step Time: ")
 
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(uEnd)
-        write(*,'(a,f10.8,a)') "Upper Step Time: ",
-     +      (uEnd-lEnd)/rate,"s"
-      end if
-#endif
-
+      call tPBC%start(gpu_master_rank)
       call bcast_pbc
+      call tPBC%finish(gpu_master_rank, "PBC Step Time: ")
 
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(pbEnd)
-        write(*,'(a,f10.8,a)') "PBC Step Time: ",
-     +      (pbEnd-uEnd)/rate,"s"
-      end if
-#endif
-
+      call tMeans%start(gpu_master_rank)
       call get_means(istage)
+      call tMeans%finish(gpu_master_rank, "Means Step Time: ")
 
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(mEnd)
-        write(*,'(a,f10.8,a)') "Means Step Time: ",
-     +      (mEnd-pbEnd)/rate,"s"
-      end if
-#endif
+      call tVis%start(gpu_master_rank)
       if(ivis .eq. 1) then
          call iso(it)
          call surfvis(it)
       endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(ivEnd)
-        write(*,'(a,f10.8,a)') "IVis Step Time: ",
-     +      (ivEnd-mEnd)/rate,"s"
-      end if
-#endif
+      call tVis%finish(gpu_master_rank, "IVis Step Time: ")
 
       if(istage .eq. 1)then
+        call tXY%start(gpu_master_rank)
+
         call xy_stats(it)
         call tke_budget
         do iscl=1,nscl
-        call Tvar_budget(iscl)
+            call Tvar_budget(iscl)
         enddo
         call extra_flux_terms
         call pbltop(itop)
+
+        call tXY%finish(gpu_master_rank, "XYStats Step Time: ")
       endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(xyEnd)
-        write(*,'(a,f10.8,a)') "XYStats Step Time: ",
-     +      (xyEnd-ivEnd)/rate,"s"
-      end if
-#endif
-
 
 c
 c ------------ save velocity field
 c
+      call tSave%start(gpu_master_rank)
       if(msave .and. istage .eq. 1) then
          call save_v(it)
          if (ispray==1) call save_particles
@@ -350,80 +297,36 @@ c
       if(msave .and. istage .eq. 1) then
          call save_p
       endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(sEnd)
-        write(*,'(a,f10.8,a)') "Save Step Time: ",
-     +      (sEnd-xyEnd)/rate,"s"
-      end if
-#endif
+      call tSave%finish(gpu_master_rank, "Save Step Time: ")
 c
 c --------- get rhs for all equations
 c
-      !t_s = mpi_wtime()
+      call tComp1%start(gpu_master_rank)
       call comp1(istage,it)
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(c1End)
-        write(*,'(a,f10.8,a)') "Comp1 Step Time: ",
-     +      (c1End-sEnd)/rate,"s"
-      end if
-#endif
-      !t_f = mpi_wtime()
-      !write(*,*) 'proc, comp1: ',myid,t_f-t_s
-      !call mpi_barrier(mpi_comm_world,ierr)
-      !if (myid==5) write(*,*) 'time comp1: ',t_f-t_s
+      call tComp1%finish(gpu_master_rank, "Comp1 Step Time: ")
+
       if(istage .eq. 1) then
          if(msave .and. l_root) call save_c(it)
       endif
 c
 c --------- solve for pressure
 c
-      !t_s = mpi_wtime()
+      call tCompP%start(gpu_master_rank)
       call comp_p
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(cpEnd)
-        write(*,'(a,f10.8,a)') "CompP Step Time: ",
-     +      (cpEnd-c1End)/rate,"s"
-      end if
-#endif
-      !t_f = mpi_wtime()
-      !write(*,*) 'proc, comp_p: ',myid,t_f-t_s
-      !call mpi_barrier(mpi_comm_world,ierr)
-      !if (myid==5) write(*,*) 'time comp_p: ',t_f-t_s
+      call tCompP%finish(gpu_master_rank, "CompP Step Time: ")
+
 c
 c --------- add pressure gradient and dealias
 c
-      !t_s = mpi_wtime()
+      call tComp2%start(gpu_master_rank)
       call comp2
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(c2End)
-        write(*,'(a,f10.8,a)') "Comp2 Step Time: ",
-     +      (c2End-cpEnd)/rate,"s"
-      end if
-#endif
-      !t_f = mpi_wtime()
-      !!write(*,*) 'proc, comp2: ',myid,t_f-t_s
-      !call mpi_barrier(mpi_comm_world,ierr)
-      !if (myid==5) write(*,*) 'time comp2: ',t_f-t_s
+      call tComp2%finish(gpu_master_rank, "Comp2 Step Time: ")
+
       if(micut) then
          call dealias
       endif
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      if( myid .eq. gpu_master_rank ) then
-        call system_clock(fEnd)
-        write(*,'(a,f10.8,a)') "Flow Step Time: ",
-     +      (fEnd - fStart)/rate,"s"
-      end if
-#endif
+
+      call tFlow%finish(gpu_master_rank, "Flow Step Time: ")
 
 c
 c -------- update particles
@@ -432,24 +335,11 @@ c
 #ifdef BUILD_CUDA
          call gpu_particle_step(it, istage)
 #endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-         call mpi_barrier(mpi_comm_world,ierr)
-         call system_clock(cpuStart)
-#endif
-         !call particle_update_cn(it,istage)
+         call tCPU%start(gpu_master_rank)
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          call particle_update_rk3(it,istage)
 #endif
-
-#ifdef BUILD_PERFORMANCE_PROFILE
-      call mpi_barrier(mpi_comm_world,ierr)
-      call system_clock(cpuEnd)
-         if( myid .eq. gpu_master_rank ) then
-            write(*,'(a,f10.8,a)') "CPU Step Time: ",
-     +            (cpuEnd-cpuStart)/rate,"s"
-         end if
-#endif
+         call tCPU%finish(gpu_master_rank, "CPU Step Time: ")
       end if
       if(mnout .and. istage .eq. 1)  then
           if(l_debug) then
