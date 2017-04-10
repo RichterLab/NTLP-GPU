@@ -629,14 +629,20 @@ extern "C" double rand2() {
 }
 
 void SetDeviceIndex(GPU *gpu, const unsigned int index) {
+#ifdef BUILD_CUDA
 	if(gpu->cDevice != index) {
 		gpu->cDevice = index;
 		gpuErrchk(cudaSetDevice(gpu->cDevice));
 	}
+#endif
 }
 
 Device *GetDeviceMemory(GPU *gpu) {
+#ifdef BUILD_CUDA
 	return &gpu->mDevices[gpu->cDevice];
+#else
+	return nullptr;
+#endif
 }
 
 extern "C" GPU *NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, double *z, double *zz, const Parameters *params) {
