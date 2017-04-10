@@ -715,13 +715,13 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 		gpuErrchk(cudaMemcpyAsync(dev->ZZ, zz, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
 	}
 
-	for(size_t i = 0; i < retVal->DeviceCount; i++) {
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(retVal, i);
 		Device *dev = GetDeviceMemory(retVal);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #else
 	retVal->hUext = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
 	retVal->hVext = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
@@ -772,13 +772,13 @@ extern "C" void ParticleFieldSet(GPU *gpu, double *uext, double *vext, double *w
 		gpuErrchk(cudaMemcpyAsync(dev->Qext, gpu->hQext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #endif
 }
 
@@ -800,13 +800,13 @@ extern "C" void ParticleUpload(GPU *gpu) {
 		gpuErrchk(cudaMemcpyAsync(dev->Particles, &gpu->hParticles[dev->ParticleOffset], sizeof(Particle) * dev->ParticleCount, cudaMemcpyHostToDevice, dev->Stream));
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #endif
 }
 
@@ -873,13 +873,13 @@ extern "C" void ParticleInterpolate(GPU *gpu, const double dx, const double dy) 
 		gpuErrchk(cudaPeekAtLastError());
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #else
 	if(gpu->mParameters.LinearInterpolation == 1) {
 		GPUFieldInterpolateLinear(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
@@ -909,13 +909,13 @@ extern "C" void ParticleStep(GPU *gpu, const int it, const int istage, const dou
 		gpuErrchk(cudaPeekAtLastError());
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #else
 	GPUUpdateParticles(it, istage - 1, dt, gpu->pCount, gpu->hParticles);
 #endif
@@ -941,13 +941,13 @@ extern "C" void ParticleUpdateNonPeriodic(GPU *gpu) {
 		gpuErrchk(cudaPeekAtLastError());
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #else
 	GPUUpdateNonperiodic(gpu->FieldDepth, gpu->pCount, gpu->hParticles);
 #endif
@@ -973,13 +973,13 @@ extern "C" void ParticleUpdatePeriodic(GPU *gpu) {
 		gpuErrchk(cudaPeekAtLastError());
 	}
 
+#ifdef BUILD_PERFORMANCE_PROFILE
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
-#ifdef BUILD_PERFORMANCE_PROFILE
 		cudaStreamSynchronize(dev->Stream);
-#endif
 	}
+#endif
 #else
 	GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
 #endif
