@@ -768,6 +768,8 @@ extern "C" void ParticleGenerate(GPU *gpu, const int processors, const int ncpus
 	double xMin = 0.0, xMax = x_grid_change;
 	double yMin = 0.0, yMax = y_grid_change;
 
+	memset(gpu->hParticles, 0, sizeof(Particle) * gpu->pCount);
+
 	int offset = 0;
 	for(size_t processor = 0; processor < processors; processor++) {
 		int particles = particles_per_processor;
@@ -788,24 +790,9 @@ extern "C" void ParticleGenerate(GPU *gpu, const int processors, const int ncpus
 			gpu->hParticles[offset].xp[0] = rand2() * (xMax - xMin) + xMin;
 			gpu->hParticles[offset].xp[1] = rand2() * (yMax - yMin) + yMin;
 			gpu->hParticles[offset].xp[2] = rand2() * (gpu->FieldDepth - 2.0 * radius) + radius;
-			gpu->hParticles[offset].vp[0] = 0.0;
-			gpu->hParticles[offset].vp[1] = 0.0;
-			gpu->hParticles[offset].vp[2] = 0.0;
 			gpu->hParticles[offset].Tp = temperature;
 			gpu->hParticles[offset].radius = radius;
-			gpu->hParticles[offset].uf[0] = 0.0;
-			gpu->hParticles[offset].uf[1] = 0.0;
-			gpu->hParticles[offset].uf[2] = 0.0;
 			gpu->hParticles[offset].qinf = qinfp;
-			gpu->hParticles[offset].xrhs[0] = 0.0;
-			gpu->hParticles[offset].xrhs[1] = 0.0;
-			gpu->hParticles[offset].xrhs[2] = 0.0;
-			gpu->hParticles[offset].vrhs[0] = 0.0;
-			gpu->hParticles[offset].vrhs[1] = 0.0;
-			gpu->hParticles[offset].vrhs[2] = 0.0;
-			gpu->hParticles[offset].Tprhs_s = 0.0;
-			gpu->hParticles[offset].Tprhs_L = 0.0;
-			gpu->hParticles[offset].radrhs = 0.0;
 
 			offset++;
 		}
