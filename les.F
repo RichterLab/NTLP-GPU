@@ -106,8 +106,10 @@ c
          call setup(it)
 
          if (ispray==1) then
+#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          call particle_setup
          call particle_init
+#endif
          !call read_part_res !comment out usually
          endif
 
@@ -138,8 +140,10 @@ c
 
 
          if (ispray==1) then
+#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          call particle_setup
          call read_part_res
+#endif
          end if
       endif
 
@@ -155,7 +159,6 @@ c
       end if
 
       call initialize_gpu()
-      call transfer_particles()
 #endif
 
 c

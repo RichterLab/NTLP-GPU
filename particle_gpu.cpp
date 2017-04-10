@@ -577,53 +577,55 @@ void GPUCalculateStatistics(const int nnz, const double *__restrict__ z, double 
 	}
 }
 
-extern "C" double rand2(int idum, bool reset) {
-	const int NTAB = 32;
-	static int iv[NTAB], iy = 0, idum2 = 123456789;
-	if(reset) {
-		for(int i = 0; i < NTAB; i++) {
-			iv[i] = 0;
-		}
-		iy = 0;
-		idum2 = 123456789;
-	}
+const int random_NTAB = 32;
+static int random_idum = 1080, random_iv[random_NTAB], random_iy = 0, random_idum2 = 123456789;
 
-	int k = 0, IM1 = 2147483563, IM2 = 2147483399, IMM1 = IM1 - 1, IA1 = 40014, IA2 = 40692, IQ1 = 53668, IQ2 = 52774, IR1 = 12211, IR2 = 3791, NDIV = 1 + IMM1 / NTAB;
+void rand2_seed(int seed) {
+	for(int i = 0; i < random_NTAB; i++) {
+		random_iv[i] = 0;
+	}
+	random_iy = 0;
+	random_idum = seed;
+	random_idum2 = 123456789;
+}
+
+extern "C" double rand2() {
+	int k = 0, IM1 = 2147483563, IM2 = 2147483399, IMM1 = IM1 - 1, IA1 = 40014, IA2 = 40692, IQ1 = 53668, IQ2 = 52774, IR1 = 12211, IR2 = 3791, NDIV = 1 + IMM1 / random_NTAB;
 	double AM = 1.0 / IM1, EPS = 1.2e-7, RNMX = 1.0 - EPS;
 
-	if(idum <= 0) {
-		idum = MAX(-idum, 1);
-		idum2 = idum;
-		for(int j = NTAB + 8; j > 1; j--) {
-			k = idum / IQ1;
-			idum = IA1 * (idum - k * IQ1) - k * IR1;
-			if(idum < 0) {
-				idum = idum + IM1;
+	if(random_idum <= 0) {
+		random_idum = MAX(-random_idum, 1);
+		random_idum2 = random_idum;
+		for(int j = random_NTAB + 8; j > 1; j--) {
+			k = random_idum / IQ1;
+			random_idum = IA1 * (random_idum - k * IQ1) - k * IR1;
+			if(random_idum < 0) {
+				random_idum += IM1;
 			}
-			if(j <= NTAB) {
-				iv[j] = idum;
+			if(j <= random_NTAB) {
+				random_iv[j] = random_idum;
 			}
 		}
-		iy = iv[1];
+		random_iy = random_iv[1];
 	}
 
-	k = idum / IQ1;
-	idum = IA1 * (idum - k * IQ1) - k * IR1;
-	if(idum < 0) {
-		idum = idum + IM1;
+	k = random_idum / IQ1;
+	random_idum = IA1 * (random_idum - k * IQ1) - k * IR1;
+	if(random_idum < 0) {
+		random_idum += IM1;
 	}
-	k = idum2 / IQ2;
-	idum2 = IA2 * (idum2 - k * IQ2) - k * IR2;
-	if(idum2 < 0) {
-		idum2 = idum2 + IM2;
+	k = random_idum2 / IQ2;
+	random_idum2 = IA2 * (random_idum2 - k * IQ2) - k * IR2;
+	if(random_idum2 < 0) {
+		random_idum2 += IM2;
 	}
-	const int j = 1 + iy / NDIV;
-	iy = iv[j] - idum2;
-	iv[j] = idum;
-	if(iy < 1) {
-		iy = iy + IMM1;
+	const int j = 1 + random_iy / NDIV;
+	random_iy = random_iv[j] - random_idum2;
+	random_iv[j] = random_idum;
+	if(random_iy < 1) {
+		random_iy += IMM1;
 	}
-	return MIN(AM * iy, RNMX);
+	return MIN(AM * random_iy, RNMX);
 }
 
 extern "C" GPU *NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, double *z, double *zz, const Parameters *params) {
@@ -758,58 +760,61 @@ extern "C" void ParticleInit(GPU *gpu, const int particles, const Particle *inpu
 #endif
 }
 
-extern "C" void ParticleGenerate(GPU *gpu, const int processors, const int particles, const int seed, const double temperature, const double xmin, const double xmax, const double ymin, const double ymax, const double zl, const double delta_vis, const double radius, const double qinfp) {
-	gpu->pCount = particles;
+extern "C" void ParticleGenerate(GPU *gpu, const int processors, const int ncpus, const int seed, const double temperature, const double radius, const double qinfp) {
+	const int particles_per_processor = gpu->pCount / processors;
+	const int particles_remaining = gpu->pCount % processors;
+	const double x_grid_change = gpu->FieldWidth / (double)ncpus, y_grid_change = gpu->FieldHeight / (double)ncpus;
 
-	bool reset = true;
-	int currentProcessor = 1;
-	const int particles_per_processor = particles / processors;
+	double xMin = 0.0, xMax = x_grid_change;
+	double yMin = 0.0, yMax = y_grid_change;
 
-	gpu->hParticles = (Particle *)malloc(sizeof(Particle) * particles);
-	for(size_t i = 0; i < particles; i++) {
-		if(i >= currentProcessor * particles_per_processor) {
-			reset = true;
-			currentProcessor++;
+	int offset = 0;
+	for(size_t processor = 0; processor < processors; processor++) {
+		int particles = particles_per_processor;
+		if(processor == 0) particles += particles_remaining;
+
+		if(processor != 0 && processor % ncpus == 0) {
+			xMin += x_grid_change;
+			xMax += x_grid_change;
+
+			yMin = 0.0;
+			yMax = y_grid_change;
 		}
 
-		double random = 0.0;
-		if(reset) {
-			random = rand2(seed, true);
-			reset = false;
-		} else {
-			random = rand2(seed, false);
-		}
-		const double x = random * (xmax - xmin) + xmin;
-		const double y = rand2(seed, false) * (ymax - ymin) + ymin;
-		const double z = rand2(seed, false) * (zl - 2.0 * delta_vis) + delta_vis;
+		rand2_seed(seed);
 
-		gpu->hParticles[i].xp[0] = x;
-		gpu->hParticles[i].xp[1] = y;
-		gpu->hParticles[i].xp[2] = z;
-		gpu->hParticles[i].vp[0] = 0.0;
-		gpu->hParticles[i].vp[1] = 0.0;
-		gpu->hParticles[i].vp[2] = 0.0;
-		gpu->hParticles[i].Tp = temperature;
-		gpu->hParticles[i].radius = radius;
-		gpu->hParticles[i].uf[0] = 0.0;
-		gpu->hParticles[i].uf[1] = 0.0;
-		gpu->hParticles[i].uf[2] = 0.0;
-		gpu->hParticles[i].qinf = qinfp;
-		gpu->hParticles[i].xrhs[0] = 0.0;
-		gpu->hParticles[i].xrhs[1] = 0.0;
-		gpu->hParticles[i].xrhs[2] = 0.0;
-		gpu->hParticles[i].vrhs[0] = 0.0;
-		gpu->hParticles[i].vrhs[1] = 0.0;
-		gpu->hParticles[i].vrhs[2] = 0.0;
-		gpu->hParticles[i].Tprhs_s = 0.0;
-		gpu->hParticles[i].Tprhs_L = 0.0;
-		gpu->hParticles[i].radrhs = 0.0;
+		for(size_t i = 0; i < particles; i++) {
+			gpu->hParticles[offset].pidx = processor * gpu->pCount + (i + 1);
+			gpu->hParticles[offset].xp[0] = rand2() * (xMax - xMin) + xMin;
+			gpu->hParticles[offset].xp[1] = rand2() * (yMax - yMin) + yMin;
+			gpu->hParticles[offset].xp[2] = rand2() * (gpu->FieldDepth - 2.0 * radius) + radius;
+			gpu->hParticles[offset].vp[0] = 0.0;
+			gpu->hParticles[offset].vp[1] = 0.0;
+			gpu->hParticles[offset].vp[2] = 0.0;
+			gpu->hParticles[offset].Tp = temperature;
+			gpu->hParticles[offset].radius = radius;
+			gpu->hParticles[offset].uf[0] = 0.0;
+			gpu->hParticles[offset].uf[1] = 0.0;
+			gpu->hParticles[offset].uf[2] = 0.0;
+			gpu->hParticles[offset].qinf = qinfp;
+			gpu->hParticles[offset].xrhs[0] = 0.0;
+			gpu->hParticles[offset].xrhs[1] = 0.0;
+			gpu->hParticles[offset].xrhs[2] = 0.0;
+			gpu->hParticles[offset].vrhs[0] = 0.0;
+			gpu->hParticles[offset].vrhs[1] = 0.0;
+			gpu->hParticles[offset].vrhs[2] = 0.0;
+			gpu->hParticles[offset].Tprhs_s = 0.0;
+			gpu->hParticles[offset].Tprhs_L = 0.0;
+			gpu->hParticles[offset].radrhs = 0.0;
+
+			offset++;
+		}
+
+		yMin += y_grid_change;
+		yMax += y_grid_change;
 	}
 
-#ifdef BUILD_CUDA
-	gpuErrchk(cudaMalloc((void **)&gpu->dParticles, sizeof(Particle) * particles));
-	gpuErrchk(cudaMemcpy(gpu->dParticles, gpu->hParticles, sizeof(Particle) * particles, cudaMemcpyHostToDevice));
-#endif
+	ParticleUpload(gpu);
 }
 
 extern "C" void ParticleInterpolate(GPU *gpu, const double dx, const double dy) {

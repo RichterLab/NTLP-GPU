@@ -8,8 +8,29 @@
 #include "utility.h"
 
 TEST(ParticleCUDA, Random) {
-	ASSERT_DOUBLE_EQ(rand2(1080), 0.65541634834855311);
-	ASSERT_DOUBLE_EQ(rand2(1080), 0.20099518545185716);
+	rand2_seed(1080);
+	ASSERT_DOUBLE_EQ(rand2(), 0.6554163483485531);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2009951854518572);
+	ASSERT_DOUBLE_EQ(rand2(), 0.8936223876466522);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2818865431288053);
+	ASSERT_DOUBLE_EQ(rand2(), 0.5250003829714993);
+	ASSERT_DOUBLE_EQ(rand2(), 0.3141267749950177);
+	ASSERT_DOUBLE_EQ(rand2(), 0.4446156782993733);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2994744556282315);
+	ASSERT_DOUBLE_EQ(rand2(), 0.4712494933308135);
+	ASSERT_DOUBLE_EQ(rand2(), 0.5913675200502571);
+
+	rand2_seed(1080);
+	ASSERT_DOUBLE_EQ(rand2(), 0.6554163483485531);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2009951854518572);
+	ASSERT_DOUBLE_EQ(rand2(), 0.8936223876466522);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2818865431288053);
+	ASSERT_DOUBLE_EQ(rand2(), 0.5250003829714993);
+	ASSERT_DOUBLE_EQ(rand2(), 0.3141267749950177);
+	ASSERT_DOUBLE_EQ(rand2(), 0.4446156782993733);
+	ASSERT_DOUBLE_EQ(rand2(), 0.2994744556282315);
+	ASSERT_DOUBLE_EQ(rand2(), 0.4712494933308135);
+	ASSERT_DOUBLE_EQ(rand2(), 0.5913675200502571);
 }
 
 void CompareParticle(Particle *actual, Particle *expected) {
@@ -69,6 +90,37 @@ class ParticleTest : public ::testing::Test {
 
 	Parameters params;
 };
+
+// ------------------------------------------------------------------
+// Particle Generation
+// ------------------------------------------------------------------
+TEST_F(ParticleTest, Generate) {
+	double z[130], zz[130];
+	GPU *gpu = NewGPU(10, 133, 133, 130, 0.251327, 0.125664, 0.04, z, zz, &params);
+
+	// Generate Particles
+	ParticleGenerate(gpu, 16, 4, 1080, 300.0, 22.8e-6, 0.01);
+
+	// Compare Results
+	GPU *expected = ParticleRead("../test/data/GenerateExpected.dat");
+
+	ASSERT_EQ(gpu->pCount, expected->pCount);
+	for(int i = 0; i < gpu->pCount; i++) {
+		bool matching_particle_found = false;
+		for(int j = 0; j < gpu->pCount; j++) {
+			if(gpu->hParticles[i].pidx == expected->hParticles[j].pidx) {
+				matching_particle_found = true;
+				CompareParticle(&gpu->hParticles[i], &expected->hParticles[j]);
+				break;
+			}
+		}
+		ASSERT_TRUE(matching_particle_found);
+	}
+
+	// Free Data
+	free(gpu);
+	free(expected);
+}
 
 // ------------------------------------------------------------------
 // Particle Update Tests

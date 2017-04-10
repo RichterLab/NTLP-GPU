@@ -132,6 +132,17 @@ module particle_c
             real(c_double), intent(inout), dimension(*) :: vpsum
             real(c_double), intent(inout), dimension(*) :: vpsumsq
         end subroutine
+
+        subroutine gpuparticlegenerate(gpu,processors,ncpus,seed,temperature,radius,qinfp) bind(c,name="ParticleGenerate")
+            use iso_c_binding, only: c_ptr,c_int,c_double
+            type(c_ptr), VALUE, intent(in)  :: gpu
+            integer(c_int), VALUE, intent(in)           :: processors
+            integer(c_int), VALUE, intent(in)           :: ncpus
+            integer(c_int), VALUE, intent(in)           :: seed
+            real(c_double), VALUE, intent(in)           :: temperature
+            real(c_double), VALUE, intent(in)           :: radius
+            real(c_double), VALUE, intent(in)           :: qinfp
+        end subroutine
     end interface
 contains
         subroutine select_gpu_master()
@@ -160,7 +171,7 @@ contains
         end subroutine
 
         subroutine initialize_gpu()
-            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap,ilin
+            use pars, only: maxnx,maxny,maxnz,xl,yl,zl,myid,ievap,ilin,numprocs,ncpu_s
             use con_stats, only: z, zz
             use particles
             use particle_struct, only: gpu_parameters
@@ -193,6 +204,7 @@ contains
 
                 ! Create GPU Instance
                 gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,z,zz,parameters)
+                call gpuparticlegenerate(gpu,numprocs,ncpu_s,1080,Tp_init,radius_init,qf_init)
             end if
         end subroutine
 
