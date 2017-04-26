@@ -16,6 +16,9 @@ endif (BUILD_VERIFY_NAN)
 # Performance Profile
 option( BUILD_PERFORMANCE_PROFILE "Build code to test GPU performance" OFF)
 
+# Particle MultiStep
+option( BUILD_MULTISTEP_PARTICLE "Build code calculate multiple particle substep code" OFF)
+
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)
@@ -83,6 +86,10 @@ if (BUILD_FORTRAN)
   if (BUILD_PERFORMANCE_PROFILE)
     set_property(SOURCE profiler.F APPEND_STRING PROPERTY COMPILE_FLAGS " -DBUILD_PERFORMANCE_PROFILE")
   endif (BUILD_PERFORMANCE_PROFILE)
+
+  if( BUILD_MULTISTEP_PARTICLE )
+    target_compile_definitions(lesmpi.a PRIVATE -DBUILD_MULTISTEP_PARTICLE)
+  endif( BUILD_MULTISTEP_PARTICLE )
 
   if( BUILD_CUDA )
     target_compile_definitions(lesmpi.a PRIVATE -DBUILD_CUDA)

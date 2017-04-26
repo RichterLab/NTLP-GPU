@@ -438,7 +438,7 @@ contains
 
             include 'mpif.h'
 
-            integer :: ierr, it, istage
+            integer :: ierr, it, istage, step, substeps
             type(Profiler) :: tAssemble, tStep
 
             call tAssemble%start(gpu_master_rank)
@@ -451,6 +451,34 @@ contains
                 call gpustep(gpu, it, istage, dt)
                 call gpunonperiodic(gpu)
                 call gpuperiodic(gpu)
+            end if
+            call tStep%finish(gpu_master_rank, "GPU Step Time: ")
+        end subroutine
+
+        subroutine gpu_particle_substep(it, substeps)
+            use class_Profiler
+            use pars, only: myid
+            use con_data, only: dx, dy, dt
+
+            include 'mpif.h'
+
+            integer :: ierr, it, istage, step, substeps
+            type(Profiler) :: tAssemble, tStep
+
+            call tAssemble%start(gpu_master_rank)
+            call assemble_gpu_data
+            call tAssemble%finish(gpu_master_rank, "Assemble Step Time: ")
+
+            call tStep%start(gpu_master_rank)
+            if( myid .eq. gpu_master_rank ) then
+                call gpuinterpolate(gpu,dx,dy)
+                do step = 1,substeps
+                    do istage = 1,3
+                        call gpustep(gpu, it, istage, dt/substeps)
+                        call gpunonperiodic(gpu)
+                        call gpuperiodic(gpu)
+                    end do
+                end do
             end if
             call tStep%finish(gpu_master_rank, "GPU Step Time: ")
         end subroutine

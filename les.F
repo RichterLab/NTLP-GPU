@@ -334,9 +334,10 @@ c
 c
 c -------- update particles
 c
+#ifndef BUILD_MULTISTEP_PARTICLE
         if (ispray==1) then
 #ifdef BUILD_CUDA
-          call gpu_particle_step(it, istage)
+          call gpu_particle_step(it, istage, 1)
 #endif
           call tCPU%start(gpu_master_rank)
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
@@ -344,6 +345,7 @@ c
 #endif
           call tCPU%finish(gpu_master_rank, "CPU Step Time: ")
         end if
+#endif
         if(mnout .and. istage .eq. 1)  then
             if(l_debug) then
               call print(nprt,it,izs,ize)
@@ -355,6 +357,13 @@ c
           if(mhis  .and. istage .eq. 1 .and. mtape) call close_his
         endif
       end do
+
+#ifdef BUILD_MULTISTEP_PARTICLE
+      if (ispray==1) then
+        call gpu_particle_substep(it, 10)
+      end if
+#endif
+
       t_stage_f = mpi_wtime()
       !if (myid==5) write(*,*) 'time stage: ',t_stage_f - t_stage_s
 
