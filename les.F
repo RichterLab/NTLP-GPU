@@ -105,13 +105,13 @@ c
          call init
          call setup(it)
 
-         if (ispray==1) then
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
-         call particle_setup
-         call particle_init
+        if (ispray==1) then
+          call particle_setup
+          call particle_init
+          !call read_part_res !comment out usually
+        endif
 #endif
-         !call read_part_res !comment out usually
-         endif
 
 c
 c ---------- choose routine for getting initial guess
