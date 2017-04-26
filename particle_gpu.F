@@ -447,7 +447,7 @@ contains
             end if
         end subroutine assemble_gpu_data
 
-        subroutine gpu_particle_step(it, istage)
+        subroutine gpu_particle_step(it, istage, substeps)
             use class_Profiler
             use pars, only: myid
             use con_data, only: dx, dy, dt
@@ -464,9 +464,11 @@ contains
             call tStep%start(gpu_master_rank)
             if( myid .eq. gpu_master_rank ) then
                 call gpuinterpolate(gpu,dx,dy)
-                call gpustep(gpu, it, istage, dt)
-                call gpunonperiodic(gpu)
-                call gpuperiodic(gpu)
+                do step = 1,substeps
+                    call gpustep(gpu, it, istage, dt/substeps)
+                    call gpunonperiodic(gpu)
+                    call gpuperiodic(gpu)
+                end do
             end if
             call tStep%finish(gpu_master_rank, "GPU Step Time: ")
         end subroutine
