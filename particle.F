@@ -211,9 +211,11 @@
           part%xp(1:3) = xp(1:3)
           part%vp(1:3) = vp(1:3)
           part%Tp = Tp
+          part%Tf = 0.0
           part%radius = radius_init
           part%uf(1:3) = 0.0
           part%qinf = qinfp
+          part%qstar = 0.0
           part%xrhs(1:3) = 0.0
           part%vrhs(1:3) = 0.0
           part%Tprhs_s = 0.0
