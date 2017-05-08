@@ -606,7 +606,7 @@ extern "C" double rand2() {
 				random_iv[j] = random_idum;
 			}
 		}
-		random_iy = random_iv[1];
+		random_iy = random_iv[0];
 	}
 
 	k = random_idum / IQ1;
@@ -619,7 +619,7 @@ extern "C" double rand2() {
 	if(random_idum2 < 0) {
 		random_idum2 += IM2;
 	}
-	const int j = 1 + random_iy / NDIV;
+	const int j = random_iy / NDIV;
 	random_iy = random_iv[j] - random_idum2;
 	random_iv[j] = random_idum;
 	if(random_iy < 1) {
