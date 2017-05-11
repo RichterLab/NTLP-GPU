@@ -493,6 +493,7 @@ GLOBAL void GPUUpdateParticles(const int it, const int istage, const double dt, 
 		}
 
 		particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * (particles[idx].qinf - particles[idx].qstar) * cParams.Evaporation;
+
 		particles[idx].Tprhs_s = -Nup / 3.0 / cParams.Pra * CpaCpp * rhop / cParams.rhow * taup_i * (particles[idx].Tp - particles[idx].Tf);
 		particles[idx].Tprhs_L = 3.0 * Lv / cParams.Cpp / particles[idx].radius * particles[idx].radrhs;
 
@@ -503,6 +504,10 @@ GLOBAL void GPUUpdateParticles(const int it, const int istage, const double dt, 
 		particles[idx].Tp = Tptmp + dtG * particles[idx].Tprhs_s;
 		particles[idx].Tp += +dtG * particles[idx].Tprhs_L;
 		particles[idx].radius = radiustmp + dtG * particles[idx].radrhs;
+
+               // printf("vp %3.8f\n",particles[idx].vp[0]);
+               // printf("tp %3.8f\n",particles[idx].Tp);
+               // printf("rp %3.8f\n",particles[idx].radius);
 	}
 }
 
@@ -555,7 +560,7 @@ GLOBAL void GPUUpdatePeriodic(const double grid_width, const double grid_height,
 	}
 }
 
-void GPUCalculateStatistics(const int nnz, const double *__restrict__ z, double *__restrict__ partcount_t, double *__restrict__ vpsum_t, double *__restrict__ vpsqrsum_t, const int pcount, Particle *__restrict__ particles) {
+void GPUCalculateStatistics(const int nnz, const double *__restrict__ z, double *__restrict__ partcount_t, double *__restrict__ vpsum_t, double *__restrict__ vpsqrsum_t, double *__restrict__ rpsum_t, double *__restrict__ tpsum_t, double *__restrict__ tfsum_t, double *__restrict__ qfsum_t,  const int pcount, Particle *__restrict__ particles) {
 	for(int i = 0; i < pcount; i++) {
 		int kpt = 0;
 		for(; kpt < nnz; kpt++) {
@@ -574,6 +579,11 @@ void GPUCalculateStatistics(const int nnz, const double *__restrict__ z, double 
 		vpsqrsum_t[kpt * 3 + 0] += (particles[i].vp[0] * particles[i].vp[0]);
 		vpsqrsum_t[kpt * 3 + 1] += (particles[i].vp[1] * particles[i].vp[1]);
 		vpsqrsum_t[kpt * 3 + 2] += (particles[i].vp[2] * particles[i].vp[2]);
+
+                rpsum_t[kpt] += particles[i].radius;
+                tpsum_t[kpt] += particles[i].Tp;
+                tfsum_t[kpt] += particles[i].Tf;
+                qfsum_t[kpt] += particles[i].qinf;
 	}
 }
 
@@ -670,10 +680,18 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 	retVal->hPartCount = (double *)malloc(sizeof(double) * retVal->GridDepth);
 	retVal->hVPSum = (double *)malloc(sizeof(double) * retVal->GridDepth * 3);
 	retVal->hVPSumSQ = (double *)malloc(sizeof(double) * retVal->GridDepth * 3);
+	retVal->hRPSum = (double *)malloc(sizeof(double) * retVal->GridDepth);
+	retVal->hTPSum = (double *)malloc(sizeof(double) * retVal->GridDepth);
+	retVal->hTFSum = (double *)malloc(sizeof(double) * retVal->GridDepth);
+	retVal->hQFSum = (double *)malloc(sizeof(double) * retVal->GridDepth);
 
 	memset(retVal->hPartCount, 0.0, sizeof(double) * retVal->GridDepth);
 	memset(retVal->hVPSum, 0.0, sizeof(double) * retVal->GridDepth * 3);
 	memset(retVal->hVPSumSQ, 0.0, sizeof(double) * retVal->GridDepth * 3);
+	memset(retVal->hTPSum, 0.0, sizeof(double) * retVal->GridDepth);
+	memset(retVal->hRPSum, 0.0, sizeof(double) * retVal->GridDepth);
+	memset(retVal->hTFSum, 0.0, sizeof(double) * retVal->GridDepth);
+	memset(retVal->hQFSum, 0.0, sizeof(double) * retVal->GridDepth);
 
 #ifdef BUILD_CUDA
 	retVal->mDevices = (Device *)malloc(sizeof(Device) * gpudevices());
@@ -1003,11 +1021,15 @@ extern "C" void ParticleCalculateStatistics(GPU *gpu, const double dx, const dou
 	memset(gpu->hPartCount, 0.0, sizeof(double) * gpu->GridDepth);
 	memset(gpu->hVPSum, 0.0, sizeof(double) * gpu->GridDepth * 3);
 	memset(gpu->hVPSumSQ, 0.0, sizeof(double) * gpu->GridDepth * 3);
+	memset(gpu->hRPSum, 0.0, sizeof(double) * gpu->GridDepth);
+	memset(gpu->hTPSum, 0.0, sizeof(double) * gpu->GridDepth);
+	memset(gpu->hTFSum, 0.0, sizeof(double) * gpu->GridDepth);
+	memset(gpu->hQFSum, 0.0, sizeof(double) * gpu->GridDepth);
 
 #ifdef BUILD_CUDA
 	ParticleDownload(gpu);
 #endif
-	GPUCalculateStatistics(gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->pCount, gpu->hParticles);
+	GPUCalculateStatistics(gpu->GridDepth, gpu->hZ, gpu->hPartCount, gpu->hVPSum, gpu->hVPSumSQ, gpu->hRPSum, gpu->hTPSum, gpu->hTFSum, gpu-> hQFSum, gpu->pCount, gpu->hParticles);
 
 #ifdef BUILD_PERFORMANCE_PROFILE
 #ifdef BUILD_CUDA
@@ -1078,7 +1100,7 @@ void PrintFreeMemory() {
 #endif
 }
 
-void ParticleFillStatistics(GPU *gpu, double *partCount, double *vSum, double *vSumSQ) {
+void ParticleFillStatistics(GPU *gpu, double *partCount, double *vSum, double *vSumSQ, double *rSum, double *tSum, double *tfSum, double *qfSum) {
 	for(size_t i = 0; i < gpu->GridDepth; i++) {
 		partCount[i] = gpu->hPartCount[i];
 
@@ -1089,7 +1111,13 @@ void ParticleFillStatistics(GPU *gpu, double *partCount, double *vSum, double *v
 		vSumSQ[i * 3 + 0] = gpu->hVPSumSQ[i * 3 + 0];
 		vSumSQ[i * 3 + 1] = gpu->hVPSumSQ[i * 3 + 1];
 		vSumSQ[i * 3 + 2] = gpu->hVPSumSQ[i * 3 + 2];
-	}
+
+                tSum[i] = gpu->hTPSum[i];
+                rSum[i] = gpu->hRPSum[i];
+
+                tfSum[i] = gpu->hTFSum[i];
+                qfSum[i] = gpu->hQFSum[i];
+ 	}
 }
 
 // Particle Functions

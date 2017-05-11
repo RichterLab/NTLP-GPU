@@ -105,13 +105,11 @@ c
          call init
          call setup(it)
 
-#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
         if (ispray==1) then
           call particle_setup
           call particle_init
           !call read_part_res !comment out usually
         endif
-#endif
 
 c
 c ---------- choose routine for getting initial guess
@@ -140,10 +138,8 @@ c
 
 
          if (ispray==1) then
-#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          call particle_setup
          call read_part_res
-#endif
          end if
       endif
 
@@ -159,6 +155,7 @@ c
       end if
 
       call initialize_gpu()
+      call transfer_particles()
 #endif
 
 c
@@ -5101,6 +5098,9 @@ c
 
          wtsfc(1) = qstar(1)
          wtsfc(2) = qstar(2)
+
+         tsfcc(1) = (Ttop(1)+Tbot(1))/2.0 
+         tsfcc(2) = (Ttop(2)+Tbot(2))/2.0
 
          else !(doing LES)
 c
