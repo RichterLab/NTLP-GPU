@@ -90,7 +90,7 @@ int *ParticleFindXYNeighbours(const double dx, const double dy, const Particle *
 	return hResult;
 }
 
-GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double dx, const double dy, const int nnz, const double *__restrict__ z, const double *__restrict__ zz, const float *__restrict__ uext, const float *__restrict__ vext, const float *__restrict__ wext, const float *__restrict__ Text, const float *__restrict__ T2ext, const int pcount, Particle *__restrict__ particles) {
+GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double dx, const double dy, const int nnz, const double *__restrict__ z, const double *__restrict__ zz, const fieldSize *__restrict__ uext, const fieldSize *__restrict__ vext, const fieldSize *__restrict__ wext, const fieldSize *__restrict__ Text, const fieldSize *__restrict__ T2ext, const int pcount, Particle *__restrict__ particles) {
 	int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
 	index_start = blockIdx.x * blockDim.x + threadIdx.x;
@@ -183,7 +183,7 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 	}
 }
 
-GLOBAL void GPUFieldInterpolate(const int nx, const int ny, const double dx, const double dy, const int nnz, const double *__restrict__ z, const double *__restrict__ zz, const float *__restrict__ uext, const float *__restrict__ vext, const float *__restrict__ wext, const float *__restrict__ Text, const float *__restrict__ T2ext, const int pcount, Particle *__restrict__ particles) {
+GLOBAL void GPUFieldInterpolate(const int nx, const int ny, const double dx, const double dy, const int nnz, const double *__restrict__ z, const double *__restrict__ zz, const fieldSize *__restrict__ uext, const fieldSize *__restrict__ vext, const fieldSize *__restrict__ wext, const fieldSize *__restrict__ Text, const fieldSize *__restrict__ T2ext, const int pcount, Particle *__restrict__ particles) {
 	int index_start = 0, index_stride = 1;
 #ifdef BUILD_CUDA
 	index_start = blockIdx.x * blockDim.x + threadIdx.x;
@@ -694,20 +694,20 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 
 		gpuErrchk(cudaMalloc((void **)&dev->Particles, sizeof(Particle) * dev->ParticleCount));
 
-		gpuErrchk(cudaMalloc((void **)&dev->Uext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-		gpuErrchk(cudaMallocHost((void **)&retVal->hUext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMalloc((void **)&dev->Uext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hUext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
 
-		gpuErrchk(cudaMalloc((void **)&dev->Vext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-		gpuErrchk(cudaMallocHost((void **)&retVal->hVext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMalloc((void **)&dev->Vext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hVext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
 
-		gpuErrchk(cudaMalloc((void **)&dev->Wext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-		gpuErrchk(cudaMallocHost((void **)&retVal->hWext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMalloc((void **)&dev->Wext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hWext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
 
-		gpuErrchk(cudaMalloc((void **)&dev->Text, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-		gpuErrchk(cudaMallocHost((void **)&retVal->hText, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMalloc((void **)&dev->Text, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hText, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
 
-		gpuErrchk(cudaMalloc((void **)&dev->Qext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-		gpuErrchk(cudaMallocHost((void **)&retVal->hQext, sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMalloc((void **)&dev->Qext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hQext, sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
 
 		gpuErrchk(cudaMalloc((void **)&dev->Z, sizeof(double) * retVal->GridDepth));
 		gpuErrchk(cudaMallocHost((void **)&retVal->hZ, sizeof(double) * retVal->GridDepth));
@@ -729,11 +729,11 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 	}
 #endif
 #else
-	retVal->hUext = (float *)malloc(sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
-	retVal->hVext = (float *)malloc(sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
-	retVal->hWext = (float *)malloc(sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
-	retVal->hText = (float *)malloc(sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
-	retVal->hQext = (float *)malloc(sizeof(float) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
+	retVal->hUext = (fieldSize *)malloc(sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
+	retVal->hVext = (fieldSize *)malloc(sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
+	retVal->hWext = (fieldSize *)malloc(sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
+	retVal->hText = (fieldSize *)malloc(sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
+	retVal->hQext = (fieldSize *)malloc(sizeof(fieldSize) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
 
 	retVal->hZ = (double *)malloc(sizeof(double) * retVal->GridDepth);
 	memcpy(retVal->hZ, z, sizeof(double) * retVal->GridDepth);
@@ -747,7 +747,7 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 	return retVal;
 }
 
-extern "C" void ParticleFieldSet(GPU *gpu, float *uext, float *vext, float *wext, float *text, float *qext) {
+extern "C" void ParticleFieldSet(GPU *gpu, fieldSize *uext, fieldSize *vext, fieldSize *wext, fieldSize *text, fieldSize *qext) {
 #ifdef BUILD_VERIFY_NAN
 	std::cout << "Testing for NAN in field:" << std::endl;
 	for(int i = 0; i < gpu->GridWidth * gpu->GridHeight * gpu->GridDepth; i++) {
@@ -760,22 +760,22 @@ extern "C" void ParticleFieldSet(GPU *gpu, float *uext, float *vext, float *wext
 	std::cout << "\tComplete" << std::endl;
 #endif // BUILD_VERIFY_NAN
 
-	memcpy(gpu->hUext, uext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
-	memcpy(gpu->hVext, vext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
-	memcpy(gpu->hWext, wext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
-	memcpy(gpu->hText, text, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
-	memcpy(gpu->hQext, qext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+	memcpy(gpu->hUext, uext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+	memcpy(gpu->hVext, vext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+	memcpy(gpu->hWext, wext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+	memcpy(gpu->hText, text, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+	memcpy(gpu->hQext, qext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
 
 #ifdef BUILD_CUDA
 	for(size_t i = 0; i < gpudevices(); i++) {
 		SetDeviceIndex(gpu, i);
 		Device *dev = GetDeviceMemory(gpu);
 
-		gpuErrchk(cudaMemcpyAsync(dev->Uext, gpu->hUext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
-		gpuErrchk(cudaMemcpyAsync(dev->Vext, gpu->hVext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
-		gpuErrchk(cudaMemcpyAsync(dev->Wext, gpu->hWext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
-		gpuErrchk(cudaMemcpyAsync(dev->Text, gpu->hText, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
-		gpuErrchk(cudaMemcpyAsync(dev->Qext, gpu->hQext, sizeof(float) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Uext, gpu->hUext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Vext, gpu->hVext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Wext, gpu->hWext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Text, gpu->hText, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Qext, gpu->hQext, sizeof(fieldSize) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
 	}
 
 #ifdef BUILD_PERFORMANCE_PROFILE

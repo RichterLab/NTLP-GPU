@@ -16,6 +16,9 @@ endif (BUILD_VERIFY_NAN)
 # Performance Profile
 option( BUILD_PERFORMANCE_PROFILE "Build code to test GPU performance" OFF)
 
+# Double vs Single Precision Field
+option( BUILD_FIELD_DOUBLE "Build code with double precision fields" ON)
+
 # CUDA
 option( BUILD_CUDA "Build CUDA code" OFF)
 if (BUILD_CUDA)
@@ -30,6 +33,10 @@ if (BUILD_CUDA)
   if(BUILD_PERFORMANCE_PROFILE)
     set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DBUILD_PERFORMANCE_PROFILE" )
   endif(BUILD_PERFORMANCE_PROFILE)
+
+  if(BUILD_FIELD_DOUBLE)
+    set( CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -DBUILD_FIELD_DOUBLE" )
+  endif(BUILD_FIELD_DOUBLE)
 
   set(CUDA_NVCC_FLAGS "${CUDA_NVCC_FLAGS} -std=c++11" )
 
@@ -84,6 +91,10 @@ if (BUILD_FORTRAN)
     set_property(SOURCE profiler.F APPEND_STRING PROPERTY COMPILE_FLAGS " -DBUILD_PERFORMANCE_PROFILE")
   endif (BUILD_PERFORMANCE_PROFILE)
 
+  if (BUILD_FIELD_DOUBLE)
+    target_compile_definitions(lesmpi.a PRIVATE -DBUILD_FIELD_DOUBLE)
+  endif (BUILD_FIELD_DOUBLE)
+
   if( BUILD_CUDA )
     target_compile_definitions(lesmpi.a PRIVATE -DBUILD_CUDA)
 
@@ -136,6 +147,10 @@ if (BUILD_TESTS)
     set_target_properties(les-test PROPERTIES COMPILE_FLAGS "-fprofile-arcs -ftest-coverage" )
     set_target_properties(les-test PROPERTIES LINK_FLAGS "-fprofile-arcs -ftest-coverage" )
   endif( BUILD_TEST_COVERAGE )
+
+  if (BUILD_FIELD_DOUBLE)
+    target_compile_definitions(les-test PRIVATE -DBUILD_FIELD_DOUBLE)
+  endif (BUILD_FIELD_DOUBLE)
 
   target_link_libraries (les-test gtest)
 endif (BUILD_TESTS)
