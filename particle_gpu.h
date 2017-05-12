@@ -28,6 +28,17 @@ struct Parameters {
 	double radius_mass;
 };
 
+struct Device {
+#ifdef BUILD_CUDA
+	cudaStream_t Stream;
+#endif
+	int ParticleCount, ParticleOffset;
+
+	Particle *Particles;
+	double *Uext, *Vext, *Wext, *Text, *Qext;
+	double *Z, *ZZ;
+};
+
 struct GPU {
 	Parameters mParameters;
 
@@ -36,11 +47,16 @@ struct GPU {
 
 	int GridHeight, GridWidth, GridDepth;
 	double FieldWidth, FieldHeight, FieldDepth;
-	double *hUext, *hVext, *hWext, *hText, *hQext, *hZ, *hZZ;
-	double *dUext, *dVext, *dWext, *dText, *dQext, *dZ, *dZZ;
+
+	double *hUext, *hVext, *hWext, *hText, *hQext;
+	double *hZ, *hZZ;
 
 	// Statistics
 	double *hPartCount, *hVPSum, *hVPSumSQ;
+
+	// GPU Memory
+	Device *mDevices;
+	unsigned int cDevice, DeviceCount;
 };
 
 extern "C" void rand2_seed(int seed);
@@ -58,6 +74,7 @@ extern "C" void ParticleUpdateNonPeriodic(GPU *gpu);
 extern "C" void ParticleUpdatePeriodic(GPU *gpu);
 extern "C" void ParticleCalculateStatistics(GPU *gpu, const double dx, const double dy);
 extern "C" void ParticleDownload(GPU *gpu);
+extern "C" void ParticleUpdate(GPU *gpu, const int it, const int istage, const double dt, const double dx, const double dy);
 
 extern "C" void ParticleWrite(GPU *gpu);
 extern "C" GPU *ParticleRead(const char *path);

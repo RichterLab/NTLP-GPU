@@ -628,9 +628,25 @@ extern "C" double rand2() {
 	return MIN(AM * random_iy, RNMX);
 }
 
+void SetDeviceIndex(GPU *gpu, const unsigned int index) {
+#ifdef BUILD_CUDA
+	if(gpu->cDevice != index) {
+		gpu->cDevice = index;
+		gpuErrchk(cudaSetDevice(gpu->cDevice));
+	}
+#endif
+}
+
+Device *GetDeviceMemory(GPU *gpu) {
+#ifdef BUILD_CUDA
+	return &gpu->mDevices[gpu->cDevice];
+#else
+	return nullptr;
+#endif
+}
+
 extern "C" GPU *NewGPU(const int particles, const int width, const int height, const int depth, const double fWidth, const double fHeight, const double fDepth, double *z, double *zz, const Parameters *params) {
 	GPU *retVal = (GPU *)malloc(sizeof(GPU));
-	SetParameters(retVal, params);
 
 	// Particle Data
 	retVal->pCount = particles;
@@ -660,21 +676,57 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 	memset(retVal->hVPSumSQ, 0.0, sizeof(double) * retVal->GridDepth * 3);
 
 #ifdef BUILD_CUDA
-	gpuErrchk(cudaMalloc((void **)&retVal->dParticles, sizeof(Particle) * retVal->pCount));
+	retVal->mDevices = (Device *)malloc(sizeof(Device) * gpudevices());
 
-	gpuErrchk(cudaMalloc((void **)&retVal->dUext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-	gpuErrchk(cudaMalloc((void **)&retVal->dVext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-	gpuErrchk(cudaMalloc((void **)&retVal->dWext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-	gpuErrchk(cudaMalloc((void **)&retVal->dText, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
-	gpuErrchk(cudaMalloc((void **)&retVal->dQext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+	unsigned int offset = 0;
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(retVal, i);
+		Device *dev = GetDeviceMemory(retVal);
 
-	gpuErrchk(cudaMalloc((void **)&retVal->dZ, sizeof(double) * retVal->GridDepth));
-	gpuErrchk(cudaMalloc((void **)&retVal->dZZ, sizeof(double) * retVal->GridDepth));
+		dev->ParticleOffset = offset;
+		dev->ParticleCount = retVal->pCount / gpudevices();
+		if(i == 0) {
+			dev->ParticleCount += retVal->pCount % gpudevices();
+		}
+		offset += dev->ParticleCount;
 
-	gpuErrchk(cudaMemcpy(retVal->dZ, z, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(retVal->dZZ, zz, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice));
+		gpuErrchk(cudaStreamCreate(&dev->Stream));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Particles, sizeof(Particle) * dev->ParticleCount));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Uext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hUext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Vext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hVext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Wext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hWext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Text, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hText, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Qext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hQext, sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth));
+
+		gpuErrchk(cudaMalloc((void **)&dev->Z, sizeof(double) * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hZ, sizeof(double) * retVal->GridDepth));
+		memcpy(retVal->hZ, z, sizeof(double) * retVal->GridDepth);
+
+		gpuErrchk(cudaMalloc((void **)&dev->ZZ, sizeof(double) * retVal->GridDepth));
+		gpuErrchk(cudaMallocHost((void **)&retVal->hZZ, sizeof(double) * retVal->GridDepth));
+		memcpy(retVal->hZZ, zz, sizeof(double) * retVal->GridDepth);
+
+		gpuErrchk(cudaMemcpyAsync(dev->Z, z, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->ZZ, zz, sizeof(double) * retVal->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+	}
+
 #ifdef BUILD_PERFORMANCE_PROFILE
-	cudaDeviceSynchronize();
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(retVal, i);
+		Device *dev = GetDeviceMemory(retVal);
+		cudaStreamSynchronize(dev->Stream);
+	}
 #endif
 #else
 	retVal->hUext = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
@@ -682,13 +734,15 @@ extern "C" GPU *NewGPU(const int particles, const int width, const int height, c
 	retVal->hWext = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
 	retVal->hText = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
 	retVal->hQext = (double *)malloc(sizeof(double) * retVal->GridWidth * retVal->GridHeight * retVal->GridDepth);
-#endif
 
 	retVal->hZ = (double *)malloc(sizeof(double) * retVal->GridDepth);
-	retVal->hZZ = (double *)malloc(sizeof(double) * retVal->GridDepth);
-
 	memcpy(retVal->hZ, z, sizeof(double) * retVal->GridDepth);
+
+	retVal->hZZ = (double *)malloc(sizeof(double) * retVal->GridDepth);
 	memcpy(retVal->hZZ, zz, sizeof(double) * retVal->GridDepth);
+#endif
+
+	SetParameters(retVal, params);
 
 	return retVal;
 }
@@ -698,7 +752,6 @@ extern "C" void ParticleFieldSet(GPU *gpu, double *uext, double *vext, double *w
 	std::cout << "Testing for NAN in field:" << std::endl;
 	for(int i = 0; i < gpu->GridWidth * gpu->GridHeight * gpu->GridDepth; i++) {
 		if(isnan(uext[i])) std::cerr << "UEXT NAN found at index " << i << std::endl;
-		;
 		if(isnan(vext[i])) std::cerr << "VEXT NAN found at index " << i << std::endl;
 		if(isnan(wext[i])) std::cerr << "WEXT NAN found at index " << i << std::endl;
 		if(isnan(text[i])) std::cerr << "TEXT NAN found at index " << i << std::endl;
@@ -707,21 +760,31 @@ extern "C" void ParticleFieldSet(GPU *gpu, double *uext, double *vext, double *w
 	std::cout << "\tComplete" << std::endl;
 #endif // BUILD_VERIFY_NAN
 
-#ifdef BUILD_CUDA
-	gpuErrchk(cudaMemcpy(gpu->dUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(gpu->dVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(gpu->dWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(gpu->dText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice));
-	gpuErrchk(cudaMemcpy(gpu->dQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice));
-#ifdef BUILD_PERFORMANCE_PROFILE
-	cudaDeviceSynchronize();
-#endif
-#else
 	memcpy(gpu->hUext, uext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
 	memcpy(gpu->hVext, vext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
 	memcpy(gpu->hWext, wext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
 	memcpy(gpu->hText, text, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
 	memcpy(gpu->hQext, qext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth);
+
+#ifdef BUILD_CUDA
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+
+		gpuErrchk(cudaMemcpyAsync(dev->Uext, gpu->hUext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Vext, gpu->hVext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Wext, gpu->hWext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Text, gpu->hText, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+		gpuErrchk(cudaMemcpyAsync(dev->Qext, gpu->hQext, sizeof(double) * gpu->GridWidth * gpu->GridHeight * gpu->GridDepth, cudaMemcpyHostToDevice, dev->Stream));
+	}
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #endif
 }
 
@@ -737,26 +800,19 @@ extern "C" Particle ParticleGet(GPU *gpu, const int position) {
 
 extern "C" void ParticleUpload(GPU *gpu) {
 #ifdef BUILD_CUDA
-	gpuErrchk(cudaMemcpy(gpu->dParticles, gpu->hParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyHostToDevice));
-#endif
-}
-
-extern "C" void ParticleInit(GPU *gpu, const int particles, const Particle *input) {
-	if(gpu->pCount != particles) {
-		gpu->pCount = particles;
-#ifdef BUILD_CUDA
-		gpuErrchk(cudaFree(gpu->dParticles));
-		gpuErrchk(cudaMalloc((void **)&gpu->dParticles, sizeof(Particle) * particles));
-#else
-		free(gpu->hParticles);
-		gpu->hParticles = (Particle *)malloc(sizeof(Particle) * gpu->pCount);
-#endif
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		gpuErrchk(cudaMemcpyAsync(dev->Particles, &gpu->hParticles[dev->ParticleOffset], sizeof(Particle) * dev->ParticleCount, cudaMemcpyHostToDevice, dev->Stream));
 	}
 
-#ifdef BUILD_CUDA
-	gpuErrchk(cudaMemcpy(gpu->dParticles, input, sizeof(Particle) * particles, cudaMemcpyHostToDevice));
-#else
-	memcpy(gpu->hParticles, input, sizeof(Particle) * gpu->pCount);
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #endif
 }
 
@@ -810,13 +866,26 @@ extern "C" void ParticleInterpolate(GPU *gpu, const double dx, const double dy) 
 #endif
 
 #ifdef BUILD_CUDA
-	const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-	if(gpu->mParameters.LinearInterpolation == 1) {
-		GPUFieldInterpolateLinear<<<blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth * 2) + 2) * sizeof(double)>>>(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
-	} else {
-		GPUFieldInterpolate<<<blocks, CUDA_BLOCK_THREADS, gpu->GridDepth * 2 * sizeof(double)>>>(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->dZ, gpu->dZZ, gpu->dUext, gpu->dVext, gpu->dWext, gpu->dText, gpu->dQext, gpu->pCount, gpu->dParticles);
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+
+		const unsigned int blocks = std::ceil(gpu->pCount / (double)CUDA_BLOCK_THREADS);
+		if(gpu->mParameters.LinearInterpolation == 1) {
+			GPUFieldInterpolateLinear<<<blocks, CUDA_BLOCK_THREADS, ((gpu->GridDepth * 2) + 2) * sizeof(double), dev->Stream>>>(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, dev->Z, dev->ZZ, dev->Uext, dev->Vext, dev->Wext, dev->Text, dev->Qext, dev->ParticleCount, dev->Particles);
+		} else {
+			GPUFieldInterpolate<<<blocks, CUDA_BLOCK_THREADS, gpu->GridDepth * 2 * sizeof(double), dev->Stream>>>(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, dev->Z, dev->ZZ, dev->Uext, dev->Vext, dev->Wext, dev->Text, dev->Qext, dev->ParticleCount, dev->Particles);
+		}
+		gpuErrchk(cudaPeekAtLastError());
 	}
-	gpuErrchk(cudaPeekAtLastError());
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #else
 	if(gpu->mParameters.LinearInterpolation == 1) {
 		GPUFieldInterpolateLinear(gpu->GridWidth, gpu->GridHeight, dx, dy, gpu->GridDepth, gpu->hZ, gpu->hZZ, gpu->hUext, gpu->hVext, gpu->hWext, gpu->hText, gpu->hQext, gpu->pCount, gpu->hParticles);
@@ -826,9 +895,6 @@ extern "C" void ParticleInterpolate(GPU *gpu, const double dx, const double dy) 
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
-#ifdef BUILD_CUDA
-	cudaDeviceSynchronize();
-#endif
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "GPU Interpolate: " << std::chrono::duration<double>(end - start).count() << "s" << std::endl;
 #endif
@@ -840,17 +906,27 @@ extern "C" void ParticleStep(GPU *gpu, const int it, const int istage, const dou
 #endif
 
 #ifdef BUILD_CUDA
-	const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-	GPUUpdateParticles<<<blocks, CUDA_BLOCK_THREADS>>>(it, istage - 1, dt, gpu->pCount, gpu->dParticles);
-	gpuErrchk(cudaPeekAtLastError());
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+
+		const unsigned int blocks = std::ceil(gpu->pCount / (double)CUDA_BLOCK_THREADS);
+		GPUUpdateParticles<<<blocks, CUDA_BLOCK_THREADS, 0, dev->Stream>>>(it, istage - 1, dt, dev->ParticleCount, dev->Particles);
+		gpuErrchk(cudaPeekAtLastError());
+	}
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #else
 	GPUUpdateParticles(it, istage - 1, dt, gpu->pCount, gpu->hParticles);
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
-#ifdef BUILD_CUDA
-	cudaDeviceSynchronize();
-#endif
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "GPU Step: " << std::chrono::duration<double>(end - start).count() << "s" << std::endl;
 #endif
@@ -862,17 +938,27 @@ extern "C" void ParticleUpdateNonPeriodic(GPU *gpu) {
 #endif
 
 #ifdef BUILD_CUDA
-	const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-	GPUUpdateNonperiodic<<<blocks, CUDA_BLOCK_THREADS>>>(gpu->FieldDepth, gpu->pCount, gpu->dParticles);
-	gpuErrchk(cudaPeekAtLastError());
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+
+		const unsigned int blocks = std::ceil(gpu->pCount / (double)CUDA_BLOCK_THREADS);
+		GPUUpdateNonperiodic<<<blocks, CUDA_BLOCK_THREADS, 0, dev->Stream>>>(gpu->FieldDepth, dev->ParticleCount, dev->Particles);
+		gpuErrchk(cudaPeekAtLastError());
+	}
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #else
 	GPUUpdateNonperiodic(gpu->FieldDepth, gpu->pCount, gpu->hParticles);
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
-#ifdef BUILD_CUDA
-	cudaDeviceSynchronize();
-#endif
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "GPU NonPeriodic: " << std::chrono::duration<double>(end - start).count() << "s" << std::endl;
 #endif
@@ -884,17 +970,27 @@ extern "C" void ParticleUpdatePeriodic(GPU *gpu) {
 #endif
 
 #ifdef BUILD_CUDA
-	const unsigned int blocks = std::ceil(gpu->pCount / (float)CUDA_BLOCK_THREADS);
-	GPUUpdatePeriodic<<<blocks, CUDA_BLOCK_THREADS>>>(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->dParticles);
-	gpuErrchk(cudaPeekAtLastError());
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+
+		const unsigned int blocks = std::ceil(gpu->pCount / (double)CUDA_BLOCK_THREADS);
+		GPUUpdatePeriodic<<<blocks, CUDA_BLOCK_THREADS, 0, dev->Stream>>>(gpu->FieldWidth, gpu->FieldHeight, dev->ParticleCount, dev->Particles);
+		gpuErrchk(cudaPeekAtLastError());
+	}
+
+#ifdef BUILD_PERFORMANCE_PROFILE
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		cudaStreamSynchronize(dev->Stream);
+	}
+#endif
 #else
 	GPUUpdatePeriodic(gpu->FieldWidth, gpu->FieldHeight, gpu->pCount, gpu->hParticles);
 #endif
 
 #ifdef BUILD_PERFORMANCE_PROFILE
-#ifdef BUILD_CUDA
-	cudaDeviceSynchronize();
-#endif
 	auto end = std::chrono::steady_clock::now();
 	std::cout << "GPU Periodic: " << std::chrono::duration<double>(end - start).count() << "s" << std::endl;
 #endif
@@ -924,7 +1020,11 @@ extern "C" void ParticleCalculateStatistics(GPU *gpu, const double dx, const dou
 
 extern "C" void ParticleDownload(GPU *gpu) {
 #ifdef BUILD_CUDA
-	gpuErrchk(cudaMemcpy(gpu->hParticles, gpu->dParticles, sizeof(Particle) * gpu->pCount, cudaMemcpyDeviceToHost));
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		Device *dev = GetDeviceMemory(gpu);
+		gpuErrchk(cudaMemcpy(&gpu->hParticles[dev->ParticleOffset], dev->Particles, sizeof(Particle) * dev->ParticleCount, cudaMemcpyDeviceToHost));
+	}
 #endif
 }
 
@@ -1054,7 +1154,10 @@ void SetParameters(GPU *gpu, const Parameters *params) {
 	memcpy(&gpu->mParameters, params, sizeof(Parameters));
 
 #ifdef BUILD_CUDA
-	gpuErrchk(cudaMemcpyToSymbol(cParams, &gpu->mParameters, sizeof(Parameters)));
+	for(size_t i = 0; i < gpudevices(); i++) {
+		SetDeviceIndex(gpu, i);
+		gpuErrchk(cudaMemcpyToSymbol(cParams, &gpu->mParameters, sizeof(Parameters)));
+	}
 #else
 	memcpy(&cParams, &gpu->mParameters, sizeof(Parameters));
 #endif
