@@ -7,11 +7,14 @@ addons:
   apt:
     sources:
       - ubuntu-toolchain-r-test
+      - sourceline: 'ppa:george-edison55/precise-backports'
     packages:
       - g++-6
       - gcc-6
       - gfortran-6
       - libopenmpi-dev
+      - cmake
+      - cmake-data
 before_install:
   - |
     if [ ! -f "$HOME/lcov-1.13/usr/local/bin/lcov" ]; then
@@ -25,7 +28,7 @@ script:
   - export PATH=$PWD/latest-gcc-symlinks:$PATH
   - mkdir build
   - cd build
-  - CXX="g++-6" CC="gcc-6" FC="gfortran-6" cmake ..-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_TEST_COVERAGE=ON ..
+  - CXX="g++-6" CC="gcc-6" FC="gfortran-6" cmake ..-DCMAKE_BUILD_TYPE=DEBUG -DBUILD_TESTS=ON -DBUILD_TEST_COVERAGE=ON -DBUILD_FIELD_DOUBLE=ON ..
   - make
   - ./les-test
 after_success:
