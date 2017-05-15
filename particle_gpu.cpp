@@ -145,6 +145,7 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 			if(z[j] < zPos) kwpt = j;
 		}
 
+
 		double xUF = 0.0, yUF = 0.0, zUF = 0.0;
 		double Tf = 0.0, qinf = 0.0;
 
@@ -171,6 +172,20 @@ GLOBAL void GPUFieldInterpolateLinear(const int nx, const int ny, const double d
 					zUF += wext[(ix + 1) + (iy + 1) * nx + izw * ny * nx] * wtx * wty * wtzw;
 					Tf += Text[(ix + 1) + (iy + 1) * nx + izuv * ny * nx] * wtx * wty * wtz;
 					qinf += T2ext[(ix + 1) + (iy + 1) * nx + izuv * ny * nx] * wtx * wty * wtz;
+
+                                        if (kpt == 0){
+					xUF = uext[(ix + 1) + (iy + 1) * nx + 1 * ny * nx];
+					yUF = vext[(ix + 1) + (iy + 1) * nx + 1 * ny * nx];
+					Tf = Text[(ix + 1) + (iy + 1) * nx + 1 * ny * nx];
+					qinf = T2ext[(ix + 1) + (iy + 1) * nx + 1 * ny * nx];
+                                         }
+
+                                        if (kpt == nnz-2){
+					xUF = uext[(ix + 1) + (iy + 1) * nx + (nnz-2) * ny * nx];
+					yUF = vext[(ix + 1) + (iy + 1) * nx + (nnz-2) * ny * nx];
+					Tf = Text[(ix + 1) + (iy + 1) * nx + (nnz-2) * ny * nx];
+					qinf = T2ext[(ix + 1) + (iy + 1) * nx + (nnz-2) * ny * nx];
+                                         }
 				}
 			}
 		}

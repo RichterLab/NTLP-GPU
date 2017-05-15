@@ -87,7 +87,7 @@ Pra = 0.715
 Sc = 0.615
 
 !Particles:
-tnumpart = 1e5
+tnumpart = 1e6
 rhow=1000.0  !kg/m^3
 part_grav = 0.0
 Cpp = 4179.0  !J/kg-K
