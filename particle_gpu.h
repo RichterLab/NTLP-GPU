@@ -5,6 +5,12 @@
 #include <string>
 #include <vector>
 
+#ifdef BUILD_FIELD_DOUBLE
+typedef double fieldSize;
+#else
+typedef float fieldSize;
+#endif
+
 struct Particle {
 	int pidx, procidx;
 	double vp[3], xp[3], uf[3], xrhs[3], vrhs[3];
@@ -35,7 +41,7 @@ struct Device {
 	int ParticleCount, ParticleOffset;
 
 	Particle *Particles;
-	double *Uext, *Vext, *Wext, *Text, *Qext;
+	fieldSize *Uext, *Vext, *Wext, *Text, *Qext;
 	double *Z, *ZZ;
 };
 
@@ -48,7 +54,7 @@ struct GPU {
 	int GridHeight, GridWidth, GridDepth;
 	double FieldWidth, FieldHeight, FieldDepth;
 
-	double *hUext, *hVext, *hWext, *hText, *hQext;
+	fieldSize *hUext, *hVext, *hWext, *hText, *hQext;
 	double *hZ, *hZZ;
 
 	// Statistics
@@ -62,7 +68,6 @@ struct GPU {
 extern "C" void rand2_seed(int seed);
 extern "C" double rand2();
 extern "C" GPU *NewGPU(const int particles, const int height, const int width, const int depth, const double fWidth, const double fHeight, const double fDepth, double *z, double *zz, const Parameters *params);
-extern "C" void ParticleFieldSet(GPU *gpu, double *uext, double *vext, double *wext, double *text, double *qext);
 extern "C" void ParticleAdd(GPU *gpu, const int position, const Particle *input);
 extern "C" Particle ParticleGet(GPU *gpu, const int position);
 extern "C" void ParticleUpload(GPU *gpu);
@@ -75,6 +80,7 @@ extern "C" void ParticleUpdatePeriodic(GPU *gpu);
 extern "C" void ParticleCalculateStatistics(GPU *gpu, const double dx, const double dy);
 extern "C" void ParticleDownload(GPU *gpu);
 extern "C" void ParticleUpdate(GPU *gpu, const int it, const int istage, const double dt, const double dx, const double dy);
+extern "C" void ParticleFieldSet(GPU *gpu, fieldSize *uext, fieldSize *vext, fieldSize *wext, fieldSize *text, fieldSize *qext);
 
 extern "C" void ParticleWrite(GPU *gpu);
 extern "C" GPU *ParticleRead(const char *path);
