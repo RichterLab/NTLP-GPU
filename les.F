@@ -105,11 +105,13 @@ c
          call init
          call setup(it)
 
+#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
         if (ispray==1) then
           call particle_setup
           call particle_init
           !call read_part_res !comment out usually
         endif
+#endif
 
 c
 c ---------- choose routine for getting initial guess
@@ -136,11 +138,12 @@ c
          call dns_vis
          call get_max
 
-
+#if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
          if (ispray==1) then
          call particle_setup
          call read_part_res
          end if
+#endif
       endif
 
 #ifdef BUILD_CUDA
@@ -155,7 +158,6 @@ c
       end if
 
       call initialize_gpu()
-      call transfer_particles()
 #endif
 
 c

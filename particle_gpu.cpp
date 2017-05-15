@@ -508,7 +508,6 @@ GLOBAL void GPUUpdateParticles(const int it, const int istage, const double dt, 
 		}
 
 		particles[idx].radrhs = Shp / 9.0 / cParams.Sc * rhop / cParams.rhow * particles[idx].radius * taup_i * (particles[idx].qinf - particles[idx].qstar) * cParams.Evaporation;
-
 		particles[idx].Tprhs_s = -Nup / 3.0 / cParams.Pra * CpaCpp * rhop / cParams.rhow * taup_i * (particles[idx].Tp - particles[idx].Tf);
 		particles[idx].Tprhs_L = 3.0 * Lv / cParams.Cpp / particles[idx].radius * particles[idx].radrhs;
 
@@ -519,10 +518,6 @@ GLOBAL void GPUUpdateParticles(const int it, const int istage, const double dt, 
 		particles[idx].Tp = Tptmp + dtG * particles[idx].Tprhs_s;
 		particles[idx].Tp += +dtG * particles[idx].Tprhs_L;
 		particles[idx].radius = radiustmp + dtG * particles[idx].radrhs;
-
-               // printf("vp %3.8f\n",particles[idx].vp[0]);
-               // printf("tp %3.8f\n",particles[idx].Tp);
-               // printf("rp %3.8f\n",particles[idx].radius);
 	}
 }
 

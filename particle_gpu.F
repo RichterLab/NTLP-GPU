@@ -214,7 +214,7 @@ contains
 
                 ! Create GPU Instance
                 gpu = newgpu(tnumpart,maxnx+5,maxny+5,maxnz+2,xl,yl,zl,z,zz,parameters)
-                !call gpuparticlegenerate(gpu,numprocs,ncpu_s,1080,Tp_init,radius_init,qf_init)
+                call gpuparticlegenerate(gpu,numprocs,ncpu_s,1080,Tp_init,radius_init,qf_init)
             end if
         end subroutine
 
