@@ -334,10 +334,11 @@ c
 c
 c -------- update particles
 c
-#ifndef BUILD_MULTISTEP_PARTICLE
         if (ispray==1) then
 #ifdef BUILD_CUDA
-          call gpu_particle_step(it, istage, 1)
+          if (imultistep==0) then
+            call gpu_particle_step(it, istage)
+          end if
 #endif
           call tCPU%start(gpu_master_rank)
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
@@ -345,7 +346,7 @@ c
 #endif
           call tCPU%finish(gpu_master_rank, "CPU Step Time: ")
         end if
-#endif
+
         if(mnout .and. istage .eq. 1)  then
             if(l_debug) then
               call print(nprt,it,izs,ize)
@@ -358,11 +359,9 @@ c
         endif
       end do
 
-#ifdef BUILD_MULTISTEP_PARTICLE
-      if (ispray==1) then
-        call gpu_particle_substep(it, 10)
+      if (ispray==1 .and. imultistep==1) then
+        call gpu_particle_substep(it, substeps)
       end if
-#endif
 
       t_stage_f = mpi_wtime()
       !if (myid==5) write(*,*) 'time stage: ',t_stage_f - t_stage_s
@@ -9620,7 +9619,7 @@ c
       character(48) :: label
       character(180) :: params_dir
       namelist /step_params/ iti,itmax,imean,ihst,itape,
-     +                       itstr,it_his,it_viz,i_viz,itn
+     +                       itstr,it_his,it_viz,i_viz,itn,substeps
 
       namelist /grid_params/ ncpu_s, Uo, Ttop, Tbot,
      +         qstar, tsfcc, ugcont, vgcont,
@@ -9633,7 +9632,8 @@ c
       namelist /flags/ ismlt,ifree,isfc,iradup,
      +         iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,
      +         method,idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,
-     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields,ilin
+     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields,ilin,
+     +         imultistep
 
 
       namelist /constants/ rhoa, nuf, Cpa, Pra, Sc,

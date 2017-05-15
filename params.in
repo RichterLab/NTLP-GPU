@@ -11,6 +11,7 @@ it_his=1
 it_viz=1
 i_viz=10000
 itn = 0  !Index for "u.le.cou001" files
+substeps=2 !Particle substeps to run per flow field update
 /
 
 !Flags for various features
@@ -27,6 +28,7 @@ icouple=0
 iTcouple=0
 iHcouple=0  !iHcouple also controls TE couple
 ievap=0
+imultistep=1 ! Multistep particle update flag
 /
 
 !Grid and domain parameters
