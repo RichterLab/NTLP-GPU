@@ -72,5 +72,7 @@
      +   kx_s, kx_e, mx_s, mx_e,
      +   iy_s, iy_e, jy_s, jy_e,
      +   is_s, is_e, iz_s, iz_e
+
+        integer :: imultistep, substeps
       contains
       end module

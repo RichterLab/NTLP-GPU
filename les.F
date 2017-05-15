@@ -105,13 +105,13 @@ c
          call init
          call setup(it)
 
-         if (ispray==1) then
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
-         call particle_setup
-         call particle_init
+        if (ispray==1) then
+          call particle_setup
+          call particle_init
+          !call read_part_res !comment out usually
+        endif
 #endif
-         !call read_part_res !comment out usually
-         endif
 
 c
 c ---------- choose routine for getting initial guess
@@ -173,33 +173,33 @@ c
       write(*,*) 'it,time = ',it,time
       end if
       if (ispray==1) then
-      if (it == 1) numpart = 0
-      part => first_particle
-      do while (associated(part))
-      if (part%pidx == 1 .and. part%procidx == 0) then
-      write(*,'(a7,4e15.6)') 'xp1:  ',time,part%xp(1:3)
-      write(*,'(a7,4e15.6)') 'vp1:  ',time,part%vp(1:3)
-      write(*,'(a7,4e15.6)') 'uf1:  ',time,part%uf(1:3)
-      write(*,'(a7,4e15.6)') 'Tp1:  ',time,part%Tp
-      write(*,'(a7,4e15.6)') 'Tf1:  ',time,part%Tf
-      write(*,'(a7,4e15.6)') 'rad1: ',time,part%radius
-      write(*,'(a7,4e15.6)') 'qinf1:',time,part%qinf
-      write(*,'(a7,4e15.6)') 'qstr1:',time,part%qstar
+        if (it == 1) numpart = 0
+        part => first_particle
+        do while (associated(part))
+          if (part%pidx == 1 .and. part%procidx == 0) then
+            write(*,'(a7,4e15.6)') 'xp1:  ',time,part%xp(1:3)
+            write(*,'(a7,4e15.6)') 'vp1:  ',time,part%vp(1:3)
+            write(*,'(a7,4e15.6)') 'uf1:  ',time,part%uf(1:3)
+            write(*,'(a7,4e15.6)') 'Tp1:  ',time,part%Tp
+            write(*,'(a7,4e15.6)') 'Tf1:  ',time,part%Tf
+            write(*,'(a7,4e15.6)') 'rad1: ',time,part%radius
+            write(*,'(a7,4e15.6)') 'qinf1:',time,part%qinf
+            write(*,'(a7,4e15.6)') 'qstr1:',time,part%qstar
 
-      end if
+          end if
 
-      part => part%next
+          part => part%next
 
-      if (it == 1) numpart = numpart + 1
-      end do
-      if (myid==0) write(*,*) 'time,tnumpart:',time,tnumpart
+          if (it == 1) numpart = numpart + 1
+        end do
+        if (myid==0) write(*,*) 'time,tnumpart:',time,tnumpart
       end if
 
 
       if(it .ge. new_vis .and. ivis0 .eq. 1) then
-          ivis = 1
+        ivis = 1
       else
-          ivis = 0
+        ivis = 0
       endif
 
 
@@ -207,155 +207,162 @@ c
 c ---------------- 3 stage runge-kutta time stepping
 c
       t_stage_s = mpi_wtime()
-      do  8999 istage=1,3
-c
-      dtzeta = dt*zetas(istage)
-      dtgama = dt*gama(istage)
+      do istage=1,3
+        dtzeta = dt*zetas(istage)
+        dtgama = dt*gama(istage)
 
-      call tFlow%start(gpu_master_rank)
+        call tFlow%start(gpu_master_rank)
 c
 c ---------- compute derivatives of (u,v,w)
 c
 
-      call tExchange%start(gpu_master_rank)
-      call exchange
-      call tExchange%finish(gpu_master_rank, "Exchange Step Time: ")
+        call tExchange%start(gpu_master_rank)
+        call exchange
+        call tExchange%finish(gpu_master_rank, "Exchange Step Time: ")
 
-      call tDerivative%start(gpu_master_rank)
-      call get_derv
-      call tDerivative%finish(gpu_master_rank, "Derivitive Step Time: ")
+        call tDerivative%start(gpu_master_rank)
+        call get_derv
+        call tDerivative%finish(gpu_master_rank,
+     +    "Derivitive Step Time: ")
 
 c
 c --------- new eddy viscosity, and bcs
 c
-      call tLower%start(gpu_master_rank)
-      if(iss .eq. 0 .and. ifree .eq. 0) then
-         if (iDNS .eq. 1) then
-            call lower_dns(it)
-         else
-            call lower(it)
-         end if
-      elseif(ifree .eq. 1) then
-         if (iDNS .eq. 1) then
-            call lower_dns(it)
-         else
-            call lower_free(it)
-         end if
-      endif
-      call tLower%finish(gpu_master_rank, "Lower Step Time: ")
+        call tLower%start(gpu_master_rank)
+        if(iss .eq. 0 .and. ifree .eq. 0) then
+          if (iDNS .eq. 1) then
+              call lower_dns(it)
+          else
+              call lower(it)
+          end if
+        elseif(ifree .eq. 1) then
+          if (iDNS .eq. 1) then
+              call lower_dns(it)
+          else
+              call lower_free(it)
+          end if
+        endif
+        call tLower%finish(gpu_master_rank, "Lower Step Time: ")
 
-      call tUpper%start(gpu_master_rank)
-      if(ise .eq. numprocs-1) then
-         if (iDNS .eq. 1) then
-            call upper_dns
-         else
-            call upper
-         end if
-      endif
-      call tUpper%finish(gpu_master_rank, "Upper Step Time: ")
+        call tUpper%start(gpu_master_rank)
+        if(ise .eq. numprocs-1) then
+          if (iDNS .eq. 1) then
+              call upper_dns
+          else
+              call upper
+          end if
+        endif
+        call tUpper%finish(gpu_master_rank, "Upper Step Time: ")
 
-      call tPBC%start(gpu_master_rank)
-      call bcast_pbc
-      call tPBC%finish(gpu_master_rank, "PBC Step Time: ")
+        call tPBC%start(gpu_master_rank)
+        call bcast_pbc
+        call tPBC%finish(gpu_master_rank, "PBC Step Time: ")
 
-      call tMeans%start(gpu_master_rank)
-      call get_means(istage)
-      call tMeans%finish(gpu_master_rank, "Means Step Time: ")
+        call tMeans%start(gpu_master_rank)
+        call get_means(istage)
+        call tMeans%finish(gpu_master_rank, "Means Step Time: ")
 
-      call tVis%start(gpu_master_rank)
-      if(ivis .eq. 1) then
-         call iso(it)
-         call surfvis(it)
-      endif
-      call tVis%finish(gpu_master_rank, "IVis Step Time: ")
+        call tVis%start(gpu_master_rank)
+        if(ivis .eq. 1) then
+          call iso(it)
+          call surfvis(it)
+        endif
+        call tVis%finish(gpu_master_rank, "IVis Step Time: ")
 
-      if(istage .eq. 1)then
-        call tXY%start(gpu_master_rank)
+        if(istage .eq. 1)then
+          call tXY%start(gpu_master_rank)
 
-        call xy_stats(it)
-        call tke_budget
-        do iscl=1,nscl
-            call Tvar_budget(iscl)
-        enddo
-        call extra_flux_terms
-        call pbltop(itop)
+          call xy_stats(it)
+          call tke_budget
+          do iscl=1,nscl
+              call Tvar_budget(iscl)
+          enddo
+          call extra_flux_terms
+          call pbltop(itop)
 
-        call tXY%finish(gpu_master_rank, "XYStats Step Time: ")
-      endif
+          call tXY%finish(gpu_master_rank, "XYStats Step Time: ")
+        endif
 
 c
 c ------------ save velocity field
 c
-      call tSave%start(gpu_master_rank)
-      if(msave .and. istage .eq. 1) then
-         call save_v(it)
-         if (ispray==1) call save_particles
-      endif
-      if(msave_v .and. istage .eq. 1) then
-         call save_viz(it)
-      endif
+        call tSave%start(gpu_master_rank)
+        if(msave .and. istage .eq. 1) then
+          call save_v(it)
+          if (ispray==1) call save_particles
+        endif
+        if(msave_v .and. istage .eq. 1) then
+          call save_viz(it)
+        endif
 c
 c ------------ save pressure field
 c
-      if(msave .and. istage .eq. 1) then
-         call save_p
-      endif
-      call tSave%finish(gpu_master_rank, "Save Step Time: ")
+        if(msave .and. istage .eq. 1) then
+          call save_p
+        endif
+        call tSave%finish(gpu_master_rank, "Save Step Time: ")
 c
 c --------- get rhs for all equations
 c
-      call tComp1%start(gpu_master_rank)
-      call comp1(istage,it)
-      call tComp1%finish(gpu_master_rank, "Comp1 Step Time: ")
+        call tComp1%start(gpu_master_rank)
+        call comp1(istage,it)
+        call tComp1%finish(gpu_master_rank, "Comp1 Step Time: ")
 
-      if(istage .eq. 1) then
-         if(msave .and. l_root) call save_c(it)
-      endif
+        if(istage .eq. 1) then
+          if(msave .and. l_root) call save_c(it)
+        endif
 c
 c --------- solve for pressure
 c
-      call tCompP%start(gpu_master_rank)
-      call comp_p
-      call tCompP%finish(gpu_master_rank, "CompP Step Time: ")
+        call tCompP%start(gpu_master_rank)
+        call comp_p
+        call tCompP%finish(gpu_master_rank, "CompP Step Time: ")
 
 c
 c --------- add pressure gradient and dealias
 c
-      call tComp2%start(gpu_master_rank)
-      call comp2
-      call tComp2%finish(gpu_master_rank, "Comp2 Step Time: ")
+        call tComp2%start(gpu_master_rank)
+        call comp2
+        call tComp2%finish(gpu_master_rank, "Comp2 Step Time: ")
 
-      if(micut) then
-         call dealias
-      endif
+        if(micut) then
+          call dealias
+        endif
 
-      call tFlow%finish(gpu_master_rank, "Flow Step Time: ")
+        call tFlow%finish(gpu_master_rank, "Flow Step Time: ")
 
 c
 c -------- update particles
 c
-      if (ispray==1) then
+        if (ispray==1) then
 #ifdef BUILD_CUDA
-         call gpu_particle_step(it, istage)
+          if (imultistep==0) then
+            call gpu_particle_step(it, istage)
+          end if
 #endif
-         call tCPU%start(gpu_master_rank)
+          call tCPU%start(gpu_master_rank)
 #if !defined(BUILD_CUDA) || defined(BUILD_CUDA_VERIFY)
-         call particle_update_rk3(it,istage)
+          call particle_update_rk3(it,istage)
 #endif
-         call tCPU%finish(gpu_master_rank, "CPU Step Time: ")
+          call tCPU%finish(gpu_master_rank, "CPU Step Time: ")
+        end if
+
+        if(mnout .and. istage .eq. 1)  then
+            if(l_debug) then
+              call print(nprt,it,izs,ize)
+            endif
+            if(l_root) call print(6,it,1,nnz)
+        endif
+        if(l_root) then
+          if(mhis  .and. istage .eq. 1)  call write_his(itop)
+          if(mhis  .and. istage .eq. 1 .and. mtape) call close_his
+        endif
+      end do
+
+      if (ispray==1 .and. imultistep==1) then
+        call gpu_particle_substep(it, substeps)
       end if
-      if(mnout .and. istage .eq. 1)  then
-          if(l_debug) then
-             call print(nprt,it,izs,ize)
-          endif
-          if(l_root) call print(6,it,1,nnz)
-      endif
-      if(l_root) then
-         if(mhis  .and. istage .eq. 1)  call write_his(itop)
-         if(mhis  .and. istage .eq. 1 .and. mtape) call close_his
-      endif
-c
- 8999 continue
+
       t_stage_f = mpi_wtime()
       !if (myid==5) write(*,*) 'time stage: ',t_stage_f - t_stage_s
 
@@ -9612,7 +9619,7 @@ c
       character(48) :: label
       character(180) :: params_dir
       namelist /step_params/ iti,itmax,imean,ihst,itape,
-     +                       itstr,it_his,it_viz,i_viz,itn
+     +                       itstr,it_his,it_viz,i_viz,itn,substeps
 
       namelist /grid_params/ ncpu_s, Uo, Ttop, Tbot,
      +         qstar, tsfcc, ugcont, vgcont,
@@ -9625,7 +9632,8 @@ c
       namelist /flags/ ismlt,ifree,isfc,iradup,
      +         iupwnd,ibuoy,ifilt,itcut,isubs,ibrcl,iocean,
      +         method,idebug,iz_space,ivis0,ifix_dt,new_vis,iDNS,
-     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields,ilin
+     +         ispray,icouple,iTcouple,iHcouple,ievap,ifields,ilin,
+     +         imultistep
 
 
       namelist /constants/ rhoa, nuf, Cpa, Pra, Sc,
