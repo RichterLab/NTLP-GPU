@@ -87,14 +87,14 @@ Pra = 0.715
 Sc = 0.615
 
 !Particles:
-tnumpart = 1e5
+tnumpart = 1e6
 rhow=1000.0  !kg/m^3
 part_grav = 0.0
 Cpp = 4179.0  !J/kg-K
 Mw = 0.018015  !kg/mol
 Ru = 8.3144
 Ms = 0.05844  !kg/mol: molecular weight of salt
-Sal = 0.0   !Salinity
+Sal = 34.0   !Salinity
 Gam = 7.28e-2
 Ion = 2.0
 Os = 1.093

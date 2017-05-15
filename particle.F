@@ -1999,9 +1999,24 @@
       part%Tf = part%Tf + Text(izuv,iy,ix)*wtx*wty*wtz
       part%qinf = part%qinf + T2ext(izuv,iy,ix)*wtx*wty*wtz
 
+      if (kpt .eq. 0) then
+      part%uf(1) = uext(1,iy,ix)
+      part%uf(2) = vext(1,iy,ix)
+      part%Tf = Text(1,iy,ix)
+      part%qinf = T2ext(1,iy,ix)
+      end if
+
+      if (kpt .eq. nnz) then
+      part%uf(1) = uext(nnz,iy,ix)
+      part%uf(2) = vext(nnz,iy,ix)
+      part%Tf = Text(nnz,iy,ix)
+      part%qinf = T2ext(nnz,iy,ix)
+      end if
+
       end do
       end do
       end do
+
       end subroutine uf_interp_lin
 
       subroutine save_particles

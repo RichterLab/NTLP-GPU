@@ -58,7 +58,7 @@ struct GPU {
 	double *hZ, *hZZ;
 
 	// Statistics
-	double *hPartCount, *hVPSum, *hVPSumSQ;
+        double *hPartCount, *hVPSum, *hVPSumSQ, *hRPSum, *hTPSum, *hTFSum, *hQFSum;
 
 	// GPU Memory
 	Device *mDevices;
@@ -88,7 +88,7 @@ extern "C" GPU *ParticleRead(const char *path);
 extern "C" void PrintFreeMemory();
 
 // Fortran Data Access
-extern "C" void ParticleFillStatistics(GPU *gpu, double *partCount, double *vSum, double *vSumSQ);
+extern "C" void ParticleFillStatistics(GPU *gpu, double *partCount, double *vSum, double *vSumSQ, double *rSum, double *tSum, double *tfSum, double *qfSum);
 
 // Helper Functions
 const std::vector<double> ReadDoubleArray(const std::string &path);
