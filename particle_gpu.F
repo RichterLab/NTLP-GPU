@@ -131,7 +131,7 @@ module particle_c
             type(c_ptr), VALUE, intent(in)  :: gpu
         end subroutine
 
-        subroutine gpufillstatistics(gpu,partcount,vpsum,vpsumsq,rsum,tsum,tf_sum,qf_sum) bind(c,name="ParticleFillStatistics")
+        subroutine gpufillstatistics(gpu,partcount,vpsum,vpsumsq,rsum,tsum,tf_sum,qf_sum,qstar_sum,single_stats) bind(c,name="ParticleFillStatistics")
             use iso_c_binding, only: c_ptr,c_double
             type(c_ptr), VALUE, intent(in)  :: gpu
             real(c_double), intent(inout), dimension(*) :: partcount
@@ -141,6 +141,8 @@ module particle_c
             real(c_double), intent(inout), dimension(*) :: tsum
             real(c_double), intent(inout), dimension(*) :: tf_sum
             real(c_double), intent(inout), dimension(*) :: qf_sum
+            real(c_double), intent(inout), dimension(*) :: qstar_sum
+            real(c_double), intent(inout), dimension(*) :: single_stats
         end subroutine
 
         subroutine gpuparticlegenerate(gpu,processors,ncpus,seed,temperature,radius,qinfp) bind(c,name="ParticleGenerate")
@@ -503,33 +505,33 @@ contains
             call tStep%finish(gpu_master_rank, "GPU Step Time: ")
         end subroutine
 
-        subroutine gpu_particle_substep(it, substeps)
-            use class_Profiler
-            use pars, only: myid
-            use con_data, only: dx, dy, dt
-
-            include 'mpif.h'
-
-            integer :: ierr, it, istage, step, substeps
-            type(Profiler) :: tAssemble, tStep
-
-            call tAssemble%start(gpu_master_rank)
-            call assemble_gpu_data
-            call tAssemble%finish(gpu_master_rank, "Assemble Step Time: ")
-
-            call tStep%start(gpu_master_rank)
-            if( myid .eq. gpu_master_rank ) then
-                call gpuinterpolate(gpu,dx,dy)
-                do step = 1,substeps
-                    do istage = 1,3
-                        call gpustep(gpu, it, istage, dt/substeps)
-                        call gpunonperiodic(gpu)
-                        call gpuperiodic(gpu)
-                    end do
-                end do
-            end if
-            call tStep%finish(gpu_master_rank, "GPU Step Time: ")
-        end subroutine
+!        subroutine gpu_particle_substep(it, substeps)
+!            use class_Profiler
+!            use pars, only: myid
+!            use con_data, only: dx, dy, dt
+!
+!            include 'mpif.h'
+!
+!            integer :: ierr, it, istage, step, substeps
+!            type(Profiler) :: tAssemble, tStep
+!
+!            call tAssemble%start(gpu_master_rank)
+!            call assemble_gpu_data
+!            call tAssemble%finish(gpu_master_rank, "Assemble Step Time: ")
+!
+!            call tStep%start(gpu_master_rank)
+!            if( myid .eq. gpu_master_rank ) then
+!                call gpuinterpolate(gpu,dx,dy)
+!                do step = 1,substeps
+!                    do istage = 1,3
+!                        call gpustep(gpu, it, istage, dt/substeps)
+!                        call gpunonperiodic(gpu)
+!                        call gpuperiodic(gpu)
+!                    end do
+!                end do
+!            end if
+!            call tStep%finish(gpu_master_rank, "GPU Step Time: ")
+!        end subroutine
 
         subroutine calculate_statistics(stat)
             use pars, only: nnz, nny, nnx, numprocs, myid, dzw
@@ -543,7 +545,7 @@ contains
             integer :: iz, istatus, ierr, dim, tdim
             real :: stat(1:nnz,34 + 5*nscl)
             real(8), allocatable :: pCount(:), vSum(:), vSumSQ(:)
-            real(8), allocatable :: rSum(:), tSum(:), tf_Sum(:), qf_Sum(:)
+            real(8), allocatable :: rSum(:),tSum(:),tf_Sum(:),qf_Sum(:),qstar_Sum(:)
 #ifdef BUILD_CUDA_VERIFY
             integer :: succeeded, failures
 #endif
@@ -553,12 +555,12 @@ contains
             dim = nnz + 2
             tdim = dim * 3
             allocate(pCount(dim), vSum(tdim), vSumSQ(tdim))
-            allocate(rSum(dim), tSum(dim), tf_Sum(dim), qf_Sum(dim))
+            allocate(rSum(dim),tSum(dim),tf_Sum(dim),qf_Sum(dim),qstar_Sum(dim))
 
             call timer%start(gpu_master_rank)
             if( myid .eq. gpu_master_rank ) then
                 call gpustatistics(gpu,dx,dy,nnz,nny,nnx,dzw)
-                call gpufillstatistics(gpu, pCount, vSum, vSumSQ, rSum, tSum, tf_Sum, qf_Sum)
+                call gpufillstatistics(gpu,pCount,vSum,vSumSQ,rSum,tSum,tf_Sum,qf_Sum,qstar_Sum,single_stats)
 
                 if( myid .ne. 0 ) then
                     call mpi_send(pCount,dim,mpi_real8,0,1,mpi_comm_world,ierr)
@@ -568,6 +570,7 @@ contains
                     call mpi_send(tSum,dim,mpi_real8,0,1,mpi_comm_world,ierr)
                     call mpi_send(tf_Sum,dim,mpi_real8,0,1,mpi_comm_world,ierr)
                     call mpi_send(qf_Sum,dim,mpi_real8,0,1,mpi_comm_world,ierr)
+                    call mpi_send(qstar_Sum,dim,mpi_real8,0,1,mpi_comm_world,ierr)
                 end if
             else
                 if( myid .eq. 0 ) then
@@ -578,6 +581,7 @@ contains
                     call mpi_recv(tSum,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                     call mpi_recv(tf_Sum,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                     call mpi_recv(qf_Sum,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
+                    call mpi_recv(qstar_Sum,dim,mpi_real8,gpu_master_rank,1,mpi_comm_world,istatus,ierr)
                 end if
             end if
 
@@ -646,6 +650,7 @@ contains
                     stat(iz,22) = tSum(iz)
                     stat(iz,24) = tf_Sum(iz)
                     stat(iz,25) = qf_Sum(iz)
+                    stat(iz,34) = qstar_Sum(iz)
                 end do
 #ifdef BUILD_CUDA_VERIFY
                 write(*,*) "Total Failures: ", failures
