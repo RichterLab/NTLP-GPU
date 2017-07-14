@@ -493,7 +493,6 @@ c
 c
 c ------------- if used, change to fit your problem
 c
-        dt_new = 0.5
       else
 c
 c ------------------- new estimate of best time step
@@ -679,9 +678,6 @@ c ----------- a full step, at the new time
 c
       etas(4)  =  0.0
 c
-      cfl = 0.40
-      !cfl = 0.2  !For phi0.25_rho1000_r100_Mun_Tcpl
-c     cfl = 0.50
 c
       return
 c
@@ -9625,7 +9621,7 @@ c
 
       namelist /grid_params/ ncpu_s, Uo, Ttop, Tbot,
      +         qstar, tsfcc, ugcont, vgcont,
-     +         zi, zl, xl, yl, zw1, dpdx
+     +         zi, zl, xl, yl, zw1, dpdx, cfl, dt_new
 
       namelist /path_names/ path_seed,path_part,path_res,
      +         path_sav,path_his,path_viz_xy,path_viz_xz,
