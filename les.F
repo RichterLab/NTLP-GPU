@@ -1395,13 +1395,13 @@ c ------------ buoyancy (with hydrostatic part)
 c
 
 !MODIFY BUOYANCY TERM TO INCLUDE HUMIDITY
-!         w_buy = batag*(t(ix,iy,1,iz)*weit1 +
-!     +                  t(ix,iy,1,izp1)*weit)
-
          w_buy = batag*(t(ix,iy,1,iz)*weit1 +
-     +                  t(ix,iy,1,izp1)*weit)*
-     +   (1.0+0.61*(weit1*t(ix,iy,2,iz) +
-     +    weit*t(ix,iy,2,izp1)))
+     +                  t(ix,iy,1,izp1)*weit)
+
+!         w_buy = batag*(t(ix,iy,1,iz)*weit1 +
+!     +                  t(ix,iy,1,izp1)*weit)*
+!     +   (1.0+0.61*(weit1*t(ix,iy,2,iz) +
+!     +    weit*t(ix,iy,2,izp1)))
 
 
 c
